@@ -1,0 +1,36 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class JobSeekerProfile extends Model
+{
+    protected $fillable = [
+        'user_id', 'professional_title', 'city', 'state', 'country',
+        'current_job_title', 'current_company', 'years_of_experience',
+        'employment_type_preference', 'highest_education', 'field_of_study',
+        'institution_name', 'skills', 'certifications', 'resume_path',
+        'resume_parsed_data', 'portfolio_url', 'linkedin_url',
+        'desired_job_types', 'desired_industries', 'expected_salary_min',
+        'expected_salary_max', 'salary_currency', 'willing_to_relocate',
+        'profile_visibility', 'profile_completeness',
+    ];
+
+    protected $casts = [
+        'employment_type_preference' => 'array',
+        'skills'                     => 'array',
+        'certifications'             => 'array',
+        'resume_parsed_data'         => 'array',
+        'desired_job_types'          => 'array',
+        'desired_industries'         => 'array',
+        'willing_to_relocate'        => 'boolean',
+        'expected_salary_min'        => 'decimal:2',
+        'expected_salary_max'        => 'decimal:2',
+    ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+}

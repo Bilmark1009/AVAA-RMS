@@ -20,12 +20,12 @@ class ProfileController extends Controller
     {
         return Inertia::render('Profile/Edit', [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
-            'status' => session('status'),
+            'status'          => session('status'),
         ]);
     }
 
     /**
-     * Update the user's profile information.
+     * Update the user's profile information (name, email, phone).
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {

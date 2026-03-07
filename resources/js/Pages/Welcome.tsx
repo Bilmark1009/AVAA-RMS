@@ -1,365 +1,672 @@
-import { PageProps } from '@/types';
 import { Head, Link } from '@inertiajs/react';
+import { useEffect, useRef, useState } from 'react';
 
-export default function Welcome({
-    auth,
-    laravelVersion,
-    phpVersion,
-}: PageProps<{ laravelVersion: string; phpVersion: string }>) {
-    const handleImageError = () => {
-        document
-            .getElementById('screenshot-container')
-            ?.classList.add('!hidden');
-        document.getElementById('docs-card')?.classList.add('!row-span-1');
-        document
-            .getElementById('docs-card-content')
-            ?.classList.add('!flex-row');
-        document.getElementById('background')?.classList.add('!hidden');
+/* ═══════════════════════════════════════════
+   DATA
+   ═══════════════════════════════════════════ */
+
+const CATEGORY_ICONS: Record<string, React.ReactNode> = {
+    'Web Development': (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" />
+        </svg>
+    ),
+    'Mobile Apps': (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="5" y="2" width="14" height="20" rx="2" ry="2" /><line x1="12" y1="18" x2="12.01" y2="18" />
+        </svg>
+    ),
+    'UI/UX Design': (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 19l7-7 3 3-7 7-3-3z" /><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" /><path d="M2 2l7.586 7.586" /><circle cx="11" cy="11" r="2" />
+        </svg>
+    ),
+    'Data Science': (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" />
+        </svg>
+    ),
+    'Cloud & DevOps': (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z" />
+        </svg>
+    ),
+    'Cybersecurity': (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+        </svg>
+    ),
+    'AI & Machine Learning': (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2a2 2 0 012 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 017 7h1.27c.34-.6.99-1 1.73-1a2 2 0 110 4c-.74 0-1.39-.4-1.73-1H20a7 7 0 01-7 7v1.27c.6.34 1 .99 1 1.73a2 2 0 11-4 0c0-.74.4-1.39 1-1.73V20a7 7 0 01-7-7H2.73c-.34.6-.99 1-1.73 1a2 2 0 110-4c.74 0 1.39.4 1.73 1H4a7 7 0 017-7V5.73c-.6-.34-1-.99-1-1.73a2 2 0 012-2z" />
+        </svg>
+    ),
+    'Marketing': (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+        </svg>
+    ),
+};
+
+const CATEGORIES = [
+    { label: 'Web Development', count: 312 },
+    { label: 'Mobile Apps', count: 185 },
+    { label: 'UI/UX Design', count: 247 },
+    { label: 'Data Science', count: 156 },
+    { label: 'Cloud & DevOps', count: 198 },
+    { label: 'Cybersecurity', count: 134 },
+    { label: 'AI & Machine Learning', count: 223 },
+    { label: 'Marketing', count: 167 },
+];
+
+const FEATURED_JOBS = [
+    { id: 1, initials: 'TN', title: 'Senior Frontend Developer', company: 'TechNova', location: 'San Francisco, CA', type: 'Full-time', salary: '$120k–$160k' },
+    { id: 2, initials: 'DS', title: 'Backend Engineer', company: 'DataStream', location: 'New York, NY', type: 'Full-time', salary: '$130k–$170k' },
+    { id: 3, initials: 'FL', title: 'Full-Stack Developer', company: 'FlowLabs', location: 'Seattle, WA', type: 'Full-time', salary: '$125k–$165k' },
+    { id: 4, initials: 'NL', title: 'Data Scientist', company: 'NeuraLabs', location: 'Boston, MA', type: 'Full-time', salary: '$135k–$175k' },
+    { id: 5, initials: 'PH', title: 'Product Manager', company: 'PivotHub', location: 'Remote', type: 'Full-time', salary: '$115k–$155k' },
+    { id: 6, initials: 'SF', title: 'Solutions Architect', company: 'StackForge', location: 'Denver, CO', type: 'Full-time', salary: '$150k–$200k' },
+];
+
+const TESTIMONIALS = [
+    { name: 'Sarah Chen', role: 'Software Engineer', text: 'AVAA helped me find my dream job in just two weeks. The platform is intuitive and the job recommendations are spot on.' },
+    { name: 'Marcus Rivera', role: 'Product Designer', text: 'I love how easy it is to browse and apply. The multi-step application wizard made the process seamless and stress-free.' },
+    { name: 'Aisha Patel', role: 'Data Analyst', text: 'The best job platform I have used. Clean interface, quality listings, and I appreciate the company transparency.' },
+];
+
+const PARTNER_LOGOS = ['Google', 'Microsoft', 'Amazon', 'Meta', 'Apple'];
+
+const TOP_COMPANIES = ['TechNova', 'DataStream', 'FlowLabs', 'NeuraLabs', 'CloudScale', 'AppAxis', 'StackForge', 'ByteFortress'];
+
+/* Shared max-width container — fills up to 1600px on wide desktops */
+const C = 'w-full max-w-[1600px] mx-auto px-6 sm:px-10 lg:px-16 xl:px-20 2xl:px-24';
+
+/* ═══════════════════════════════════════════
+   COMPONENT
+   ═══════════════════════════════════════════ */
+
+export default function Welcome() {
+    const [searchQuery, setSearchQuery] = useState('');
+    const [heroVisible, setHeroVisible] = useState(false);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const sectionsRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const t = setTimeout(() => setHeroVisible(true), 100);
+        return () => clearTimeout(t);
+    }, []);
+
+    useEffect(() => {
+        const handler = () => { if (window.innerWidth >= 768) setMobileMenuOpen(false); };
+        window.addEventListener('resize', handler);
+        return () => window.removeEventListener('resize', handler);
+    }, []);
+
+    useEffect(() => {
+        const container = sectionsRef.current;
+        if (!container) return;
+        const sections = container.querySelectorAll('.section-enter');
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        (entry.target as HTMLElement).style.opacity = '1';
+                        (entry.target as HTMLElement).style.transform = 'translateY(0)';
+                        observer.unobserve(entry.target);
+                    }
+                });
+            },
+            { threshold: 0.08, rootMargin: '0px 0px -30px 0px' }
+        );
+        sections.forEach((s) => {
+            (s as HTMLElement).style.opacity = '0';
+            (s as HTMLElement).style.transform = 'translateY(32px)';
+            (s as HTMLElement).style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+            observer.observe(s);
+        });
+        return () => observer.disconnect();
+    }, []);
+
+    const handleSearch = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (searchQuery.trim()) window.location.href = '/dashboard';
     };
 
     return (
         <>
-            <Head title="Welcome" />
-            <div className="bg-gray-50 text-black/50 dark:bg-black dark:text-white/50">
-                <img
-                    id="background"
-                    className="absolute -left-20 top-0 max-w-[877px]"
-                    src="https://laravel.com/assets/img/welcome/background.svg"
-                />
-                <div className="relative flex min-h-screen flex-col items-center justify-center selection:bg-[#FF2D20] selection:text-white">
-                    <div className="relative w-full max-w-2xl px-6 lg:max-w-7xl">
-                        <header className="grid grid-cols-2 items-center gap-2 py-10 lg:grid-cols-3">
-                            <div className="flex lg:col-start-2 lg:justify-center">
-                                <svg
-                                    className="h-12 w-auto text-white lg:h-16 lg:text-[#FF2D20]"
-                                    viewBox="0 0 62 65"
-                                    fill="none"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                >
-                                    <path
-                                        d="M61.8548 14.6253C61.8778 14.7102 61.8895 14.7978 61.8897 14.8858V28.5615C61.8898 28.737 61.8434 28.9095 61.7554 29.0614C61.6675 29.2132 61.5409 29.3392 61.3887 29.4265L49.9104 36.0351V49.1337C49.9104 49.4902 49.7209 49.8192 49.4118 49.9987L25.4519 63.7916C25.3971 63.8227 25.3372 63.8427 25.2774 63.8639C25.255 63.8714 25.2338 63.8851 25.2101 63.8913C25.0426 63.9354 24.8666 63.9354 24.6991 63.8913C24.6716 63.8838 24.6467 63.8689 24.6205 63.8589C24.5657 63.8389 24.5084 63.8215 24.456 63.7916L0.501061 49.9987C0.348882 49.9113 0.222437 49.7853 0.134469 49.6334C0.0465019 49.4816 0.000120578 49.3092 0 49.1337L0 8.10652C0 8.01678 0.0124642 7.92953 0.0348998 7.84477C0.0423783 7.8161 0.0598282 7.78993 0.0697995 7.76126C0.0884958 7.70891 0.105946 7.65531 0.133367 7.6067C0.152063 7.5743 0.179485 7.54812 0.20192 7.51821C0.230588 7.47832 0.256763 7.43719 0.290416 7.40229C0.319084 7.37362 0.356476 7.35243 0.388883 7.32751C0.425029 7.29759 0.457436 7.26518 0.498568 7.2415L12.4779 0.345059C12.6296 0.257786 12.8015 0.211853 12.9765 0.211853C13.1515 0.211853 13.3234 0.257786 13.475 0.345059L25.4531 7.2415H25.4556C25.4955 7.26643 25.5292 7.29759 25.5653 7.32626C25.5977 7.35119 25.6339 7.37362 25.6625 7.40104C25.6974 7.43719 25.7224 7.47832 25.7523 7.51821C25.7735 7.54812 25.8021 7.5743 25.8196 7.6067C25.8483 7.65656 25.8645 7.70891 25.8844 7.76126C25.8944 7.78993 25.9118 7.8161 25.9193 7.84602C25.9423 7.93096 25.954 8.01853 25.9542 8.10652V33.7317L35.9355 27.9844V14.8846C35.9355 14.7973 35.948 14.7088 35.9704 14.6253C35.9792 14.5954 35.9954 14.5692 36.0053 14.5405C36.0253 14.4882 36.0427 14.4346 36.0702 14.386C36.0888 14.3536 36.1163 14.3274 36.1375 14.2975C36.1674 14.2576 36.1923 14.2165 36.2272 14.1816C36.2559 14.1529 36.292 14.1317 36.3244 14.1068C36.3618 14.0769 36.3942 14.0445 36.4341 14.0208L48.4147 7.12434C48.5663 7.03694 48.7383 6.99094 48.9133 6.99094C49.0883 6.99094 49.2602 7.03694 49.4118 7.12434L61.3899 14.0208C61.4323 14.0457 61.4647 14.0769 61.5021 14.1055C61.5333 14.1305 61.5694 14.1529 61.5981 14.1803C61.633 14.2165 61.6579 14.2576 61.6878 14.2975C61.7103 14.3274 61.7377 14.3536 61.7551 14.386C61.7838 14.4346 61.8 14.4882 61.8199 14.5405C61.8312 14.5692 61.8474 14.5954 61.8548 14.6253ZM59.893 27.9844V16.6121L55.7013 19.0252L49.9104 22.3593V33.7317L59.8942 27.9844H59.893ZM47.9149 48.5566V37.1768L42.2187 40.4299L25.953 49.7133V61.2003L47.9149 48.5566ZM1.99677 9.83281V48.5566L23.9562 61.199V49.7145L12.4841 43.2219L12.4804 43.2194L12.4754 43.2169C12.4368 43.1945 12.4044 43.1621 12.3682 43.1347C12.3371 43.1097 12.3009 43.0898 12.2735 43.0624L12.271 43.0586C12.2386 43.0275 12.2162 42.9888 12.1887 42.9539C12.1638 42.9203 12.1339 42.8916 12.114 42.8567L12.1127 42.853C12.0903 42.8156 12.0766 42.7707 12.0604 42.7283C12.0442 42.6909 12.023 42.656 12.013 42.6161C12.0005 42.5688 11.998 42.5177 11.9931 42.4691C11.9881 42.4317 11.9781 42.3943 11.9781 42.3569V15.5801L6.18848 12.2446L1.99677 9.83281ZM12.9777 2.36177L2.99764 8.10652L12.9752 13.8513L22.9541 8.10527L12.9752 2.36177H12.9777ZM18.1678 38.2138L23.9574 34.8809V9.83281L19.7657 12.2459L13.9749 15.5801V40.6281L18.1678 38.2138ZM48.9133 9.14105L38.9344 14.8858L48.9133 20.6305L58.8909 14.8846L48.9133 9.14105ZM47.9149 22.3593L42.124 19.0252L37.9323 16.6121V27.9844L43.7219 31.3174L47.9149 33.7317V22.3593ZM24.9533 47.987L39.59 39.631L46.9065 35.4555L36.9352 29.7145L25.4544 36.3242L14.9907 42.3482L24.9533 47.987Z"
-                                        fill="currentColor"
-                                    />
-                                </svg>
-                            </div>
-                            <nav className="-mx-3 flex flex-1 justify-end">
-                                {auth.user ? (
-                                    <Link
-                                        href={route('dashboard')}
-                                        className="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white"
-                                    >
-                                        Dashboard
-                                    </Link>
-                                ) : (
-                                    <>
-                                        <Link
-                                            href={route('login')}
-                                            className="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white"
-                                        >
-                                            Log in
-                                        </Link>
-                                        <Link
-                                            href={route('register')}
-                                            className="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white"
-                                        >
-                                            Register
-                                        </Link>
-                                    </>
-                                )}
-                            </nav>
-                        </header>
+            <Head title="AVAA – Find Your Ideal Job" />
 
-                        <main className="mt-6">
-                            <div className="grid gap-6 lg:grid-cols-2 lg:gap-8">
-                                <a
-                                    href="https://laravel.com/docs"
-                                    id="docs-card"
-                                    className="flex flex-col items-start gap-6 overflow-hidden rounded-lg bg-white p-6 shadow-[0px_14px_34px_0px_rgba(0,0,0,0.08)] ring-1 ring-white/[0.05] transition duration-300 hover:text-black/70 hover:ring-black/20 focus:outline-none focus-visible:ring-[#FF2D20] md:row-span-3 lg:p-10 lg:pb-10 dark:bg-zinc-900 dark:ring-zinc-800 dark:hover:text-white/70 dark:hover:ring-zinc-700 dark:focus-visible:ring-[#FF2D20]"
-                                >
-                                    <div
-                                        id="screenshot-container"
-                                        className="relative flex w-full flex-1 items-stretch"
-                                    >
-                                        <img
-                                            src="https://laravel.com/assets/img/welcome/docs-light.svg"
-                                            alt="Laravel documentation screenshot"
-                                            className="aspect-video h-full w-full flex-1 rounded-[10px] object-cover object-top drop-shadow-[0px_4px_34px_rgba(0,0,0,0.06)] dark:hidden"
-                                            onError={handleImageError}
+            <style>{`
+                html { scroll-behavior: smooth; }
+                @keyframes float {
+                    0%, 100% { transform: translateY(0); }
+                    50%       { transform: translateY(-8px); }
+                }
+                @keyframes marquee {
+                    0%   { transform: translateX(0); }
+                    100% { transform: translateX(-50%); }
+                }
+                .float-1       { animation: float 3s ease-in-out infinite; }
+                .float-2       { animation: float 3s ease-in-out infinite 0.5s; }
+                .marquee-track { animation: marquee 14s linear infinite; }
+                .marquee-track:hover { animation-play-state: paused; }
+            `}</style>
+
+            {/* ════════════════════════════════════
+                NAVBAR — fixed, full-width
+            ════════════════════════════════════ */}
+            <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-200">
+                <div className={`${C} flex items-center justify-between h-16`}>
+
+                    {/* Logo */}
+                    <a href="/" className="flex items-center gap-2.5 flex-shrink-0">
+                        <img
+                            src="/storage/logos/System_Logo/AVAA_Logo.png"
+                            alt="AVAA"
+                            className="h-8 w-auto object-contain"
+                        />
+                        <span className="text-xl font-bold text-avaa-dark tracking-wide">AVAA</span>
+                    </a>
+
+                    {/* Desktop nav links */}
+                    <div className="hidden md:flex items-center gap-7 lg:gap-9 text-sm font-medium text-avaa-muted">
+                        {[['#how-it-works', 'How It Works'], ['#categories', 'Categories'], ['#jobs', 'Jobs'], ['#testimonials', 'Reviews']].map(([href, label]) => (
+                            <a key={href} href={href} className="hover:text-avaa-dark transition-colors">{label}</a>
+                        ))}
+                    </div>
+
+                    {/* Desktop CTA */}
+                    <div className="hidden md:flex items-center gap-3">
+                        <Link href={route('login')}
+                            className="px-4 py-2 text-sm font-semibold text-avaa-dark hover:bg-avaa-primary-light rounded-lg transition-colors">
+                            Sign In
+                        </Link>
+                        <Link href={route('register')}
+                            className="px-5 py-2.5 text-sm font-semibold text-white rounded-lg bg-avaa-primary hover:bg-avaa-primary-hover transition-all hover:shadow-lg">
+                            Get Started
+                        </Link>
+                    </div>
+
+                    {/* Mobile controls */}
+                    <div className="flex md:hidden items-center gap-1">
+                        <Link href={route('login')} className="px-3 py-1.5 text-sm font-semibold text-avaa-dark">Sign In</Link>
+                        <button
+                            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                            className="p-2 rounded-lg hover:bg-avaa-primary-light transition-colors"
+                            aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+                        >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-avaa-dark">
+                                {mobileMenuOpen
+                                    ? <><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></>
+                                    : <><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></>
+                                }
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                {/* Mobile dropdown */}
+                {mobileMenuOpen && (
+                    <div className="md:hidden bg-white border-t border-gray-100 px-6 pb-5 pt-3 flex flex-col gap-1">
+                        {[['#how-it-works', 'How It Works'], ['#categories', 'Categories'], ['#jobs', 'Jobs'], ['#testimonials', 'Reviews']].map(([href, label]) => (
+                            <a key={href} href={href} onClick={() => setMobileMenuOpen(false)}
+                                className="block px-3 py-2.5 text-sm font-medium text-avaa-muted hover:text-avaa-dark hover:bg-avaa-primary-light rounded-lg transition-colors">
+                                {label}
+                            </a>
+                        ))}
+                        <Link href={route('register')} onClick={() => setMobileMenuOpen(false)}
+                            className="mt-3 block px-4 py-3 text-sm font-semibold text-white text-center rounded-lg bg-avaa-primary hover:bg-avaa-primary-hover transition-colors">
+                            Get Started Free
+                        </Link>
+                    </div>
+                )}
+            </nav>
+
+            {/* Body offset below fixed navbar */}
+            <div ref={sectionsRef} className="min-h-screen bg-white overflow-x-hidden pt-16">
+
+                {/* ════════════════════════════════════
+                    HERO
+                ════════════════════════════════════ */}
+                <section className="relative bg-gradient-to-br from-avaa-primary-light via-white to-avaa-primary-light overflow-hidden">
+                    {/* Dot pattern */}
+                    <div className="absolute top-0 right-0 w-64 sm:w-[420px] h-64 sm:h-[420px] opacity-30 pointer-events-none"
+                        style={{ backgroundImage: 'radial-gradient(circle, #7EB0AB 1.5px, transparent 1.5px)', backgroundSize: '24px 24px' }} />
+                    <div className="absolute bottom-0 left-0 w-48 h-48 opacity-10 pointer-events-none"
+                        style={{ backgroundImage: 'radial-gradient(circle, #122431 1.5px, transparent 1.5px)', backgroundSize: '20px 20px' }} />
+
+                    <div className={`${C} py-16 sm:py-24 md:py-32`}>
+                        <div className="grid md:grid-cols-2 gap-12 lg:gap-16 xl:gap-20 items-center">
+
+                            {/* Left — text */}
+                            <div className={`transition-all duration-700 ${heroVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+                                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-avaa-primary/10 text-avaa-teal text-xs font-semibold mb-6">
+                                    <span className="w-2 h-2 rounded-full bg-avaa-primary animate-pulse" />
+                                    #1 Job Recruitment Platform
+                                </div>
+
+                                <h1 className="text-[44px] sm:text-[60px] lg:text-[68px] xl:text-[76px] 2xl:text-[84px] font-extrabold text-avaa-dark leading-[1.05] tracking-tight mb-5">
+                                    Find Your<br />
+                                    <span className="text-avaa-primary">Ideal Job</span>
+                                </h1>
+
+                                <p className="text-base sm:text-lg text-avaa-text mb-9 max-w-lg leading-relaxed">
+                                    Explore thousands of job opportunities from top companies. Your next career move starts here.
+                                </p>
+
+                                {/* Search bar */}
+                                <form onSubmit={handleSearch}
+                                    className="flex items-center bg-white rounded-2xl shadow-lg shadow-avaa-primary/10 border border-gray-200 p-2 mb-10 w-full max-w-xl">
+                                    <div className="flex items-center gap-2 flex-1 px-3 min-w-0">
+                                        <svg className="flex-shrink-0 text-avaa-muted" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                                        </svg>
+                                        <input
+                                            type="text"
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            placeholder="Search job titles, companies..."
+                                            className="flex-1 py-2 text-sm text-avaa-dark placeholder-avaa-muted bg-transparent focus:outline-none min-w-0"
                                         />
-                                        <img
-                                            src="https://laravel.com/assets/img/welcome/docs-dark.svg"
-                                            alt="Laravel documentation screenshot"
-                                            className="hidden aspect-video h-full w-full flex-1 rounded-[10px] object-cover object-top drop-shadow-[0px_4px_34px_rgba(0,0,0,0.25)] dark:block"
-                                        />
-                                        <div className="absolute -bottom-16 -left-16 h-40 w-[calc(100%+8rem)] bg-gradient-to-b from-transparent via-white to-white dark:via-zinc-900 dark:to-zinc-900"></div>
                                     </div>
+                                    <button type="submit"
+                                        className="flex-shrink-0 px-6 py-3 rounded-xl text-sm font-semibold text-white bg-avaa-primary hover:bg-avaa-primary-hover transition-all">
+                                        Search
+                                    </button>
+                                </form>
 
-                                    <div className="relative flex items-center gap-6 lg:items-end">
-                                        <div
-                                            id="docs-card-content"
-                                            className="flex items-start gap-6 lg:flex-col"
-                                        >
-                                            <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#FF2D20]/10 sm:size-16">
-                                                <svg
-                                                    className="size-5 sm:size-6"
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    fill="none"
-                                                    viewBox="0 0 24 24"
-                                                >
-                                                    <path
-                                                        fill="#FF2D20"
-                                                        d="M23 4a1 1 0 0 0-1.447-.894L12.224 7.77a.5.5 0 0 1-.448 0L2.447 3.106A1 1 0 0 0 1 4v13.382a1.99 1.99 0 0 0 1.105 1.79l9.448 4.728c.14.065.293.1.447.1.154-.005.306-.04.447-.105l9.453-4.724a1.99 1.99 0 0 0 1.1-1.789V4ZM3 6.023a.25.25 0 0 1 .362-.223l7.5 3.75a.251.251 0 0 1 .138.223v11.2a.25.25 0 0 1-.362.224l-7.5-3.75a.25.25 0 0 1-.138-.22V6.023Zm18 11.2a.25.25 0 0 1-.138.224l-7.5 3.75a.249.249 0 0 1-.329-.099.249.249 0 0 1-.033-.12V9.772a.251.251 0 0 1 .138-.224l7.5-3.75a.25.25 0 0 1 .362.224v11.2Z"
-                                                    />
-                                                    <path
-                                                        fill="#FF2D20"
-                                                        d="m3.55 1.893 8 4.048a1.008 1.008 0 0 0 .9 0l8-4.048a1 1 0 0 0-.9-1.785l-7.322 3.706a.506.506 0 0 1-.452 0L4.454.108a1 1 0 0 0-.9 1.785H3.55Z"
-                                                    />
-                                                </svg>
-                                            </div>
-
-                                            <div className="pt-3 sm:pt-5 lg:pt-0">
-                                                <h2 className="text-xl font-semibold text-black dark:text-white">
-                                                    Documentation
-                                                </h2>
-
-                                                <p className="mt-4 text-sm/relaxed">
-                                                    Laravel has wonderful
-                                                    documentation covering every
-                                                    aspect of the framework.
-                                                    Whether you are a newcomer
-                                                    or have prior experience
-                                                    with Laravel, we recommend
-                                                    reading our documentation
-                                                    from beginning to end.
-                                                </p>
+                                {/* Stats */}
+                                <div className="flex items-center gap-6 sm:gap-10 flex-wrap">
+                                    {[['8M+', 'Active Members'], ['15k+', 'Jobs Posted'], ['2k+', 'Companies']].map(([num, label], i) => (
+                                        <div key={label} className="flex items-center gap-6 sm:gap-10">
+                                            {i > 0 && <div className="w-px h-10 bg-gray-200" />}
+                                            <div>
+                                                <p className="text-2xl sm:text-3xl font-extrabold text-avaa-dark">{num}</p>
+                                                <p className="text-xs text-avaa-muted mt-0.5">{label}</p>
                                             </div>
                                         </div>
+                                    ))}
+                                </div>
+                            </div>
 
-                                        <svg
-                                            className="size-6 shrink-0 stroke-[#FF2D20]"
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                            strokeWidth="1.5"
-                                        >
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                d="M4.5 12h15m0 0l-6.75-6.75M19.5 12l-6.75 6.75"
-                                            />
-                                        </svg>
-                                    </div>
-                                </a>
-
-                                <a
-                                    href="https://laracasts.com"
-                                    className="flex items-start gap-4 rounded-lg bg-white p-6 shadow-[0px_14px_34px_0px_rgba(0,0,0,0.08)] ring-1 ring-white/[0.05] transition duration-300 hover:text-black/70 hover:ring-black/20 focus:outline-none focus-visible:ring-[#FF2D20] lg:pb-10 dark:bg-zinc-900 dark:ring-zinc-800 dark:hover:text-white/70 dark:hover:ring-zinc-700 dark:focus-visible:ring-[#FF2D20]"
-                                >
-                                    <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#FF2D20]/10 sm:size-16">
-                                        <svg
-                                            className="size-5 sm:size-6"
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <g fill="#FF2D20">
-                                                <path d="M24 8.25a.5.5 0 0 0-.5-.5H.5a.5.5 0 0 0-.5.5v12a2.5 2.5 0 0 0 2.5 2.5h19a2.5 2.5 0 0 0 2.5-2.5v-12Zm-7.765 5.868a1.221 1.221 0 0 1 0 2.264l-6.626 2.776A1.153 1.153 0 0 1 8 18.123v-5.746a1.151 1.151 0 0 1 1.609-1.035l6.626 2.776ZM19.564 1.677a.25.25 0 0 0-.177-.427H15.6a.106.106 0 0 0-.072.03l-4.54 4.543a.25.25 0 0 0 .177.427h3.783c.027 0 .054-.01.073-.03l4.543-4.543ZM22.071 1.318a.047.047 0 0 0-.045.013l-4.492 4.492a.249.249 0 0 0 .038.385.25.25 0 0 0 .14.042h5.784a.5.5 0 0 0 .5-.5v-2a2.5 2.5 0 0 0-1.925-2.432ZM13.014 1.677a.25.25 0 0 0-.178-.427H9.101a.106.106 0 0 0-.073.03l-4.54 4.543a.25.25 0 0 0 .177.427H8.4a.106.106 0 0 0 .073-.03l4.54-4.543ZM6.513 1.677a.25.25 0 0 0-.177-.427H2.5A2.5 2.5 0 0 0 0 3.75v2a.5.5 0 0 0 .5.5h1.4a.106.106 0 0 0 .073-.03l4.54-4.543Z" />
-                                            </g>
-                                        </svg>
+                            {/* Right — hero card */}
+                            <div className={`relative hidden md:flex justify-center lg:justify-end transition-all duration-700 delay-200 ${heroVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+                                <div className="relative w-full max-w-[500px] xl:max-w-[540px]">
+                                    <div className="bg-white rounded-3xl shadow-2xl shadow-avaa-dark/10 p-7 lg:p-9 border border-gray-200">
+                                        <div className="flex items-center gap-3 mb-5">
+                                            <div className="w-12 h-12 rounded-full bg-avaa-dark flex items-center justify-center text-white font-bold text-sm flex-shrink-0">TN</div>
+                                            <div className="min-w-0">
+                                                <p className="font-bold text-avaa-dark text-sm truncate">Senior Frontend Developer</p>
+                                                <p className="text-xs text-avaa-muted">TechNova · San Francisco</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2 mb-6">
+                                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-avaa-primary/10 text-avaa-teal">React</span>
+                                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-avaa-primary-light text-avaa-teal">TypeScript</span>
+                                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-avaa-primary/10 text-avaa-primary">Tailwind CSS</span>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-xl font-extrabold text-avaa-dark">$120k–$160k</span>
+                                            <span className="px-5 py-2 rounded-lg text-xs font-semibold text-white bg-avaa-primary">Apply Now</span>
+                                        </div>
                                     </div>
 
-                                    <div className="pt-3 sm:pt-5">
-                                        <h2 className="text-xl font-semibold text-black dark:text-white">
-                                            Laracasts
-                                        </h2>
-
-                                        <p className="mt-4 text-sm/relaxed">
-                                            Laracasts offers thousands of video
-                                            tutorials on Laravel, PHP, and
-                                            JavaScript development. Check them
-                                            out, see for yourself, and massively
-                                            level up your development skills in
-                                            the process.
-                                        </p>
+                                    {/* Floating badge 1 */}
+                                    <div className="absolute -top-5 -left-6 bg-white rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3 border border-gray-200 float-1">
+                                        <div className="w-9 h-9 rounded-full bg-avaa-primary-light flex items-center justify-center flex-shrink-0">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-avaa-teal">
+                                                <path d="M22 11.08V12a10 10 0 11-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-bold text-avaa-dark">Unlocking your</p>
+                                            <p className="text-xs font-bold text-avaa-primary">potential</p>
+                                        </div>
                                     </div>
 
-                                    <svg
-                                        className="size-6 shrink-0 self-center stroke-[#FF2D20]"
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        strokeWidth="1.5"
-                                    >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            d="M4.5 12h15m0 0l-6.75-6.75M19.5 12l-6.75 6.75"
-                                        />
-                                    </svg>
-                                </a>
-
-                                <a
-                                    href="https://laravel-news.com"
-                                    className="flex items-start gap-4 rounded-lg bg-white p-6 shadow-[0px_14px_34px_0px_rgba(0,0,0,0.08)] ring-1 ring-white/[0.05] transition duration-300 hover:text-black/70 hover:ring-black/20 focus:outline-none focus-visible:ring-[#FF2D20] lg:pb-10 dark:bg-zinc-900 dark:ring-zinc-800 dark:hover:text-white/70 dark:hover:ring-zinc-700 dark:focus-visible:ring-[#FF2D20]"
-                                >
-                                    <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#FF2D20]/10 sm:size-16">
-                                        <svg
-                                            className="size-5 sm:size-6"
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <g fill="#FF2D20">
-                                                <path d="M8.75 4.5H5.5c-.69 0-1.25.56-1.25 1.25v4.75c0 .69.56 1.25 1.25 1.25h3.25c.69 0 1.25-.56 1.25-1.25V5.75c0-.69-.56-1.25-1.25-1.25Z" />
-                                                <path d="M24 10a3 3 0 0 0-3-3h-2V2.5a2 2 0 0 0-2-2H2a2 2 0 0 0-2 2V20a3.5 3.5 0 0 0 3.5 3.5h17A3.5 3.5 0 0 0 24 20V10ZM3.5 21.5A1.5 1.5 0 0 1 2 20V3a.5.5 0 0 1 .5-.5h14a.5.5 0 0 1 .5.5v17c0 .295.037.588.11.874a.5.5 0 0 1-.484.625L3.5 21.5ZM22 20a1.5 1.5 0 1 1-3 0V9.5a.5.5 0 0 1 .5-.5H21a1 1 0 0 1 1 1v10Z" />
-                                                <path d="M12.751 6.047h2a.75.75 0 0 1 .75.75v.5a.75.75 0 0 1-.75.75h-2A.75.75 0 0 1 12 7.3v-.5a.75.75 0 0 1 .751-.753ZM12.751 10.047h2a.75.75 0 0 1 .75.75v.5a.75.75 0 0 1-.75.75h-2A.75.75 0 0 1 12 11.3v-.5a.75.75 0 0 1 .751-.753ZM4.751 14.047h10a.75.75 0 0 1 .75.75v.5a.75.75 0 0 1-.75.75h-10A.75.75 0 0 1 4 15.3v-.5a.75.75 0 0 1 .751-.753ZM4.75 18.047h7.5a.75.75 0 0 1 .75.75v.5a.75.75 0 0 1-.75.75h-7.5A.75.75 0 0 1 4 19.3v-.5a.75.75 0 0 1 .75-.753Z" />
-                                            </g>
-                                        </svg>
-                                    </div>
-
-                                    <div className="pt-3 sm:pt-5">
-                                        <h2 className="text-xl font-semibold text-black dark:text-white">
-                                            Laravel News
-                                        </h2>
-
-                                        <p className="mt-4 text-sm/relaxed">
-                                            Laravel News is a community driven
-                                            portal and newsletter aggregating
-                                            all of the latest and most important
-                                            news in the Laravel ecosystem,
-                                            including new package releases and
-                                            tutorials.
-                                        </p>
-                                    </div>
-
-                                    <svg
-                                        className="size-6 shrink-0 self-center stroke-[#FF2D20]"
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        strokeWidth="1.5"
-                                    >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            d="M4.5 12h15m0 0l-6.75-6.75M19.5 12l-6.75 6.75"
-                                        />
-                                    </svg>
-                                </a>
-
-                                <div className="flex items-start gap-4 rounded-lg bg-white p-6 shadow-[0px_14px_34px_0px_rgba(0,0,0,0.08)] ring-1 ring-white/[0.05] lg:pb-10 dark:bg-zinc-900 dark:ring-zinc-800">
-                                    <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#FF2D20]/10 sm:size-16">
-                                        <svg
-                                            className="size-5 sm:size-6"
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <g fill="#FF2D20">
-                                                <path d="M16.597 12.635a.247.247 0 0 0-.08-.237 2.234 2.234 0 0 1-.769-1.68c.001-.195.03-.39.084-.578a.25.25 0 0 0-.09-.267 8.8 8.8 0 0 0-4.826-1.66.25.25 0 0 0-.268.181 2.5 2.5 0 0 1-2.4 1.824.045.045 0 0 0-.045.037 12.255 12.255 0 0 0-.093 3.86.251.251 0 0 0 .208.214c2.22.366 4.367 1.08 6.362 2.118a.252.252 0 0 0 .32-.079 10.09 10.09 0 0 0 1.597-3.733ZM13.616 17.968a.25.25 0 0 0-.063-.407A19.697 19.697 0 0 0 8.91 15.98a.25.25 0 0 0-.287.325c.151.455.334.898.548 1.328.437.827.981 1.594 1.619 2.28a.249.249 0 0 0 .32.044 29.13 29.13 0 0 0 2.506-1.99ZM6.303 14.105a.25.25 0 0 0 .265-.274 13.048 13.048 0 0 1 .205-4.045.062.062 0 0 0-.022-.07 2.5 2.5 0 0 1-.777-.982.25.25 0 0 0-.271-.149 11 11 0 0 0-5.6 2.815.255.255 0 0 0-.075.163c-.008.135-.02.27-.02.406.002.8.084 1.598.246 2.381a.25.25 0 0 0 .303.193 19.924 19.924 0 0 1 5.746-.438ZM9.228 20.914a.25.25 0 0 0 .1-.393 11.53 11.53 0 0 1-1.5-2.22 12.238 12.238 0 0 1-.91-2.465.248.248 0 0 0-.22-.187 18.876 18.876 0 0 0-5.69.33.249.249 0 0 0-.179.336c.838 2.142 2.272 4 4.132 5.353a.254.254 0 0 0 .15.048c1.41-.01 2.807-.282 4.117-.802ZM18.93 12.957l-.005-.008a.25.25 0 0 0-.268-.082 2.21 2.21 0 0 1-.41.081.25.25 0 0 0-.217.2c-.582 2.66-2.127 5.35-5.75 7.843a.248.248 0 0 0-.09.299.25.25 0 0 0 .065.091 28.703 28.703 0 0 0 2.662 2.12.246.246 0 0 0 .209.037c2.579-.701 4.85-2.242 6.456-4.378a.25.25 0 0 0 .048-.189 13.51 13.51 0 0 0-2.7-6.014ZM5.702 7.058a.254.254 0 0 0 .2-.165A2.488 2.488 0 0 1 7.98 5.245a.093.093 0 0 0 .078-.062 19.734 19.734 0 0 1 3.055-4.74.25.25 0 0 0-.21-.41 12.009 12.009 0 0 0-10.4 8.558.25.25 0 0 0 .373.281 12.912 12.912 0 0 1 4.826-1.814ZM10.773 22.052a.25.25 0 0 0-.28-.046c-.758.356-1.55.635-2.365.833a.25.25 0 0 0-.022.48c1.252.43 2.568.65 3.893.65.1 0 .2 0 .3-.008a.25.25 0 0 0 .147-.444c-.526-.424-1.1-.917-1.673-1.465ZM18.744 8.436a.249.249 0 0 0 .15.228 2.246 2.246 0 0 1 1.352 2.054c0 .337-.08.67-.23.972a.25.25 0 0 0 .042.28l.007.009a15.016 15.016 0 0 1 2.52 4.6.25.25 0 0 0 .37.132.25.25 0 0 0 .096-.114c.623-1.464.944-3.039.945-4.63a12.005 12.005 0 0 0-5.78-10.258.25.25 0 0 0-.373.274c.547 2.109.85 4.274.901 6.453ZM9.61 5.38a.25.25 0 0 0 .08.31c.34.24.616.561.8.935a.25.25 0 0 0 .3.127.631.631 0 0 1 .206-.034c2.054.078 4.036.772 5.69 1.991a.251.251 0 0 0 .267.024c.046-.024.093-.047.141-.067a.25.25 0 0 0 .151-.23A29.98 29.98 0 0 0 15.957.764a.25.25 0 0 0-.16-.164 11.924 11.924 0 0 0-2.21-.518.252.252 0 0 0-.215.076A22.456 22.456 0 0 0 9.61 5.38Z" />
-                                            </g>
-                                        </svg>
-                                    </div>
-
-                                    <div className="pt-3 sm:pt-5">
-                                        <h2 className="text-xl font-semibold text-black dark:text-white">
-                                            Vibrant Ecosystem
-                                        </h2>
-
-                                        <p className="mt-4 text-sm/relaxed">
-                                            Laravel's robust library of
-                                            first-party tools and libraries,
-                                            such as{' '}
-                                            <a
-                                                href="https://forge.laravel.com"
-                                                className="rounded-sm underline hover:text-black focus:outline-none focus-visible:ring-1 focus-visible:ring-[#FF2D20] dark:hover:text-white dark:focus-visible:ring-[#FF2D20]"
-                                            >
-                                                Forge
-                                            </a>
-                                            ,{' '}
-                                            <a
-                                                href="https://vapor.laravel.com"
-                                                className="rounded-sm underline hover:text-black focus:outline-none focus-visible:ring-1 focus-visible:ring-[#FF2D20] dark:hover:text-white"
-                                            >
-                                                Vapor
-                                            </a>
-                                            ,{' '}
-                                            <a
-                                                href="https://nova.laravel.com"
-                                                className="rounded-sm underline hover:text-black focus:outline-none focus-visible:ring-1 focus-visible:ring-[#FF2D20] dark:hover:text-white"
-                                            >
-                                                Nova
-                                            </a>
-                                            ,{' '}
-                                            <a
-                                                href="https://envoyer.io"
-                                                className="rounded-sm underline hover:text-black focus:outline-none focus-visible:ring-1 focus-visible:ring-[#FF2D20] dark:hover:text-white"
-                                            >
-                                                Envoyer
-                                            </a>
-                                            , and{' '}
-                                            <a
-                                                href="https://herd.laravel.com"
-                                                className="rounded-sm underline hover:text-black focus:outline-none focus-visible:ring-1 focus-visible:ring-[#FF2D20] dark:hover:text-white"
-                                            >
-                                                Herd
-                                            </a>{' '}
-                                            help you take your projects to the
-                                            next level. Pair them with powerful
-                                            open source libraries like{' '}
-                                            <a
-                                                href="https://laravel.com/docs/billing"
-                                                className="rounded-sm underline hover:text-black focus:outline-none focus-visible:ring-1 focus-visible:ring-[#FF2D20] dark:hover:text-white"
-                                            >
-                                                Cashier
-                                            </a>
-                                            ,{' '}
-                                            <a
-                                                href="https://laravel.com/docs/dusk"
-                                                className="rounded-sm underline hover:text-black focus:outline-none focus-visible:ring-1 focus-visible:ring-[#FF2D20] dark:hover:text-white"
-                                            >
-                                                Dusk
-                                            </a>
-                                            ,{' '}
-                                            <a
-                                                href="https://laravel.com/docs/broadcasting"
-                                                className="rounded-sm underline hover:text-black focus:outline-none focus-visible:ring-1 focus-visible:ring-[#FF2D20] dark:hover:text-white"
-                                            >
-                                                Echo
-                                            </a>
-                                            ,{' '}
-                                            <a
-                                                href="https://laravel.com/docs/horizon"
-                                                className="rounded-sm underline hover:text-black focus:outline-none focus-visible:ring-1 focus-visible:ring-[#FF2D20] dark:hover:text-white"
-                                            >
-                                                Horizon
-                                            </a>
-                                            ,{' '}
-                                            <a
-                                                href="https://laravel.com/docs/sanctum"
-                                                className="rounded-sm underline hover:text-black focus:outline-none focus-visible:ring-1 focus-visible:ring-[#FF2D20] dark:hover:text-white"
-                                            >
-                                                Sanctum
-                                            </a>
-                                            ,{' '}
-                                            <a
-                                                href="https://laravel.com/docs/telescope"
-                                                className="rounded-sm underline hover:text-black focus:outline-none focus-visible:ring-1 focus-visible:ring-[#FF2D20] dark:hover:text-white"
-                                            >
-                                                Telescope
-                                            </a>
-                                            , and more.
-                                        </p>
+                                    {/* Floating badge 2 */}
+                                    <div className="absolute -bottom-5 -right-5 bg-white rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3 border border-gray-200 float-2">
+                                        <div className="w-9 h-9 rounded-full bg-avaa-primary-light flex items-center justify-center flex-shrink-0">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-avaa-teal">
+                                                <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87" /><path d="M16 3.13a4 4 0 010 7.75" />
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-bold text-avaa-dark">10k+ candidates</p>
+                                            <p className="text-[11px] text-avaa-muted">hired this month</p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </main>
 
-                        <footer className="py-16 text-center text-sm text-black dark:text-white/70">
-                            Laravel v{laravelVersion} (PHP v{phpVersion})
-                        </footer>
+                        </div>
                     </div>
-                </div>
+                </section>
+
+                {/* ════════════════════════════════════
+                    PARTNER LOGOS
+                ════════════════════════════════════ */}
+                <section className="border-y border-gray-200 bg-gray-50 overflow-hidden">
+                    <div className="relative py-5"
+                        style={{ maskImage: 'linear-gradient(to right, transparent, black 8%, black 92%, transparent)', WebkitMaskImage: 'linear-gradient(to right, transparent, black 8%, black 92%, transparent)' }}>
+                        <div className="flex gap-14 sm:gap-24 marquee-track w-max">
+                            {[...PARTNER_LOGOS, ...PARTNER_LOGOS, ...PARTNER_LOGOS, ...PARTNER_LOGOS].map((name, i) => (
+                                <span key={`${name}-${i}`} className="text-base sm:text-lg font-bold text-avaa-muted/40 tracking-wider select-none whitespace-nowrap">{name}</span>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+
+                {/* ════════════════════════════════════
+                    HOW IT WORKS
+                ════════════════════════════════════ */}
+                <section id="how-it-works" className="py-20 sm:py-28 bg-white section-enter">
+                    <div className={C}>
+                        <div className="text-center mb-14">
+                            <span className="inline-block px-4 py-1.5 rounded-full bg-avaa-primary-light text-avaa-teal text-xs font-semibold mb-4 uppercase tracking-wider">How It Works</span>
+                            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-avaa-dark tracking-tight">It's Easy to Get Started</h2>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 lg:gap-10">
+                            {[
+                                { step: '01', title: 'Create Account', desc: 'Sign up for free and build your professional profile in minutes.', icon: <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" /></svg> },
+                                { step: '02', title: 'Browse Jobs', desc: 'Search and filter through thousands of quality job listings.', icon: <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg> },
+                                { step: '03', title: 'Apply & Get Hired', desc: 'Submit applications with our streamlined wizard and land your dream role.', icon: <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg> },
+                            ].map((item) => (
+                                <div key={item.step}
+                                    className="relative bg-white rounded-2xl border border-gray-200 p-8 text-center hover:shadow-md hover:border-avaa-primary/40 transition-all duration-300 group">
+                                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-avaa-primary text-white text-xs font-bold flex items-center justify-center shadow-sm">{item.step}</div>
+                                    <div className="w-14 h-14 rounded-2xl bg-avaa-primary-light flex items-center justify-center mx-auto mb-5 mt-3 text-avaa-teal group-hover:bg-avaa-primary/20 transition-colors">
+                                        {item.icon}
+                                    </div>
+                                    <h3 className="text-lg font-bold text-avaa-dark mb-2">{item.title}</h3>
+                                    <p className="text-sm text-avaa-text leading-relaxed">{item.desc}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+
+                {/* ════════════════════════════════════
+                    TOP COMPANIES
+                ════════════════════════════════════ */}
+                <section className="py-20 sm:py-28 bg-avaa-primary-light section-enter">
+                    <div className={C}>
+                        <div className="text-center mb-14">
+                            <span className="inline-block px-4 py-1.5 rounded-full bg-avaa-primary/15 text-avaa-teal text-xs font-semibold mb-4 uppercase tracking-wider">Top Companies</span>
+                            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-avaa-dark tracking-tight mb-4">
+                                Many Top Companies<br className="hidden sm:block" /> Posted Here
+                            </h2>
+                            <p className="text-sm sm:text-base text-avaa-text max-w-xl mx-auto">Leading organizations trust AVAA to find the best talent across industries.</p>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
+                            {TOP_COMPANIES.map((name) => (
+                                <div key={name} className="bg-white rounded-2xl border border-gray-200 p-5 sm:p-6 flex items-center gap-4 hover:shadow-sm hover:border-avaa-primary/30 transition-all">
+                                    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-avaa-dark flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                                        {name.slice(0, 2).toUpperCase()}
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="font-bold text-avaa-dark text-sm truncate">{name}</p>
+                                        <p className="text-xs text-avaa-muted">Hiring now</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+
+                {/* ════════════════════════════════════
+                    CATEGORIES
+                ════════════════════════════════════ */}
+                <section id="categories" className="py-20 sm:py-28 bg-white section-enter">
+                    <div className={C}>
+                        <div className="text-center mb-14">
+                            <span className="inline-block px-4 py-1.5 rounded-full bg-avaa-primary-light text-avaa-teal text-xs font-semibold mb-4 uppercase tracking-wider">Categories</span>
+                            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-avaa-dark tracking-tight">Browse by Categories</h2>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
+                            {CATEGORIES.map((cat) => (
+                                <div key={cat.label}
+                                    className="bg-white rounded-2xl border border-gray-200 p-5 sm:p-6 text-center hover:shadow-lg hover:border-avaa-primary/40 transition-all duration-300 cursor-pointer group hover:-translate-y-1">
+                                    <div className="w-12 h-12 rounded-2xl bg-avaa-primary-light flex items-center justify-center mx-auto mb-3 text-avaa-teal group-hover:bg-avaa-primary/20 transition-colors">
+                                        {CATEGORY_ICONS[cat.label]}
+                                    </div>
+                                    <h3 className="text-sm font-bold text-avaa-dark mb-1 group-hover:text-avaa-primary transition-colors leading-tight">{cat.label}</h3>
+                                    <p className="text-xs text-avaa-muted">{cat.count} jobs</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+
+                {/* ════════════════════════════════════
+                    AI RECRUITER CTA — dark section
+                ════════════════════════════════════ */}
+                <section className="relative overflow-hidden bg-avaa-dark section-enter">
+                    {/* Subtle teal dot pattern */}
+                    <div className="absolute inset-0 opacity-10 pointer-events-none"
+                        style={{ backgroundImage: 'radial-gradient(circle, #7EB0AB 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
+
+                    <div className={`${C} py-20 sm:py-28 relative z-10`}>
+                        <div className="grid md:grid-cols-2 gap-12 lg:gap-20 xl:gap-28 items-center">
+                            <div>
+                                <span className="inline-block px-4 py-1.5 rounded-full bg-avaa-primary/20 text-avaa-primary text-xs font-semibold mb-6 uppercase tracking-wider">Smart Matching</span>
+                                <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white leading-tight tracking-tight mb-5">
+                                    Meet with AVAA's<br />Smart Recruiter
+                                </h2>
+                                <p className="text-sm sm:text-base text-avaa-muted mb-9 max-w-lg leading-relaxed">
+                                    Our intelligent matching system analyzes your skills and preferences to connect you with the perfect opportunities — automatically.
+                                </p>
+                                <Link href={route('register')}
+                                    className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-sm font-semibold text-white bg-avaa-primary hover:bg-avaa-primary-hover transition-colors shadow-lg">
+                                    Get Started Free
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
+                                    </svg>
+                                </Link>
+                            </div>
+
+                            {/* Chat card */}
+                            <div className="hidden md:flex justify-center lg:justify-end">
+                                <div className="bg-avaa-dark-mid rounded-3xl p-7 lg:p-9 border border-avaa-primary/20 w-full max-w-sm xl:max-w-md">
+                                    <div className="flex items-center gap-3 mb-6">
+                                        <div className="w-11 h-11 rounded-full bg-avaa-primary flex items-center justify-center flex-shrink-0">
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M12 2a10 10 0 0110 10 10 10 0 01-10 10A10 10 0 012 12 10 10 0 0112 2z" />
+                                                <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+                                                <line x1="9" y1="9" x2="9.01" y2="9" /><line x1="15" y1="9" x2="15.01" y2="9" />
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-white text-sm">AVAA Assistant</p>
+                                            <p className="text-xs text-avaa-muted">Online</p>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-3">
+                                        <div className="bg-avaa-dark-light rounded-2xl rounded-tl-none px-4 py-3">
+                                            <p className="text-sm text-white/90">Hi! I found <span className="font-bold text-avaa-primary">12 jobs</span> matching your profile. Shall I show you the top picks?</p>
+                                        </div>
+                                        <div className="bg-avaa-primary/20 rounded-2xl rounded-tr-none px-4 py-3 ml-8">
+                                            <p className="text-sm text-white/90">Yes, show me the best matches!</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                {/* ════════════════════════════════════
+                    FEATURED JOBS
+                ════════════════════════════════════ */}
+                <section id="jobs" className="py-20 sm:py-28 bg-avaa-primary-light section-enter">
+                    <div className={C}>
+                        <div className="text-center mb-14">
+                            <span className="inline-block px-4 py-1.5 rounded-full bg-avaa-primary/15 text-avaa-teal text-xs font-semibold mb-4 uppercase tracking-wider">Featured Listings</span>
+                            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-avaa-dark tracking-tight mb-4">Check Job of The Day</h2>
+                            <p className="text-sm sm:text-base text-avaa-text max-w-xl mx-auto">Hand-picked opportunities updated daily to help you discover the best roles.</p>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+                            {FEATURED_JOBS.map((job) => (
+                                <div key={job.id}
+                                    className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-xl hover:border-avaa-primary/40 transition-all duration-300 group cursor-pointer hover:-translate-y-1">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="w-12 h-12 rounded-xl bg-avaa-dark flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                                            {job.initials}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <h3 className="font-bold text-avaa-dark text-sm group-hover:text-avaa-primary transition-colors truncate">{job.title}</h3>
+                                            <p className="text-xs text-avaa-muted">{job.company}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-3 mb-4 text-xs text-avaa-muted flex-wrap">
+                                        <span className="flex items-center gap-1">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" />
+                                            </svg>
+                                            {job.location}
+                                        </span>
+                                        <span className="px-2 py-0.5 rounded-full bg-avaa-primary-light text-avaa-teal font-medium">{job.type}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-base font-extrabold text-avaa-dark">{job.salary}</span>
+                                        <Link href={route('login')}
+                                            className="px-4 py-2 rounded-lg text-xs font-semibold text-avaa-primary border border-avaa-primary hover:bg-avaa-primary hover:text-white transition-all">
+                                            Apply
+                                        </Link>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="text-center mt-10">
+                            <Link href={route('login')}
+                                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-sm font-semibold text-white bg-avaa-primary hover:bg-avaa-primary-hover transition-all hover:shadow-lg">
+                                View All Jobs
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
+                                </svg>
+                            </Link>
+                        </div>
+                    </div>
+                </section>
+
+                {/* ════════════════════════════════════
+                    TESTIMONIALS
+                ════════════════════════════════════ */}
+                <section id="testimonials" className="py-20 sm:py-28 bg-white section-enter">
+                    <div className={C}>
+                        <div className="text-center mb-14">
+                            <span className="inline-block px-4 py-1.5 rounded-full bg-avaa-primary-light text-avaa-teal text-xs font-semibold mb-4 uppercase tracking-wider">Testimonials</span>
+                            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-avaa-dark tracking-tight mb-4">Quotes from Our Users</h2>
+                            <p className="text-sm sm:text-base text-avaa-text max-w-xl mx-auto">Hear what professionals say about their AVAA experience.</p>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+                            {TESTIMONIALS.map((t) => (
+                                <div key={t.name} className="bg-white rounded-2xl border border-gray-200 p-7 sm:p-8 hover:shadow-lg hover:border-avaa-primary/30 transition-all duration-300">
+                                    <div className="w-10 h-10 rounded-full bg-avaa-primary-light flex items-center justify-center mb-5">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" className="text-avaa-teal">
+                                            <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10H14.017zM0 21v-7.391c0-5.704 3.731-9.57 8.983-10.609L9.978 5.151C7.546 6.068 5.983 8.789 5.983 11h4v10H0z" />
+                                        </svg>
+                                    </div>
+                                    <p className="text-sm sm:text-base text-avaa-text leading-relaxed mb-6">"{t.text}"</p>
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-avaa-dark flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
+                                            {t.name.split(' ').map((w) => w[0]).join('')}
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-bold text-avaa-dark">{t.name}</p>
+                                            <p className="text-xs text-avaa-muted">{t.role}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+
+                {/* ════════════════════════════════════
+                    BOTTOM CTA
+                ════════════════════════════════════ */}
+                <section className="relative overflow-hidden bg-avaa-dark section-enter">
+                    <div className="absolute inset-0 opacity-10 pointer-events-none"
+                        style={{ backgroundImage: 'radial-gradient(circle, #7EB0AB 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
+                    <div className={`${C} py-20 sm:py-28 relative z-10 text-center`}>
+                        <p className="text-sm font-semibold text-avaa-primary mb-3 uppercase tracking-wider">Ready to Get Your Dream Job?</p>
+                        <h2 className="text-3xl sm:text-4xl md:text-6xl font-extrabold text-white tracking-tight mb-9">
+                            Register Here Now <span className="inline-block ml-2">→</span>
+                        </h2>
+                        <Link href={route('register')}
+                            className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl text-base font-bold bg-avaa-primary text-white hover:bg-avaa-primary-hover hover:shadow-2xl hover:-translate-y-0.5 transition-all">
+                            Get Started for Free
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
+                            </svg>
+                        </Link>
+                    </div>
+                </section>
+
+                {/* ════════════════════════════════════
+                    FOOTER
+                ════════════════════════════════════ */}
+                <footer className="bg-avaa-dark-mid text-avaa-muted">
+                    <div className={`${C} py-14`}>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
+
+                            {/* Brand */}
+                            <div className="sm:col-span-2 lg:col-span-1">
+                                <div className="flex items-center gap-2.5 mb-4">
+                                    <img
+                                        src="/storage/logos/System_Logo/AVAA_Logo.png"
+                                        alt="AVAA"
+                                        className="h-7 w-auto object-contain brightness-0 invert"
+                                    />
+                                    <span className="text-lg font-bold text-white tracking-wide">AVAA</span>
+                                </div>
+                                <p className="text-sm leading-relaxed max-w-xs">Your next career move starts here. Browse jobs, grow your network, and land your dream role.</p>
+                            </div>
+
+                            {/* Quick Links */}
+                            <div>
+                                <h4 className="text-sm font-bold text-white mb-5">Quick Links</h4>
+                                <ul className="space-y-3 text-sm">
+                                    {[['#how-it-works', 'How It Works'], ['#categories', 'Categories'], ['#jobs', 'Featured Jobs'], ['#testimonials', 'Testimonials']].map(([href, label]) => (
+                                        <li key={href}><a href={href} className="hover:text-avaa-primary transition-colors">{label}</a></li>
+                                    ))}
+                                </ul>
+                            </div>
+
+                            {/* Resources */}
+                            <div>
+                                <h4 className="text-sm font-bold text-white mb-5">Resources</h4>
+                                <ul className="space-y-3 text-sm">
+                                    {['Help Center', 'Privacy Policy', 'Terms of Service', 'Contact Us'].map((item) => (
+                                        <li key={item}><span className="opacity-40 cursor-default">{item}</span></li>
+                                    ))}
+                                </ul>
+                            </div>
+
+                            {/* Newsletter */}
+                            <div>
+                                <h4 className="text-sm font-bold text-white mb-5">Stay Updated</h4>
+                                <p className="text-sm mb-4 leading-relaxed">Get the latest jobs delivered to your inbox.</p>
+                                <div className="flex gap-2">
+                                    <input type="email" placeholder="Your email"
+                                        className="flex-1 min-w-0 px-3 py-2.5 rounded-lg bg-white/10 border border-avaa-primary/20 text-sm text-white placeholder-avaa-muted/50 focus:outline-none focus:ring-2 focus:ring-avaa-primary focus:border-transparent" />
+                                    <button className="flex-shrink-0 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-avaa-primary hover:bg-avaa-primary-hover transition-colors">→</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="border-t border-white/10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs opacity-40">
+                            <p>© 2026 AVAA. All rights reserved.</p>
+                            <div className="flex items-center gap-5">
+                                {['Privacy', 'Terms', 'Cookies'].map((item) => (
+                                    <span key={item} className="cursor-default hover:opacity-70 transition-opacity">{item}</span>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </footer>
+
             </div>
         </>
     );

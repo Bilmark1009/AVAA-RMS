@@ -1,0 +1,9 @@
+
+> build
+> tsc && vite build
+
+resources/js/Layouts/AuthenticatedLayout.tsx(12,18): error TS2571: Object is of type 'unknown'.
+resources/js/Pages/Profile/Edit.tsx(2,10): error TS2305: Module '"@/types"' has no exported member 'PageProps'.
+resources/js/Pages/Profile/Partials/UpdateProfileInformationForm.tsx(18,18): error TS2571: Object is of type 'unknown'.
+resources/js/Pages/Profile/Partials/UpdateProfileInformationForm.tsx(52,58): error TS2345: Argument of type 'string' is not assignable to parameter of type 'never'.
+resources/js/Pages/Profile/Partials/UpdateProfileInformationForm.tsx(69,59): error TS2345: Argument of type 'string' is not assignable to parameter of type 'never'.
