@@ -104,14 +104,15 @@ interface NavItem { label: string; href: string; icon: ReactNode }
 
 function getTopNav(role: string): NavItem[] {
     if (role === 'admin') return [
-        { label: 'Dashboard', href: safeRoute('admin.dashboard'), icon: <IcoBriefcase /> },
+        { label: 'Dashboard',     href: safeRoute('admin.dashboard'),     icon: <IcoBriefcase /> },
         { label: 'Verifications', href: safeRoute('admin.verifications'), icon: <IcoBookmark /> },
     ];
     // job-seeker
     return [
-        { label: 'Jobs', href: safeRoute('job-seeker.jobs.browse'), icon: <IcoBriefcase /> },
+        { label: 'Jobs',      href: safeRoute('job-seeker.jobs.browse'), icon: <IcoBriefcase /> },
         { label: 'Saved Jobs', href: safeRoute('job-seeker.jobs.saved'), icon: <IcoBookmark /> },
-        { label: 'Messages', href: safeRoute('job-seeker.jobs.browse'), icon: <IcoMsg /> },
+        // ✅ UPDATED: now points to the real messaging page
+        { label: 'Messages',  href: safeRoute('messages.index'),         icon: <IcoMsg /> },
     ];
 }
 
@@ -120,10 +121,12 @@ function getTopNav(role: string): NavItem[] {
 ───────────────────────────────────────── */
 function getEmployerSideNav(): NavItem[] {
     return [
-        { label: 'Dashboard', href: safeRoute('employer.dashboard'), icon: <IcoDashboard /> },
-        { label: 'Users', href: safeRoute('employer.users.index'), icon: <IcoUsers /> },
-        { label: 'Manage Jobs', href: safeRoute('employer.jobs.index'), icon: <IcoBriefcase /> },
-        { label: 'Interview', href: safeRoute('employer.interviews.index'), icon: <IcoInterview /> },
+        { label: 'Dashboard',   href: safeRoute('employer.dashboard'),       icon: <IcoDashboard /> },
+        // ✅ ADDED: Messages in employer sidebar
+        { label: 'Messages',    href: safeRoute('messages.index'),            icon: <IcoMsg /> },
+        { label: 'Users',       href: safeRoute('employer.users.index'),      icon: <IcoUsers /> },
+        { label: 'Manage Jobs', href: safeRoute('employer.jobs.index'),       icon: <IcoBriefcase /> },
+        { label: 'Interview',   href: safeRoute('employer.interviews.index'), icon: <IcoInterview /> },
     ];
 }
 
@@ -287,7 +290,6 @@ function EmployerLayout({ children, activeNav, pageTitle, pageSubtitle, user, in
                                 alt="AVAA"
                                 className="h-9 w-9 object-contain"
                                 onError={(e) => {
-                                    // fallback to banner if icon doesn't exist
                                     (e.target as HTMLImageElement).src = '/storage/logos/System_Logo/AVAA_Banner.png';
                                     (e.target as HTMLImageElement).className = 'h-7 w-auto object-contain';
                                 }}
@@ -432,11 +434,14 @@ function EmployerLayout({ children, activeNav, pageTitle, pageSubtitle, user, in
                             />
                         </div>
 
-                        {/* Messages button */}
-                        <button className="hidden sm:flex items-center gap-2 px-4 h-10 rounded-xl border border-gray-200 hover:bg-avaa-primary-light text-avaa-text hover:text-avaa-dark text-sm font-semibold transition-colors flex-shrink-0">
+                        {/* ✅ UPDATED: Messages button → Link */}
+                        <Link
+                            href={safeRoute('messages.index')}
+                            className="hidden sm:flex items-center gap-2 px-4 h-10 rounded-xl border border-gray-200 hover:bg-avaa-primary-light text-avaa-text hover:text-avaa-dark text-sm font-semibold transition-colors flex-shrink-0"
+                        >
                             <IcoMsg />
                             Messages
-                        </button>
+                        </Link>
 
                         {/* Bell */}
                         <button className="relative p-2.5 rounded-xl hover:bg-avaa-primary-light text-avaa-muted hover:text-avaa-teal transition-colors flex-shrink-0">

@@ -19,6 +19,9 @@ use App\Http\Controllers\Settings\SecurityController;
 use App\Http\Controllers\Settings\NotificationsController;
 use App\Http\Controllers\Settings\JobPreferencesController;
 use App\Http\Controllers\Settings\DocumentsController;
+use App\Http\Controllers\Messaging\ConversationController;
+use App\Http\Controllers\Messaging\MessageController;
+use App\Http\Controllers\Messaging\ReportController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -34,9 +37,39 @@ Route::middleware('guest')->group(function () {
     Route::post('/register/job-seeker', [RegisteredUserController::class, 'storeJobSeeker'])->name('register.job-seeker.store');
 });
 
+Route::middleware(['auth'])->prefix('messages')->name('messages.')->group(function () {
+    Route::get('/debug', [ConversationController::class, 'debug'])->name('debug');
+    // ── Pages (Inertia) ───────────────────────────────────────────────────
+    Route::get('/', [ConversationController::class, 'index'])->name('index');
+    Route::get('/search-users', [ConversationController::class, 'searchUsers'])->name('search-users');
+    Route::get('/report/{user}', [ReportController::class, 'create'])->name('report');
+    Route::post('/report/{user}', [ReportController::class, 'store'])->name('report.store');
+    Route::get('/{conversation}', [ConversationController::class, 'show'])->name('show');
+    // ── Start a direct conversation ───────────────────────────────────────
+    // POST body: { user_id: <target user id> }
+    Route::post('/start', [ConversationController::class, 'start'])->name('start');
+
+    // ── Conversation actions (JSON) ───────────────────────────────────────
+    Route::post('/{conversation}/archive', [ConversationController::class, 'archive'])->name('archive');
+    Route::post('/{conversation}/mute', [ConversationController::class, 'toggleMute'])->name('mute');
+    Route::delete('/{conversation}', [ConversationController::class, 'destroy'])->name('destroy');
+
+    // ── Group chat (employer only) ────────────────────────────────────────
+    Route::post('/start-group', [ConversationController::class, 'startGroup'])->name('start-group');
+
+    // ── Messages (JSON) ───────────────────────────────────────────────────
+    // Polling: GET every ~3 s with ?after_id=<last known message id>
+    Route::get('/{conversation}/poll', [MessageController::class, 'poll'])->name('poll');
+    // Send a message (multipart/form-data supports optional attachment)
+    Route::post('/{conversation}/send', [MessageController::class, 'send'])->name('send');
+    // Soft-delete a message (sender only)
+    Route::delete('/{conversation}/messages/{message}', [MessageController::class, 'destroy'])->name('messages.destroy');
+    // Mark all messages as read
+    Route::post('/{conversation}/read', [MessageController::class, 'markRead'])->name('read');
+});
+
 // Role-based dashboards
 Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
-
 
     // ── Settings (shared across all roles) ───────────────────────────────────
     Route::prefix('settings')->name('settings.')->group(function () {
