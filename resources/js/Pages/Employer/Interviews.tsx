@@ -79,13 +79,13 @@ const IcoChevronDown = ({ open }: { open: boolean }) => (
 ══════════════════════════════════════════════ */
 function StatCard({ label, value, color }: { label: string; value: number; color: string }) {
     const colors: Record<string, string> = {
-        red: 'from-red-400 to-rose-500',
-        amber: 'from-amber-400 to-orange-500',
-        teal: 'from-teal-400 to-emerald-500',
+        navy: 'from-[#122431] to-[#1D2835]',
+        teal: 'from-[#7EB0AB] to-[#6A9E99]',
+        mid: 'from-[#172F37] to-[#2C3E50]',
     };
     return (
-        <div className={`bg-gradient-to-br ${colors[color] ?? colors.teal} rounded-2xl px-5 py-4 text-white shadow-md min-w-[160px]`}>
-            <p className="text-xs font-semibold opacity-90 mb-1">{label}</p>
+        <div className={`bg-gradient-to-br ${colors[color] ?? colors.navy} rounded-2xl px-5 py-4 text-white shadow-md min-w-[160px]`}>
+            <p className="text-xs font-semibold opacity-80 mb-1">{label}</p>
             <p className="text-3xl font-bold">{value}</p>
         </div>
     );
@@ -440,8 +440,8 @@ export default function Interviews({ interviews, stats }: Props) {
 
             {/* Stat Cards */}
             <div className="flex items-center gap-4 mb-8 flex-wrap">
-                <StatCard label="Today's Total" value={stats.todays_total} color="red" />
-                <StatCard label="Pending Feedback" value={stats.pending_feedback} color="amber" />
+                <StatCard label="Today's Total" value={stats.todays_total} color="navy" />
+                <StatCard label="Pending Feedback" value={stats.pending_feedback} color="mid" />
                 <StatCard label="Upcoming" value={stats.upcoming} color="teal" />
             </div>
 
@@ -458,10 +458,16 @@ export default function Interviews({ interviews, stats }: Props) {
                         </button>
                     ))}
                 </div>
-                <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2 w-64 shadow-sm focus-within:ring-2 focus-within:ring-avaa-primary/20 transition-all">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="text-gray-400 flex-shrink-0"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-                    <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search candidates or jobs..."
-                        className="text-sm bg-transparent text-gray-900 placeholder-gray-400 font-medium focus:outline-none w-full" />
+                <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 h-10 w-64 shadow-sm">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="text-gray-400 flex-shrink-0">
+                        <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
+                    <input
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                        placeholder="Search candidates or jobs..."
+                        className="text-sm bg-transparent text-gray-900 placeholder-gray-400 font-medium focus:outline-none focus:ring-0 border-0 w-full"
+                    />
                 </div>
             </div>
 

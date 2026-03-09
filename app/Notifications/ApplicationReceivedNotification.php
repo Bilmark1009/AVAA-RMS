@@ -1,0 +1,39 @@
+<?php
+
+namespace App\Notifications;
+
+use App\Models\JobApplication;
+use App\Models\JobListing;
+use Illuminate\Notifications\Notification;
+
+/**
+ * Sent to a Job Seeker when their application is received.
+ * Respects: inapp_application_status
+ */
+class ApplicationReceivedNotification extends Notification
+{
+    public function __construct(
+        protected JobApplication $application,
+        protected JobListing $job,
+    ) {
+    }
+
+    public function via(object $notifiable): array
+    {
+        $settings = $notifiable->notificationSettings;
+        $channels = [];
+        if ($settings?->inapp_application_status ?? true) {
+            $channels[] = 'database';
+        }
+        return $channels ?: ['database'];
+    }
+
+    public function toArray(object $notifiable): array
+    {
+        return [
+            'message' => "Your application for \"{$this->job->title}\" has been received. We'll keep you posted!",
+            'job_id' => $this->job->id,
+            'link' => route('job-seeker.jobs.browse'),
+        ];
+    }
+}

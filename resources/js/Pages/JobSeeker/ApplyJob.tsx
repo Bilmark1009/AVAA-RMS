@@ -275,14 +275,14 @@ export default function ApplyJob({ job, prefill, draftId }: Props) {
     const expOptions = ['Less than 1 year', '1-2 years', '3-5 years', '6-10 years', '10+ years'];
 
     return (
-        <AppLayout activeNav="Jobs">
+        <AppLayout activeNav="Jobs" pageTitle="Application">
             <Head title={`Apply - ${job.title}`} />
 
             {/* Breadcrumb */}
             <nav className="flex items-center gap-2 text-sm text-gray-500 mb-5">
                 <Link href={route('job-seeker.jobs.browse')} className="hover:text-avaa-teal transition-colors font-medium">Home</Link>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6" /></svg>
-                <Link href={route('job-seeker.jobs.show', job.id)} className="hover:text-avaa-teal transition-colors font-medium">{job.title}</Link>
+                <Link href={route('job-seeker.jobs.show', job.id)} className="hover:text-avaa-teal transition-colors font-medium">Job Details</Link>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6" /></svg>
                 <span className="text-avaa-teal font-semibold">Application</span>
             </nav>

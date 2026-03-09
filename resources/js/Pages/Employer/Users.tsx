@@ -243,11 +243,17 @@ export default function Users({ employees, activeCount }: Props) {
 
             {/* Toolbar */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-                <div></div> {/* Spacer */}
-                <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2 w-72 shadow-sm focus-within:ring-2 focus-within:ring-avaa-primary/20 transition-all">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="text-gray-400 flex-shrink-0"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-                    <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search employees or roles..."
-                        className="text-sm bg-transparent text-gray-900 placeholder-gray-400 font-medium focus:outline-none w-full" />
+                <div></div>
+                <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 h-10 w-64 shadow-sm">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="text-gray-400 flex-shrink-0">
+                        <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
+                    <input
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                        placeholder="Search employees or roles..."
+                        className="text-sm bg-transparent text-gray-900 placeholder-gray-400 font-medium focus:outline-none focus:ring-0 border-0 w-full"
+                    />
                 </div>
             </div>
 
@@ -257,11 +263,11 @@ export default function Users({ employees, activeCount }: Props) {
                     <table className="w-full">
                         <thead>
                             <tr className="border-b border-gray-100 bg-gray-50/50">
-                                <th className="text-left px-6 py-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest min-w-[250px]">Employee</th>
-                                <th className="text-left px-4 py-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest min-w-[200px]">Role / Position</th>
-                                <th className="text-left px-4 py-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest whitespace-nowrap">Hired Date</th>
-                                <th className="text-center px-4 py-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest min-w-[100px]">Status</th>
-                                <th className="px-6 py-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest text-right min-w-[120px]">Actions</th>
+                                <th className="text-left px-6 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-widest min-w-[250px]">Employee</th>
+                                <th className="text-left px-4 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-widest min-w-[200px]">Role / Position</th>
+                                <th className="text-left px-4 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-widest whitespace-nowrap">Hired Date</th>
+                                <th className="text-center px-4 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-widest min-w-[100px]">Status</th>
+                                <th className="px-6 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-widest text-right min-w-[120px]">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">

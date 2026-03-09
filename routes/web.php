@@ -9,6 +9,9 @@ use App\Http\Controllers\Employer\EmployeeController;
 
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\EmployerVerificationController;
+use App\Http\Controllers\Admin\UserManagementController;
+use App\Http\Controllers\Admin\AdminJobController;
+use App\Http\Controllers\Admin\AdminSettingsController;
 use App\Http\Controllers\Employer\ProfileController as EmployerProfileController;
 use App\Http\Controllers\JobSeeker\ProfileController as JobSeekerProfileController;
 use App\Http\Controllers\Admin\VerificationsController;
@@ -22,11 +25,17 @@ use App\Http\Controllers\Settings\DocumentsController;
 use App\Http\Controllers\Messaging\ConversationController;
 use App\Http\Controllers\Messaging\MessageController;
 use App\Http\Controllers\Messaging\ReportController;
+use App\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-// Home
-Route::get('/', fn() => Inertia::render('Welcome'))->name('home');
+// Home — redirect authenticated users to their dashboard; show Welcome to guests
+Route::get('/', function () {
+    if (auth()->check()) {
+        return redirect()->route(auth()->user()->getDashboardRoute());
+    }
+    return \Inertia\Inertia::render('Welcome');
+})->name('home');
 
 // Registration
 Route::middleware('guest')->group(function () {
@@ -39,14 +48,20 @@ Route::middleware('guest')->group(function () {
 
 Route::middleware(['auth'])->prefix('messages')->name('messages.')->group(function () {
     Route::get('/debug', [ConversationController::class, 'debug'])->name('debug');
+
     // ── Pages (Inertia) ───────────────────────────────────────────────────
     Route::get('/', [ConversationController::class, 'index'])->name('index');
     Route::get('/search-users', [ConversationController::class, 'searchUsers'])->name('search-users');
     Route::get('/report/{user}', [ReportController::class, 'create'])->name('report');
     Route::post('/report/{user}', [ReportController::class, 'store'])->name('report.store');
-    Route::get('/{conversation}', [ConversationController::class, 'show'])->name('show');
+
+    // ✅ ->missing() redirects to messages index instead of 404
+    // when conversation is deleted and user reloads the old URL
+    Route::get('/{conversation}', [ConversationController::class, 'show'])
+        ->name('show')
+        ->missing(fn() => redirect()->route('messages.index'));
+
     // ── Start a direct conversation ───────────────────────────────────────
-    // POST body: { user_id: <target user id> }
     Route::post('/start', [ConversationController::class, 'start'])->name('start');
 
     // ── Conversation actions (JSON) ───────────────────────────────────────
@@ -57,8 +72,13 @@ Route::middleware(['auth'])->prefix('messages')->name('messages.')->group(functi
     // ── Group chat (employer only) ────────────────────────────────────────
     Route::post('/start-group', [ConversationController::class, 'startGroup'])->name('start-group');
 
+    // ── Delete group (employer only) — must come before /{conversation} wildcard ──
+    Route::delete('/group/{conversation}', [ConversationController::class, 'destroyGroup'])
+        ->name('destroy-group')
+        ->missing(fn() => redirect()->route('messages.index'));
+
     // ── Messages (JSON) ───────────────────────────────────────────────────
-    // Polling: GET every ~3 s with ?after_id=<last known message id>
+    // Polling: GET every ~3s with ?after_id=<last known message id>
     Route::get('/{conversation}/poll', [MessageController::class, 'poll'])->name('poll');
     // Send a message (multipart/form-data supports optional attachment)
     Route::post('/{conversation}/send', [MessageController::class, 'send'])->name('send');
@@ -70,6 +90,17 @@ Route::middleware(['auth'])->prefix('messages')->name('messages.')->group(functi
 
 // Role-based dashboards
 Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
+
+    // ── Notifications (shared across all roles) ────────────────────────────
+    Route::prefix('notifications')->name('notifications.')->group(function () {
+        Route::get('/', [NotificationController::class, 'index'])->name('index');
+        Route::get('/fetch', [NotificationController::class, 'fetch'])->name('fetch');
+        Route::patch('/{id}/read', [NotificationController::class, 'markAsRead'])->name('read');
+        Route::patch('/{id}/unread', [NotificationController::class, 'markAsUnread'])->name('unread');
+        Route::post('/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('mark-all-read');
+        Route::delete('/destroy-all', [NotificationController::class, 'destroyAll'])->name('destroy-all');
+        Route::delete('/{id}', [NotificationController::class, 'destroy'])->name('destroy');
+    });
 
     // ── Settings (shared across all roles) ───────────────────────────────────
     Route::prefix('settings')->name('settings.')->group(function () {
@@ -149,7 +180,7 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         Route::get('/jobs/{job}/apply', [JobApplicationController::class, 'create'])->name('jobs.apply.form');
         Route::post('/jobs/{job}/apply', [JobApplicationController::class, 'store'])->name('jobs.apply');
         Route::post('/jobs/{job}/apply/draft', [JobApplicationController::class, 'saveDraft'])->name('jobs.apply.draft');
-        Route::get('/jobs/{job}', [JobBrowseController::class, 'show'])->name('jobs.show'); // ← add this
+        Route::get('/jobs/{job}', [JobBrowseController::class, 'show'])->name('jobs.show');
     });
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -159,6 +190,27 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         Route::post('/employers/{user}/verify', [EmployerVerificationController::class, 'verify'])->name('employers.verify');
         Route::post('/employers/{user}/revoke', [EmployerVerificationController::class, 'revoke'])->name('employers.revoke');
         Route::get('/verifications', [EmployerVerificationController::class, 'index'])->name('verifications');
+
+        // User Management
+        Route::get('/users', [UserManagementController::class, 'index'])->name('users.index');
+        Route::delete('/users/{user}', [UserManagementController::class, 'destroy'])->name('users.destroy');
+        Route::post('/users/{id}/restore', [UserManagementController::class, 'restore'])->name('users.restore');
+        Route::patch('/users/{user}/status', [UserManagementController::class, 'updateStatus'])->name('users.status');
+
+        // Job Management
+        Route::get('/jobs', [AdminJobController::class, 'index'])->name('jobs.index');
+        Route::get('/jobs/{job}', [AdminJobController::class, 'show'])->name('jobs.show');
+        Route::get('/jobs/{job}/applications', [AdminJobController::class, 'applications'])->name('jobs.applications');
+
+        // Admin Settings
+        Route::get('/settings', [AdminSettingsController::class, 'account'])->name('settings');
+        Route::patch('/settings/account', [AdminSettingsController::class, 'updateAccount'])->name('settings.account.update');
+        Route::post('/settings/avatar', [AdminSettingsController::class, 'uploadAvatar'])->name('settings.avatar');
+        Route::delete('/settings/avatar', [AdminSettingsController::class, 'removeAvatar'])->name('settings.avatar.remove');
+        Route::get('/settings/security', [AdminSettingsController::class, 'security'])->name('settings.security');
+        Route::patch('/settings/security', [AdminSettingsController::class, 'updateSecurity'])->name('settings.security.update');
+        Route::get('/settings/notifications', [AdminSettingsController::class, 'notifications'])->name('settings.notifications');
+        Route::patch('/settings/notifications', [AdminSettingsController::class, 'updateNotifications'])->name('settings.notifications.update');
     });
     // ─────────────────────────────────────────────────────────────────────────
 });

@@ -1,5 +1,5 @@
 import AuthLayout from '@/Layouts/AuthLayout';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, useForm, router } from '@inertiajs/react';
 import { FormEventHandler, useRef, useState, ClipboardEvent, KeyboardEvent } from 'react';
 
 export default function VerifyEmail({ status }: { status?: string }) {
@@ -111,14 +111,20 @@ export default function VerifyEmail({ status }: { status?: string }) {
                     </button>
                 </form>
 
-                <Link
-                    href={route('logout')}
-                    method="post"
-                    as="button"
+                <button
+                    type="button"
+                    onClick={() => {
+                        sessionStorage.removeItem('auth_logged_in');
+                        sessionStorage.removeItem('auth_dashboard');
+                        sessionStorage.removeItem('auth_user_id');
+                        sessionStorage.removeItem('auth_user_role');
+                        sessionStorage.removeItem('auth_session_id');
+                        router.visit(route('logout'), { method: 'post', replace: true });
+                    }}
                     className="text-avaa-muted hover:text-avaa-text font-medium"
                 >
                     Log Out
-                </Link>
+                </button>
             </div>
         </AuthLayout>
     );

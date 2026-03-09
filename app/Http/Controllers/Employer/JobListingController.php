@@ -6,8 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\JobListing;
 use App\Models\JobApplication;
 use App\Models\Interview;
+use App\Models\User;
 use App\Mail\ApplicationRejected;
 use App\Mail\InterviewScheduled;
+use App\Notifications\ApplicationRejectedNotification;
+use App\Notifications\InterviewScheduledNotification;
+use App\Notifications\NewApplicationNotification;
+use App\Notifications\AdminNewJobPostedNotification;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Mail;
@@ -78,7 +83,7 @@ class JobListingController extends Controller
             'application_limit' => 'nullable|integer|min:1',
         ]);
 
-        JobListing::create([
+        $job = JobListing::create([
             'employer_id' => $request->user()->id,
             'title' => $request->title,
             'location' => $request->location,
@@ -95,6 +100,13 @@ class JobListingController extends Controller
             'status' => $request->status ?? 'active',
             'application_limit' => $request->application_limit,
         ]);
+
+        // Notify all admins about new job posting
+        $employer = $request->user();
+        User::where('role', 'admin')->each(
+            fn($admin) =>
+            $admin->notify(new AdminNewJobPostedNotification($job, $employer))
+        );
 
         return back()->with('success', 'Job listing created successfully!');
     }
@@ -252,6 +264,9 @@ class JobListingController extends Controller
         Mail::to($application->user->email)
             ->send(new ApplicationRejected($application, $job, $request->rejection_reason));
 
+        // In-app notification
+        $application->user->notify(new ApplicationRejectedNotification($application, $job));
+
         return back()->with('success', 'Application rejected and applicant notified.');
     }
 
@@ -297,14 +312,20 @@ class JobListingController extends Controller
         Mail::to($application->user->email)
             ->send(new InterviewScheduled($interview, $job, $candidateName));
 
+        // In-app notification to job seeker
+        $application->user->notify(new InterviewScheduledNotification($interview, $job));
+
         return back()->with('success', 'Application approved and interview scheduled!');
     }
 
     /**
      * Simple status toggle (e.g. back to pending).
      */
-    public function updateApplicationStatus(Request $request, JobListing $job, JobApplication $application): RedirectResponse
-    {
+    public function updateApplicationStatus(
+        Request $request,
+        JobListing $job,
+        JobApplication $application
+    ): RedirectResponse {
         $this->authorizeJob($request, $job);
         abort_if($application->job_listing_id !== $job->id, 403);
 

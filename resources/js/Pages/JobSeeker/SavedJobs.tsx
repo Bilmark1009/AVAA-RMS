@@ -188,7 +188,7 @@ export default function SavedJobs({ user, savedJobs, filters, availableSkills, a
     ];
 
     return (
-        <AppLayout activeNav="Saved Jobs">
+        <AppLayout activeNav="Saved Jobs" pageTitle="Saved Jobs">
             <Head title="Saved Jobs" />
 
             {/* Page heading */}

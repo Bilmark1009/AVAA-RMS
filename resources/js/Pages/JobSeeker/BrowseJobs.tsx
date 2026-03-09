@@ -46,7 +46,10 @@ function timeAgo(dateStr: string) {
 function formatSalary(min?: number | null, max?: number | null, currency = 'USD') {
     if (!min && !max) return null;
     const sym = currency === 'PHP' ? '₱' : currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '$';
-    const fmt = (n: number) => n >= 1000 ? `${sym}${Math.round(n / 1000)}k` : `${sym}${n.toLocaleString()}`;
+    const fmt = (n: number) => {
+        const num = Number(n);
+        return num >= 1000 ? `${sym}${Math.round(num / 1000)}k` : `${sym}${num.toLocaleString()}`;
+    };
     if (min && max) return `${fmt(min)}-${fmt(max)}`;
     if (min) return `${fmt(min)}+`;
     return `Up to ${fmt(max!)}`;
@@ -193,7 +196,7 @@ export default function BrowseJobs({ jobs, savedJobIds, filters, availableSkills
         });
     };
 
-    const handleApply = (jobId: number) => router.post(route('job-seeker.jobs.apply', jobId), {}, { preserveScroll: true });
+    const handleApply = (jobId: number) => router.visit(route('job-seeker.jobs.apply', jobId));
     const handleView = (jobId: number) => router.visit(route('job-seeker.jobs.show', jobId));
 
     const DATE_FILTERS = [
@@ -204,7 +207,7 @@ export default function BrowseJobs({ jobs, savedJobIds, filters, availableSkills
     return (
         <>
             {!profileComplete && <JobSeekerOnboarding />}
-            <AppLayout activeNav="Jobs">
+            <AppLayout activeNav="Jobs" pageTitle="Browse Jobs">
                 <Head title="Browse Jobs" />
 
                 {/* Page heading */}

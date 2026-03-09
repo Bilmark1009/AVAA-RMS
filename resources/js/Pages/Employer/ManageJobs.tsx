@@ -661,12 +661,12 @@ export default function ManageJobs({ user, profile, jobs, isVerified }: Props) {
             <div className="space-y-4">
 
                 {/* Toolbar */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="inline-flex items-center bg-white border border-gray-200 rounded-xl p-1 gap-0.5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+                    <div className="inline-flex items-center bg-white border border-gray-200 rounded-xl p-1 gap-0.5 shadow-sm">
                         {(['all', 'active', 'inactive'] as const).map(tab => (
                             <button key={tab} onClick={() => setFilter(tab)}
-                                className={`px-4 py-1.5 rounded-lg text-sm font-medium capitalize transition-all ${filter === tab
-                                    ? 'bg-avaa-primary text-white shadow-sm'
+                                className={`px-4 py-1.5 rounded-lg text-xs font-bold capitalize transition-all ${filter === tab
+                                    ? 'bg-avaa-dark text-white shadow-sm'
                                     : 'text-gray-500 hover:text-avaa-dark hover:bg-gray-50'
                                     }`}>
                                 {tab}
@@ -676,17 +676,23 @@ export default function ManageJobs({ user, profile, jobs, isVerified }: Props) {
                         ))}
                     </div>
                     <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2 w-52">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-avaa-muted flex-shrink-0">
+                        <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 h-10 w-64 shadow-sm">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="text-gray-400 flex-shrink-0">
                                 <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
                             </svg>
-                            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search jobs..."
-                                className="text-sm bg-transparent text-avaa-dark placeholder-avaa-muted focus:outline-none w-full" />
+                            <input
+                                value={search}
+                                onChange={e => setSearch(e.target.value)}
+                                placeholder="Search jobs..."
+                                className="text-sm bg-transparent text-gray-900 placeholder-gray-400 font-medium focus:outline-none focus:ring-0 border-0 w-full"
+                            />
                         </div>
-                        <button onClick={() => isVerified && setShowCreate(true)} disabled={!isVerified}
+                        <button
+                            onClick={() => isVerified && setShowCreate(true)}
+                            disabled={!isVerified}
                             title={!isVerified ? 'Requires verification' : undefined}
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-avaa-primary hover:bg-avaa-primary-hover text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                            className="inline-flex items-center gap-2 px-4 h-9 bg-avaa-primary hover:bg-avaa-primary-hover text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                                 <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
                             </svg>
                             Add Job
@@ -702,13 +708,13 @@ export default function ManageJobs({ user, profile, jobs, isVerified }: Props) {
                     <div className="overflow-x-auto">
                         <table className="w-full">
                             <thead>
-                                <tr className="border-b border-gray-100">
-                                    <th className="text-left px-5 py-3.5 text-xs font-semibold text-gray-400 uppercase tracking-wide w-[35%]">User</th>
-                                    <th className="text-left px-4 py-3.5 text-xs font-semibold text-gray-400 uppercase tracking-wide">Company</th>
-                                    <th className="text-left px-4 py-3.5 text-xs font-semibold text-gray-400 uppercase tracking-wide">Status</th>
-                                    <th className="text-left px-4 py-3.5 text-xs font-semibold text-gray-400 uppercase tracking-wide">Applications</th>
-                                    <th className="text-left px-4 py-3.5 text-xs font-semibold text-gray-400 uppercase tracking-wide">Posted Date</th>
-                                    <th className="px-4 py-3.5 w-12" />
+                                <tr className="border-b border-gray-100 bg-gray-50/50">
+                                    <th className="text-left px-6 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-widest w-[35%]">User</th>
+                                    <th className="text-left px-4 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-widest">Company</th>
+                                    <th className="text-left px-4 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-widest">Status</th>
+                                    <th className="text-left px-4 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-widest">Applications</th>
+                                    <th className="text-left px-4 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-widest">Posted Date</th>
+                                    <th className="px-4 py-3 w-12" />
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">

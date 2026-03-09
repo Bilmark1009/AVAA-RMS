@@ -5,6 +5,8 @@ namespace App\Http\Controllers\JobSeeker;
 use App\Http\Controllers\Controller;
 use App\Models\JobApplication;
 use App\Models\JobListing;
+use App\Notifications\ApplicationReceivedNotification;
+use App\Notifications\NewApplicationNotification;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
@@ -153,8 +155,18 @@ class JobApplicationController extends Controller
 
         if ($existing && $existing->status === 'draft') {
             $existing->update($data);
+            $application = $existing->fresh();
         } else {
-            JobApplication::create($data);
+            $application = JobApplication::create($data);
+        }
+
+        // Notify the job seeker that their application was received
+        $user->notify(new ApplicationReceivedNotification($application, $job));
+
+        // Notify the employer about the new application
+        $employer = $job->employer;
+        if ($employer) {
+            $employer->notify(new NewApplicationNotification($application, $job, $user));
         }
 
         return redirect()->route('job-seeker.jobs.show', $job->id)

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Notifications\AdminNewUserRegisteredNotification;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -58,6 +59,12 @@ class RegisteredUserController extends Controller
         event(new Registered($user));
         Auth::login($user);
 
+        // Notify all admins
+        $admins = User::where('role', 'admin')->get();
+        foreach ($admins as $admin) {
+            $admin->notify(new AdminNewUserRegisteredNotification($user));
+        }
+
         return redirect()->route('employer.dashboard');
     }
 
@@ -85,6 +92,12 @@ class RegisteredUserController extends Controller
 
         event(new Registered($user));
         Auth::login($user);
+
+        // Notify all admins
+        $admins = User::where('role', 'admin')->get();
+        foreach ($admins as $admin) {
+            $admin->notify(new AdminNewUserRegisteredNotification($user));
+        }
 
         return redirect()->route('job-seeker.jobs.browse');
     }

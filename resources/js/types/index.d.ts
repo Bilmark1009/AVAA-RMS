@@ -19,10 +19,25 @@ export interface User {
     work_experiences?: WorkExperience[] | null;
 }
 
+export interface AppNotification {
+    id: string;
+    type: string;
+    data: {
+        message: string;
+        link?: string;
+        [key: string]: unknown;
+    };
+    read_at: string | null;
+    created_at: string;
+    time_ago: string;
+}
+
 export type PageProps<T extends Record<string, unknown> = Record<string, unknown>> = T & {
     auth: {
         user: User;
+        session_id: string;
     };
+    unreadNotificationsCount: number;
 };
 
 export interface EmployerProfile {

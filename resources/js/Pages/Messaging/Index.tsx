@@ -384,9 +384,9 @@ function useToast() {
 /* ══════════════════════════════════════════════════════════
    CONTEXT MENU
 ══════════════════════════════════════════════════════════ */
-function ContextMenu({ onArchive, onMute, onDelete, onReport, onClose, isMuted, showToast }: {
-    onArchive: () => void; onMute: () => void; onDelete: () => void; onReport: () => void;
-    onClose: () => void; isMuted: boolean; showToast: (msg: string) => void;
+function ContextMenu({ onArchive, onMute, onDelete, onDeleteGroup, onReport, onClose, isMuted, isGroup, isEmployer, showToast }: {
+    onArchive: () => void; onMute: () => void; onDelete: () => void; onDeleteGroup: () => void; onReport: () => void;
+    onClose: () => void; isMuted: boolean; isGroup: boolean; isEmployer: boolean; showToast: (msg: string) => void;
 }) {
     const ref = useRef<HTMLDivElement>(null);
     useEffect(() => {
@@ -410,10 +410,18 @@ function ContextMenu({ onArchive, onMute, onDelete, onReport, onClose, isMuted, 
                 </button>
             ))}
             <div className="border-t border-gray-100 mt-1 pt-1">
-                <button onClick={() => { onDelete(); onClose(); }}
-                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-red-500 hover:bg-red-50 transition-colors">
-                    <IcoTrash /> Delete Conversation
-                </button>
+                {isGroup && isEmployer && (
+                    <button onClick={() => { onDeleteGroup(); onClose(); }}
+                        className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-red-500 hover:bg-red-50 transition-colors">
+                        <IcoTrash /> Delete Group for Everyone
+                    </button>
+                )}
+                {!isGroup && (
+                    <button onClick={() => { onDelete(); onClose(); }}
+                        className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-red-500 hover:bg-red-50 transition-colors">
+                        <IcoTrash /> Delete Conversation
+                    </button>
+                )}
             </div>
         </div>
     );
@@ -467,7 +475,10 @@ function Bubble({ msg, isOwn, showAvatar }: { msg: Message; isOwn: boolean; show
 /* ══════════════════════════════════════════════════════════
    NEW GROUP MODAL (employer only)
 ══════════════════════════════════════════════════════════ */
-function NewGroupModal({ onClose }: { onClose: () => void }) {
+function NewGroupModal({ onClose, onCreated }: {
+    onClose: () => void;
+    onCreated: (convos: ConversationSummary[], activeConvo: ConversationSummary | null, messages: Message[]) => void;
+}) {
     const [name, setName] = useState('');
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<UserResult[]>([]);
@@ -506,10 +517,23 @@ function NewGroupModal({ onClose }: { onClose: () => void }) {
     const handleCreate = () => {
         if (!name.trim() || selected.length === 0) return;
         setCreating(true);
-        router.post(route('messages.start-group'), {
-            name: name.trim(),
-            participant_ids: selected.map(u => u.id),
-        });
+        router.post(
+            route('messages.start-group'),
+            {
+                name: name.trim(),
+                participant_ids: selected.map(u => u.id),
+            },
+            {
+                onSuccess: (page: any) => {
+                    const p = page.props as any;
+                    onCreated(p.conversations ?? [], p.activeConversation ?? null, p.initialMessages ?? []);
+                    onClose();
+                },
+                onError: () => {
+                    setCreating(false); // reset spinner so user can retry
+                },
+            }
+        );
     };
 
     return (
@@ -720,10 +744,45 @@ export default function MessagingIndex({
         });
     }, [activeConvo?.id, convos, stopPolling]);
 
-    /* ── Start new conversation ── */
+    /* ── Group created callback ── */
+    const handleGroupCreated = useCallback((
+        updatedConvos: ConversationSummary[],
+        newActive: ConversationSummary | null,
+        newMessages: Message[]
+    ) => {
+        setConvos(updatedConvos);
+        setActiveConvo(newActive);
+        setMessages(newMessages);
+        lastMsgId.current = newMessages.length > 0
+            ? newMessages[newMessages.length - 1].id
+            : 0;
+        setMobileView('chat');
+        setShowNewGroup(false);
+    }, []);
+
+    /* ── Start new conversation (FIXED) ── */
     const handleStartConversation = useCallback((userId: number) => {
         setShowNewMsg(false);
-        router.post(route('messages.start'), { user_id: userId });
+        router.post(
+            route('messages.start'),
+            { user_id: userId },
+            {
+                onSuccess: (page: any) => {
+                    const p = page.props as any;
+                    const updatedConvos: ConversationSummary[] = p.conversations ?? [];
+                    const newActive: ConversationSummary | null = p.activeConversation ?? null;
+                    const newMessages: Message[] = p.initialMessages ?? [];
+
+                    setConvos(updatedConvos);
+                    setActiveConvo(newActive);
+                    setMessages(newMessages);
+                    lastMsgId.current = newMessages.length > 0
+                        ? newMessages[newMessages.length - 1].id
+                        : 0;
+                    setMobileView('chat');
+                },
+            }
+        );
     }, []);
 
     /* ── Send message ── */
@@ -742,11 +801,20 @@ export default function MessagingIndex({
             setBody('');
             if (fileRef.current) fileRef.current.value = '';
             if (textareaRef.current) textareaRef.current.style.height = 'auto';
-            setConvos(prev => prev.map(c =>
-                c.id === activeConvo.id
-                    ? { ...c, latest_message: { body: msg.body, sender_id: me.id, created_at: msg.created_at }, last_message_at: msg.created_at, unread_count: 0 }
-                    : c
-            ));
+            setConvos(prev => {
+                const exists = prev.some(c => c.id === activeConvo.id);
+                const updated = {
+                    ...activeConvo,
+                    latest_message: { body: msg.body, sender_id: me.id, created_at: msg.created_at },
+                    last_message_at: msg.created_at,
+                    unread_count: 0,
+                    // ✅ Unarchive optimistically — mirrors Messenger behaviour where
+                    // sending a message into an archived chat moves it back to All tab
+                    is_archived: false,
+                };
+                if (!exists) return [updated, ...prev];
+                return prev.map(c => c.id === activeConvo.id ? updated : c);
+            });
         } catch { /* handle error */ }
         finally { setSending(false); }
     }, [activeConvo, body, me.id]);
@@ -772,6 +840,21 @@ export default function MessagingIndex({
         await axios.delete(route('messages.destroy', id));
         setConvos(prev => prev.filter(c => c.id !== id));
         if (activeConvo?.id === id) { setActiveConvo(null); setMessages([]); stopPolling(); }
+    };
+
+    const [confirmDeleteGroup, setConfirmDeleteGroup] = useState<number | null>(null);
+
+    const deleteGroup = async (id: number) => {
+        try {
+            await axios.delete(route('messages.destroy-group', id));
+            setConvos(prev => prev.filter(c => c.id !== id));
+            if (activeConvo?.id === id) { setActiveConvo(null); setMessages([]); stopPolling(); }
+            toast.show('Group chat deleted for everyone');
+        } catch {
+            toast.show('Failed to delete group chat');
+        } finally {
+            setConfirmDeleteGroup(null);
+        }
     };
 
     // Sidebar user search
@@ -823,7 +906,41 @@ export default function MessagingIndex({
 
             {/* New Group Modal (employer) */}
             {showNewGroup && (
-                <NewGroupModal onClose={() => setShowNewGroup(false)} />
+                <NewGroupModal
+                    onClose={() => setShowNewGroup(false)}
+                    onCreated={handleGroupCreated}
+                />
+            )}
+
+            {/* Confirm Delete Group Modal */}
+            {confirmDeleteGroup !== null && (
+                <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden">
+                        <div className="px-6 py-5">
+                            <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center text-red-500 mb-4">
+                                <IcoTrash />
+                            </div>
+                            <h3 className="text-[15px] font-bold text-avaa-dark mb-1">Delete Group Chat?</h3>
+                            <p className="text-[13px] text-avaa-muted leading-relaxed">
+                                This will permanently delete the group chat and all its messages for <span className="font-semibold text-avaa-dark">everyone</span> in the conversation. This cannot be undone.
+                            </p>
+                        </div>
+                        <div className="px-6 pb-5 flex gap-2 justify-end">
+                            <button
+                                onClick={() => setConfirmDeleteGroup(null)}
+                                className="px-4 py-2 text-[13px] font-semibold text-avaa-muted hover:text-avaa-dark transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={() => deleteGroup(confirmDeleteGroup)}
+                                className="px-5 py-2 bg-red-500 hover:bg-red-600 text-white text-[13px] font-semibold rounded-xl transition-colors"
+                            >
+                                Delete for Everyone
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
 
             <div className="flex rounded-2xl overflow-hidden border border-gray-200 bg-white shadow-sm"
@@ -987,9 +1104,12 @@ export default function MessagingIndex({
                                             onArchive={() => archiveConvo(activeConvo.id)}
                                             onMute={() => muteConvo(activeConvo.id)}
                                             onDelete={() => deleteConvo(activeConvo.id)}
+                                            onDeleteGroup={() => setConfirmDeleteGroup(activeConvo.id)}
                                             onReport={handleReportUser}
                                             onClose={() => setShowMenu(false)}
                                             isMuted={activeConvo.is_muted}
+                                            isGroup={activeConvo.type === 'group'}
+                                            isEmployer={me.role === 'employer'}
                                             showToast={toast.show}
                                         />
                                     )}

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Messaging;
 use App\Http\Controllers\Controller;
 use App\Models\Conversation;
 use App\Models\JobListing;
+use App\Models\Message;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -31,11 +32,21 @@ class ConversationController extends Controller
 
     /**
      * Show a specific conversation and load its messages.
+     * If the conversation no longer exists or the user is not a participant,
+     * redirect gracefully to the messages index instead of throwing 404/403.
      */
-    public function show(Request $request, Conversation $conversation): Response
+    public function show(Request $request, Conversation $conversation): Response|RedirectResponse
     {
         $user = $request->user();
-        $this->authorizeParticipant($conversation, $user->id);
+
+        // ✅ If user is not a participant, redirect instead of aborting with 403
+        $isParticipant = $conversation->participants()
+            ->where('user_id', $user->id)
+            ->exists();
+
+        if (!$isParticipant) {
+            return redirect()->route('messages.index');
+        }
 
         // Mark all messages as read for this user
         $conversation->participants()->updateExistingPivot($user->id, [
@@ -60,17 +71,16 @@ class ConversationController extends Controller
      * Start or open a direct conversation with another user.
      * Enforces: employer ↔ job_seeker only.
      */
-    public function start(Request $request): \Illuminate\Http\RedirectResponse
+    public function start(Request $request): RedirectResponse
     {
         $request->validate(['user_id' => 'required|exists:users,id']);
 
         $current = $request->user();
-        $target = \App\Models\User::findOrFail($request->user_id);
+        $target = User::findOrFail($request->user_id);
 
         $this->enforceRolePair($current, $target);
 
-        // findOrCreateDirect now only restores $current's side, not $target's
-        $conversation = \App\Models\Conversation::findOrCreateDirect($current, $target);
+        $conversation = Conversation::findOrCreateDirect($current, $target);
 
         // Make sure current user is a participant (handles edge cases)
         $isParticipant = $conversation->participants()
@@ -139,7 +149,7 @@ class ConversationController extends Controller
         // Attach the employer (creator)
         $conversation->participants()->attach($current->id);
 
-        // Attach selected participants
+        // Attach selected participants (excluding self)
         $participantIds = collect($request->participant_ids)
             ->filter(fn($id) => (int) $id !== $current->id)
             ->unique()
@@ -153,7 +163,7 @@ class ConversationController extends Controller
      * Messenger-style delete: clear this user's view of the conversation.
      * Messages before now() become invisible; conversation reappears if new messages arrive.
      */
-    public function destroy(Request $request, \App\Models\Conversation $conversation): \Illuminate\Http\JsonResponse
+    public function destroy(Request $request, Conversation $conversation): JsonResponse
     {
         $userId = $request->user()->id;
 
@@ -170,23 +180,46 @@ class ConversationController extends Controller
         return response()->json(['ok' => true]);
     }
 
+    /**
+     * Hard-delete a group conversation for everyone (employer/creator only).
+     * DELETE /messages/group/{conversation}
+     */
+    public function destroyGroup(Request $request, Conversation $conversation): JsonResponse
+    {
+        $user = $request->user();
 
-    public function debug(Request $request): \Illuminate\Http\JsonResponse
+        abort_unless($conversation->type === 'group', 403, 'Only group conversations can be hard-deleted.');
+        abort_unless($user->role === 'employer', 403, 'Only employers can delete group chats.');
+
+        $isParticipant = $conversation->participants()
+            ->where('user_id', $user->id)
+            ->exists();
+        abort_unless($isParticipant, 403, 'You are not part of this conversation.');
+
+        // ✅ Use Message model directly so SoftDeletes::forceDelete() works correctly
+        Message::withTrashed()
+            ->where('conversation_id', $conversation->id)
+            ->forceDelete();
+
+        $conversation->participants()->detach();
+        $conversation->delete();
+
+        return response()->json(['ok' => true]);
+    }
+
+    public function debug(Request $request): JsonResponse
     {
         $current = $request->user();
         $targetId = $request->query('user_id');
 
-        // Step 1: Does the target user exist?
-        $target = \App\Models\User::find($targetId);
+        $target = User::find($targetId);
 
-        // Step 2: Is there any conversation between them (ignoring left_at)?
-        $existing = \App\Models\Conversation::where('type', 'direct')
+        $existing = Conversation::where('type', 'direct')
             ->whereHas('participants', fn($q) => $q->where('user_id', $current->id))
             ->whereHas('participants', fn($q) => $q->where('user_id', $targetId))
             ->with('participants')
             ->first();
 
-        // Step 3: If found, what are the pivot values?
         $pivots = null;
         if ($existing) {
             $pivots = $existing->participants->map(fn($p) => [
@@ -204,6 +237,7 @@ class ConversationController extends Controller
             'participant_pivots' => $pivots,
         ]);
     }
+
     /* ── Private helpers ───────────────────────────────────────────────── */
 
     private function getConversations(User $user): array
@@ -226,8 +260,7 @@ class ConversationController extends Controller
                 $clearedAt = $pivot?->cleared_at;
 
                 // If never cleared, always show
-                if (!$clearedAt)
-                    return true;
+                if (!$clearedAt) return true;
 
                 // Show only if there are messages AFTER cleared_at
                 return $c->messages()
@@ -267,25 +300,22 @@ class ConversationController extends Controller
             ])
             ->all();
     }
-    public function searchUsers(Request $request): \Illuminate\Http\JsonResponse
+
+    public function searchUsers(Request $request): JsonResponse
     {
         $current = $request->user();
         $q = trim($request->query('q', ''));
 
-        // Determine which role to search for
         $targetRole = $current->role === 'employer' ? 'job_seeker' : 'employer';
 
-        $users = \App\Models\User::where('role', $targetRole)
-            // REMOVED: ->where('status', 'active')   ← was filtering out users
-            // REMOVED: profile_completed check        ← was filtering out users
-            ->where('id', '!=', $current->id)         // exclude self
+        $users = User::where('role', $targetRole)
+            ->where('id', '!=', $current->id)
             ->where(function ($query) use ($q) {
                 if ($q !== '') {
                     $query->where('first_name', 'like', "%{$q}%")
                         ->orWhere('last_name', 'like', "%{$q}%")
                         ->orWhere('email', 'like', "%{$q}%");
                 }
-                // if $q is empty → no where clause → returns all matching role
             })
             ->with([
                 'jobSeekerProfile:user_id,professional_title,current_job_title',
@@ -357,9 +387,8 @@ class ConversationController extends Controller
         ];
     }
 
-    private function authorizeParticipant(\App\Models\Conversation $conversation, int $userId): void
+    private function authorizeParticipant(Conversation $conversation, int $userId): void
     {
-        // Check if user is a participant (any state — cleared_at doesn't block access)
         $exists = $conversation->participants()
             ->where('user_id', $userId)
             ->exists();

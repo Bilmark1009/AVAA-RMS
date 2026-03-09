@@ -7,6 +7,7 @@ use App\Models\Conversation;
 use App\Models\Message;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class MessageController extends Controller
 {
@@ -47,7 +48,7 @@ class MessageController extends Controller
         }
 
         return response()->json([
-            'messages' => $newMessages,
+            'messages'  => $newMessages,
             'timestamp' => now()->toISOString(),
         ]);
     }
@@ -64,7 +65,7 @@ class MessageController extends Controller
         $this->authorizeParticipant($conversation, $user->id);
 
         $request->validate([
-            'body' => 'required_without:attachment|nullable|string|max:5000',
+            'body'       => 'required_without:attachment|nullable|string|max:5000',
             'attachment' => 'nullable|file|max:10240', // 10 MB
         ]);
 
@@ -74,18 +75,18 @@ class MessageController extends Controller
         $type = 'text';
 
         if ($request->hasFile('attachment')) {
-            $file = $request->file('attachment');
+            $file           = $request->file('attachment');
             $attachmentPath = $file->store('messaging/attachments', 'public');
             $attachmentName = $file->getClientOriginalName();
             $attachmentMime = $file->getMimeType();
-            $type = str_starts_with($attachmentMime, 'image/') ? 'image' : 'file';
+            $type           = str_starts_with($attachmentMime, 'image/') ? 'image' : 'file';
         }
 
         $message = Message::create([
             'conversation_id' => $conversation->id,
-            'sender_id' => $user->id,
-            'body' => $request->input('body', ''),
-            'type' => $type,
+            'sender_id'       => $user->id,
+            'body'            => $request->input('body', ''),
+            'type'            => $type,
             'attachment_path' => $attachmentPath,
             'attachment_name' => $attachmentName,
             'attachment_mime' => $attachmentMime,
@@ -98,6 +99,14 @@ class MessageController extends Controller
         $conversation->participants()->updateExistingPivot($user->id, [
             'last_read_at' => now(),
         ]);
+
+        // ✅ Unarchive conversation for ALL participants when a new message is sent.
+        // Mirrors Messenger behaviour — archived chats resurface on new activity
+        // so nobody misses a message just because they previously archived it.
+        DB::table('conversation_participants')
+            ->where('conversation_id', $conversation->id)
+            ->where('is_archived', true)
+            ->update(['is_archived' => false]);
 
         $message->load('sender:id,first_name,last_name,avatar,role');
 
@@ -112,7 +121,11 @@ class MessageController extends Controller
     public function destroy(Request $request, Conversation $conversation, Message $message): JsonResponse
     {
         $this->authorizeParticipant($conversation, $request->user()->id);
-        abort_unless($message->sender_id === $request->user()->id, 403, 'You can only delete your own messages.');
+        abort_unless(
+            $message->sender_id === $request->user()->id,
+            403,
+            'You can only delete your own messages.'
+        );
 
         $message->delete();
 
@@ -151,20 +164,20 @@ class MessageController extends Controller
     private function formatMessage(Message $m): array
     {
         return [
-            'id' => $m->id,
+            'id'              => $m->id,
             'conversation_id' => $m->conversation_id,
-            'sender_id' => $m->sender_id,
-            'body' => $m->body,
-            'type' => $m->type,
-            'attachment_url' => $m->attachment_url,
+            'sender_id'       => $m->sender_id,
+            'body'            => $m->body,
+            'type'            => $m->type,
+            'attachment_url'  => $m->attachment_url,
             'attachment_name' => $m->attachment_name,
-            'created_at' => $m->created_at->toISOString(),
-            'sender' => [
-                'id' => $m->sender->id,
+            'created_at'      => $m->created_at->toISOString(),
+            'sender'          => [
+                'id'         => $m->sender->id,
                 'first_name' => $m->sender->first_name,
-                'last_name' => $m->sender->last_name,
-                'avatar' => $m->sender->avatar,
-                'role' => $m->sender->role,
+                'last_name'  => $m->sender->last_name,
+                'avatar'     => $m->sender->avatar,
+                'role'       => $m->sender->role,
             ],
         ];
     }

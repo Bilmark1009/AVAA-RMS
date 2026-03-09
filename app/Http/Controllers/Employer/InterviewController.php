@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Employer;
 use App\Http\Controllers\Controller;
 use App\Models\Interview;
 use App\Models\JobListing;
+use App\Notifications\InterviewPassedNotification;
+use App\Notifications\InterviewFailedNotification;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -130,6 +132,9 @@ class InterviewController extends Controller
         \Illuminate\Support\Facades\Mail::to($interview->candidate->email)
             ->queue(new \App\Mail\InterviewPassed($application, $interview->jobListing));
 
+        // In-app notification
+        $interview->candidate->notify(new InterviewPassedNotification($interview, $interview->jobListing));
+
         return back()->with('success', 'Applicant marked as passed and hired.');
     }
 
@@ -152,6 +157,9 @@ class InterviewController extends Controller
 
         \Illuminate\Support\Facades\Mail::to($interview->candidate->email)
             ->queue(new \App\Mail\InterviewFailed($application, $interview->jobListing));
+
+        // In-app notification
+        $interview->candidate->notify(new InterviewFailedNotification($interview, $interview->jobListing));
 
         return back()->with('success', 'Applicant marked as failed.');
     }

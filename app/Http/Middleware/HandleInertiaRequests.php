@@ -39,7 +39,11 @@ class HandleInertiaRequests extends Middleware
                     'role' => $request->user()->role,
                     'avatar' => $request->user()->avatar,
                 ] : null,
+                'session_id' => session()->getId(),
             ],
+            'unreadNotificationsCount' => fn() => $request->user()
+                ? $request->user()->unreadNotifications()->count()
+                : 0,
         ]);
     }
 }

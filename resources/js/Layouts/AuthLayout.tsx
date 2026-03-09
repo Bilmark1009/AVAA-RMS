@@ -1,4 +1,6 @@
-import { PropsWithChildren } from 'react';
+import { PropsWithChildren, useEffect, useRef } from 'react';
+import { usePage, router } from '@inertiajs/react';
+import type { PageProps } from '@/types';
 
 interface AuthLayoutProps extends PropsWithChildren {
     title?: string;
@@ -6,6 +8,31 @@ interface AuthLayoutProps extends PropsWithChildren {
 }
 
 export default function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
+    const { auth } = usePage<PageProps>().props;
+    const redirecting = useRef(false);
+
+    // ── Guest Guard ──────────────────────────────────────────────
+    // If an authenticated session exists, redirect to the correct
+    // dashboard immediately — before any child component mounts.
+    // This eliminates the "login flash" when pressing Back after login.
+    useEffect(() => {
+        if (auth?.user && !redirecting.current) {
+            redirecting.current = true;
+            const dashboardPaths: Record<string, string> = {
+                admin: '/admin/dashboard',
+                employer: '/employer/dashboard',
+                job_seeker: '/job-seeker/jobs',
+            };
+            const target = dashboardPaths[auth.user.role] ?? '/';
+            router.visit(target, { replace: true });
+        }
+    }, [auth]);
+
+    // While redirecting, render nothing to prevent any flash
+    if (auth?.user) {
+        return null;
+    }
+
     return (
         <div className="min-h-screen flex flex-col lg:flex-row">
             {/* Left Brand Panel — hidden on mobile, visible on lg+ */}

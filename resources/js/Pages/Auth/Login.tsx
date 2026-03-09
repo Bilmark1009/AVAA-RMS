@@ -11,6 +11,7 @@ export default function Login({
     canResetPassword: boolean;
 }) {
     const [showPassword, setShowPassword] = useState(false);
+
     const { data, setData, post, processing, errors, reset } = useForm({
         email: '',
         password: '',
@@ -20,6 +21,7 @@ export default function Login({
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
         post(route('login'), {
+            replace: true, // Remove /login from browser history so Back skips it
             onFinish: () => reset('password'),
         });
     };

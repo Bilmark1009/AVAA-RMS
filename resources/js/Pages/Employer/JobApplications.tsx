@@ -614,11 +614,11 @@ export default function JobApplications({ job, applications, employerAddress }: 
             </nav>
 
             {/* Job Info Card */}
-            <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden mb-5">
-                <div className="h-20 bg-gradient-to-r from-avaa-primary/80 via-avaa-teal to-emerald-400 relative">
-                    <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 20%, white 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+            <div className="bg-white border border-gray-200 rounded-2xl mb-5">
+                <div className="h-20 bg-gradient-to-r from-avaa-primary/80 via-avaa-teal to-emerald-400 relative rounded-t-2xl">
+                    <div className="absolute inset-0 opacity-20 rounded-t-2xl" style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 20%, white 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
                 </div>
-                <div className="px-6 pb-5 -mt-8">
+                <div className="px-6 pb-5 -mt-8 relative z-10">
                     <div className="flex items-end justify-between">
                         <div className="flex items-end gap-4">
                             <div className={`w-16 h-16 rounded-2xl ring-4 ring-white ${avatarColor(job.id)} flex items-center justify-center text-white text-xl font-bold shadow-md`}>
@@ -645,19 +645,19 @@ export default function JobApplications({ job, applications, employerAddress }: 
             </div>
 
             {/* Toolbar */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-                <div className="inline-flex items-center bg-white border border-gray-200 rounded-xl p-1 gap-0.5 flex-wrap">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+                <div className="inline-flex items-center bg-white border border-gray-200 rounded-xl p-1 gap-0.5 shadow-sm flex-wrap">
                     {(['all', 'pending', 'approved', 'rejected'] as const).map(tab => (
                         <button key={tab} onClick={() => setFilter(tab)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-all ${filter === tab ? 'bg-avaa-primary text-white shadow-sm' : 'text-gray-500 hover:text-avaa-dark hover:bg-gray-50'}`}>
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all ${filter === tab ? 'bg-avaa-dark text-white shadow-sm' : 'text-gray-500 hover:text-avaa-dark hover:bg-gray-50'}`}>
                             {tab}
                             <span className={`ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${filter === tab ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'}`}>{counts[tab]}</span>
                         </button>
                     ))}
                 </div>
-                <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2 w-52">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-avaa-muted flex-shrink-0"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-                    <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search applicants..." className="text-sm bg-transparent text-avaa-dark placeholder-avaa-muted focus:outline-none w-full" />
+                <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 h-10 w-64 shadow-sm">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="text-gray-400 flex-shrink-0"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+                    <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search applicants..." className="text-sm bg-transparent text-gray-900 placeholder-gray-400 font-medium focus:outline-none focus:ring-0 border-0 w-full" />
                 </div>
             </div>
 
@@ -666,12 +666,12 @@ export default function JobApplications({ job, applications, employerAddress }: 
                 <div className="overflow-x-auto">
                     <table className="w-full">
                         <thead>
-                            <tr className="border-b border-gray-100">
-                                <th className="text-left px-5 py-3.5 text-xs font-semibold text-gray-400 uppercase tracking-wide">Name</th>
-                                <th className="text-left px-4 py-3.5 text-xs font-semibold text-gray-400 uppercase tracking-wide">Curriculum Vitae</th>
-                                <th className="text-left px-4 py-3.5 text-xs font-semibold text-gray-400 uppercase tracking-wide">Date Applied</th>
-                                <th className="text-left px-4 py-3.5 text-xs font-semibold text-gray-400 uppercase tracking-wide">Status</th>
-                                <th className="px-4 py-3.5 text-xs font-semibold text-gray-400 uppercase tracking-wide text-right">Action</th>
+                            <tr className="border-b border-gray-100 bg-gray-50/50">
+                                <th className="text-left px-6 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-widest">Name</th>
+                                <th className="text-left px-4 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-widest">Curriculum Vitae</th>
+                                <th className="text-left px-4 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-widest">Date Applied</th>
+                                <th className="text-left px-4 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-widest">Status</th>
+                                <th className="px-6 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-widest text-right">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">

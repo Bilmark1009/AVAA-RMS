@@ -1,6 +1,8 @@
-import { Link, usePage } from '@inertiajs/react';
+import { Link, usePage, router } from '@inertiajs/react';
 import { useState, ReactNode, useRef, useEffect } from 'react';
+import NotificationDropdown from '@/Components/NotificationDropdown';
 import { PageProps } from '@/types';
+import { usePreventAuthBack } from '@/hooks/usePreventAuthBack';
 
 /* ─────────────────────────────────────────
    ICONS
@@ -73,6 +75,23 @@ const IcoInterview = () => (
         <path d="M9 16l2 2 4-4" />
     </svg>
 );
+const IcoShield = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    </svg>
+);
+const IcoJobsAdmin = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" />
+        <line x1="12" y1="12" x2="12" y2="17" /><line x1="9" y1="14.5" x2="15" y2="14.5" />
+    </svg>
+);
+const IcoUsersAdmin = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" />
+        <path d="M23 21v-2a4 4 0 00-3-3.87" /><path d="M16 3.13a4 4 0 010 7.75" />
+    </svg>
+);
 const IcoSearch = () => (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -88,6 +107,21 @@ const IcoChevronRight = () => (
         <polyline points="9 18 15 12 9 6" />
     </svg>
 );
+// New icon for Application History
+const IcoClipboard = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2" />
+        <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+        <line x1="9" y1="12" x2="15" y2="12" /><line x1="9" y1="16" x2="13" y2="16" />
+    </svg>
+);
+// New icon for Job History
+const IcoHistory = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="12 8 12 12 14 14" />
+        <path d="M3.05 11a9 9 0 1 0 .5-4M3 4v4h4" />
+    </svg>
+);
 
 /* ─────────────────────────────────────────
    SAFE ROUTE HELPER
@@ -97,36 +131,53 @@ function safeRoute(name: string, params?: any): string {
     catch { return '#'; }
 }
 
-/* ─────────────────────────────────────────
-   TOP NAV ITEMS (job-seeker / admin)
-───────────────────────────────────────── */
-interface NavItem { label: string; href: string; icon: ReactNode }
-
-function getTopNav(role: string): NavItem[] {
-    if (role === 'admin') return [
-        { label: 'Dashboard',     href: safeRoute('admin.dashboard'),     icon: <IcoBriefcase /> },
-        { label: 'Verifications', href: safeRoute('admin.verifications'), icon: <IcoBookmark /> },
-    ];
-    // job-seeker
-    return [
-        { label: 'Jobs',      href: safeRoute('job-seeker.jobs.browse'), icon: <IcoBriefcase /> },
-        { label: 'Saved Jobs', href: safeRoute('job-seeker.jobs.saved'), icon: <IcoBookmark /> },
-        // ✅ UPDATED: now points to the real messaging page
-        { label: 'Messages',  href: safeRoute('messages.index'),         icon: <IcoMsg /> },
-    ];
+/** Programmatic logout: clears auth flags and replaces history so Back never returns to dashboard */
+function handleLogout(e: React.MouseEvent): void {
+    e.preventDefault();
+    sessionStorage.removeItem('auth_logged_in');
+    sessionStorage.removeItem('auth_dashboard');
+    sessionStorage.removeItem('auth_user_id');
+    sessionStorage.removeItem('auth_user_role');
+    sessionStorage.removeItem('auth_session_id');
+    router.visit(safeRoute('logout'), { method: 'post', replace: true });
 }
 
 /* ─────────────────────────────────────────
-   EMPLOYER SIDEBAR NAV ITEMS
+   NAV ITEM TYPES
 ───────────────────────────────────────── */
+interface NavItem { label: string; href: string; icon: ReactNode }
+
+/* ─────────────────────────────────────────
+   JOB SEEKER SIDEBAR NAV ITEMS
+───────────────────────────────────────── */
+function getJobSeekerSideNav(): NavItem[] {
+    return [
+        { label: 'Jobs', href: safeRoute('job-seeker.jobs.browse'), icon: <IcoBriefcase /> },
+        { label: 'Saved Jobs', href: safeRoute('job-seeker.jobs.saved'), icon: <IcoBookmark /> },
+        { label: 'Application History', href: safeRoute('job-seeker.applications.index'), icon: <IcoClipboard /> },
+        { label: 'Job History', href: safeRoute('job-seeker.jobs.history'), icon: <IcoHistory /> },
+        { label: 'Messages', href: safeRoute('messages.index'), icon: <IcoMsg /> },
+    ];
+}
+
+function getAdminSideNav(): NavItem[] {
+    return [
+        { label: 'Dashboard', href: safeRoute('admin.dashboard'), icon: <IcoDashboard /> },
+        { label: 'Users', href: safeRoute('admin.users.index'), icon: <IcoUsersAdmin /> },
+        { label: 'Jobs', href: safeRoute('admin.jobs.index'), icon: <IcoJobsAdmin /> },
+        { label: 'Verifications', href: safeRoute('admin.verifications'), icon: <IcoShield /> },
+        { label: 'Settings', href: safeRoute('admin.settings'), icon: <IcoSettings /> },
+        { label: 'Messages', href: safeRoute('messages.index'), icon: <IcoMsg /> },
+    ];
+}
+
 function getEmployerSideNav(): NavItem[] {
     return [
-        { label: 'Dashboard',   href: safeRoute('employer.dashboard'),       icon: <IcoDashboard /> },
-        // ✅ ADDED: Messages in employer sidebar
-        { label: 'Messages',    href: safeRoute('messages.index'),            icon: <IcoMsg /> },
-        { label: 'Users',       href: safeRoute('employer.users.index'),      icon: <IcoUsers /> },
-        { label: 'Manage Jobs', href: safeRoute('employer.jobs.index'),       icon: <IcoBriefcase /> },
-        { label: 'Interview',   href: safeRoute('employer.interviews.index'), icon: <IcoInterview /> },
+        { label: 'Dashboard', href: safeRoute('employer.dashboard'), icon: <IcoDashboard /> },
+        { label: 'Users', href: safeRoute('employer.users.index'), icon: <IcoUsers /> },
+        { label: 'Manage Jobs', href: safeRoute('employer.jobs.index'), icon: <IcoBriefcase /> },
+        { label: 'Interview', href: safeRoute('employer.interviews.index'), icon: <IcoInterview /> },
+        { label: 'Messages', href: safeRoute('messages.index'), icon: <IcoMsg /> },
     ];
 }
 
@@ -229,16 +280,13 @@ function AvatarDropdown({ initials, avatar, name, email, role }: AvatarDropdownP
                     </div>
 
                     <div className="p-1.5 border-t border-gray-100">
-                        <Link
-                            href={safeRoute('logout')}
-                            method="post"
-                            as="button"
-                            onClick={() => setOpen(false)}
+                        <button
+                            onClick={(e) => { setOpen(false); handleLogout(e); }}
                             className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-avaa-muted hover:bg-red-50 hover:text-red-500 transition-colors"
                         >
                             <IcoLogout />
                             Sign Out
-                        </Link>
+                        </button>
                     </div>
                 </div>
             )}
@@ -257,17 +305,41 @@ interface AppLayoutProps {
 }
 
 /* ─────────────────────────────────────────
-   EMPLOYER LAYOUT (sidebar + top bar)
+   REUSABLE SIDEBAR SHELL
+   (shared by Admin, Employer, Job Seeker)
 ───────────────────────────────────────── */
-function EmployerLayout({ children, activeNav, pageTitle, pageSubtitle, user, initials }: AppLayoutProps & { user: any; initials: string }) {
+interface SidebarShellProps {
+    children: ReactNode;
+    activeNav?: string;
+    pageTitle?: string;
+    pageSubtitle?: string;
+    user: any;
+    initials: string;
+    sideNavItems: NavItem[];
+    logoLinkHref: string;
+    topBarExtras?: ReactNode; // extra items in the top bar (e.g. Employer's Messages button)
+    sidebarBottomExtra?: ReactNode; // e.g. admin user info block
+}
+
+function SidebarShell({
+    children,
+    activeNav,
+    pageTitle,
+    pageSubtitle,
+    user,
+    initials,
+    sideNavItems,
+    logoLinkHref,
+    topBarExtras,
+    sidebarBottomExtra,
+}: SidebarShellProps) {
     const [collapsed, setCollapsed] = useState(false);
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-    const sideNavItems = getEmployerSideNav();
 
     return (
         <div className="min-h-screen bg-[#e8efef] flex">
 
-            {/* ── Sidebar ── */}
+            {/* ── Sidebar (desktop) ── */}
             <aside
                 className={`hidden md:flex flex-col bg-white border-r border-gray-200 sticky top-0 h-screen z-30 transition-all duration-300 ease-in-out flex-shrink-0
                     ${collapsed ? 'w-[72px]' : 'w-[248px]'}`}
@@ -275,7 +347,7 @@ function EmployerLayout({ children, activeNav, pageTitle, pageSubtitle, user, in
                 {/* Logo + collapse toggle */}
                 <div className={`h-20 flex items-center border-b border-gray-100 flex-shrink-0 ${collapsed ? 'justify-center px-0' : 'px-6 justify-between'}`}>
                     {!collapsed && (
-                        <Link href={safeRoute('employer.dashboard')} className="flex items-center">
+                        <Link href={logoLinkHref} className="flex items-center">
                             <img
                                 src="/storage/logos/System_Logo/AVAA_Banner.png"
                                 alt="AVAA"
@@ -284,7 +356,7 @@ function EmployerLayout({ children, activeNav, pageTitle, pageSubtitle, user, in
                         </Link>
                     )}
                     {collapsed && (
-                        <Link href={safeRoute('employer.dashboard')} className="flex items-center justify-center">
+                        <Link href={logoLinkHref} className="flex items-center justify-center">
                             <img
                                 src="/storage/logos/System_Logo/AVAA_Icon.png"
                                 alt="AVAA"
@@ -298,8 +370,7 @@ function EmployerLayout({ children, activeNav, pageTitle, pageSubtitle, user, in
                     )}
                     <button
                         onClick={() => setCollapsed(c => !c)}
-                        className={`flex items-center justify-center w-8 h-8 rounded-lg text-avaa-muted hover:bg-avaa-primary-light hover:text-avaa-dark transition-colors flex-shrink-0
-                            ${collapsed ? 'mt-0' : ''}`}
+                        className="flex items-center justify-center w-8 h-8 rounded-lg text-avaa-muted hover:bg-avaa-primary-light hover:text-avaa-dark transition-colors flex-shrink-0"
                         title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                     >
                         {collapsed ? <IcoChevronRight /> : <IcoChevronLeft />}
@@ -331,19 +402,18 @@ function EmployerLayout({ children, activeNav, pageTitle, pageSubtitle, user, in
                     })}
                 </nav>
 
-                {/* Sign Out */}
-                <div className="px-3 py-4 border-t border-gray-100">
-                    <Link
-                        href={safeRoute('logout')}
-                        method="post"
-                        as="button"
+                {/* Bottom: optional extra + sign out */}
+                <div className="px-3 py-4 border-t border-gray-100 space-y-1">
+                    {sidebarBottomExtra}
+                    <button
+                        onClick={handleLogout}
                         title={collapsed ? 'Sign Out' : undefined}
                         className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-semibold text-avaa-muted hover:bg-red-50 hover:text-red-500 transition-colors
                             ${collapsed ? 'justify-center' : ''}`}
                     >
                         <IcoLogout />
                         {!collapsed && <span>Sign Out</span>}
-                    </Link>
+                    </button>
                 </div>
             </aside>
 
@@ -359,7 +429,7 @@ function EmployerLayout({ children, activeNav, pageTitle, pageSubtitle, user, in
             <aside className={`md:hidden fixed top-0 left-0 h-full w-64 bg-white z-50 flex flex-col shadow-xl transition-transform duration-300
                 ${mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
                 <div className="h-20 flex items-center justify-between px-5 border-b border-gray-100">
-                    <Link href={safeRoute('employer.dashboard')}>
+                    <Link href={logoLinkHref}>
                         <img src="/storage/logos/System_Logo/AVAA_Banner.png" alt="AVAA" className="h-9 w-auto object-contain" />
                     </Link>
                     <button onClick={() => setMobileSidebarOpen(false)} className="p-2 rounded-xl hover:bg-gray-100 text-avaa-muted">
@@ -387,22 +457,20 @@ function EmployerLayout({ children, activeNav, pageTitle, pageSubtitle, user, in
                     })}
                 </nav>
                 <div className="px-3 py-4 border-t border-gray-100">
-                    <Link
-                        href={safeRoute('logout')}
-                        method="post"
-                        as="button"
+                    <button
+                        onClick={handleLogout}
                         className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-semibold text-avaa-muted hover:bg-red-50 hover:text-red-500 transition-colors"
                     >
                         <IcoLogout />
                         Sign Out
-                    </Link>
+                    </button>
                 </div>
             </aside>
 
             {/* ── Main area (top bar + content) ── */}
             <div className="flex-1 flex flex-col min-w-0">
 
-                {/* Employer Top Bar */}
+                {/* Top Bar */}
                 <header className="bg-white border-b border-gray-200 sticky top-0 z-20">
                     <div className="w-full px-6 lg:px-8 h-20 flex items-center gap-4">
 
@@ -424,30 +492,11 @@ function EmployerLayout({ children, activeNav, pageTitle, pageSubtitle, user, in
                             )}
                         </div>
 
-                        {/* Search bar */}
-                        <div className="hidden sm:flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3.5 h-10 w-56 lg:w-64 flex-shrink-0">
-                            <span className="text-avaa-muted flex-shrink-0"><IcoSearch /></span>
-                            <input
-                                type="text"
-                                placeholder="Search jobs..."
-                                className="bg-transparent text-sm text-avaa-text placeholder-avaa-muted outline-none focus:ring-0 border-0 w-full"
-                            />
-                        </div>
+                        {/* Optional extra top bar items (e.g. search, messages button) */}
+                        {topBarExtras}
 
-                        {/* ✅ UPDATED: Messages button → Link */}
-                        <Link
-                            href={safeRoute('messages.index')}
-                            className="hidden sm:flex items-center gap-2 px-4 h-10 rounded-xl border border-gray-200 hover:bg-avaa-primary-light text-avaa-text hover:text-avaa-dark text-sm font-semibold transition-colors flex-shrink-0"
-                        >
-                            <IcoMsg />
-                            Messages
-                        </Link>
-
-                        {/* Bell */}
-                        <button className="relative p-2.5 rounded-xl hover:bg-avaa-primary-light text-avaa-muted hover:text-avaa-teal transition-colors flex-shrink-0">
-                            <IcoBell />
-                            <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-400 ring-2 ring-white" />
-                        </button>
+                        {/* Notification Bell */}
+                        <NotificationDropdown />
 
                         {/* Avatar */}
                         <AvatarDropdown
@@ -470,124 +519,136 @@ function EmployerLayout({ children, activeNav, pageTitle, pageSubtitle, user, in
 }
 
 /* ─────────────────────────────────────────
+   ADMIN LAYOUT
+───────────────────────────────────────── */
+function AdminLayout({ children, activeNav, pageTitle, pageSubtitle, user, initials }: AppLayoutProps & { user: any; initials: string }) {
+    const [collapsed, setCollapsed] = useState(false);
+
+    const adminBottomExtra = (
+        !collapsed ? (
+            <div className="flex items-center gap-3 px-3 py-2 mb-1">
+                <div className="w-8 h-8 rounded-full bg-avaa-dark flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                    {initials}
+                </div>
+                <div className="min-w-0">
+                    <p className="text-xs font-semibold text-avaa-dark truncate">{user.first_name} {user.last_name}</p>
+                    <p className="text-[10px] text-avaa-muted truncate">Chief Systems Administrator</p>
+                </div>
+            </div>
+        ) : null
+    );
+
+    return (
+        <SidebarShell
+            activeNav={activeNav}
+            pageTitle={pageTitle}
+            pageSubtitle={pageSubtitle}
+            user={user}
+            initials={initials}
+            sideNavItems={getAdminSideNav()}
+            logoLinkHref={safeRoute('admin.dashboard')}
+            sidebarBottomExtra={adminBottomExtra}
+        >
+            {children}
+        </SidebarShell>
+    );
+}
+
+/* ─────────────────────────────────────────
+   EMPLOYER LAYOUT
+───────────────────────────────────────── */
+function EmployerLayout({ children, activeNav, pageTitle, pageSubtitle, user, initials }: AppLayoutProps & { user: any; initials: string }) {
+    return (
+        <SidebarShell
+            activeNav={activeNav}
+            pageTitle={pageTitle}
+            pageSubtitle={pageSubtitle}
+            user={user}
+            initials={initials}
+            sideNavItems={getEmployerSideNav()}
+            logoLinkHref={safeRoute('employer.dashboard')}
+        >
+            {children}
+        </SidebarShell>
+    );
+}
+
+/* ─────────────────────────────────────────
+   JOB SEEKER LAYOUT (new sidebar layout)
+───────────────────────────────────────── */
+function JobSeekerLayout({ children, activeNav, pageTitle, pageSubtitle, user, initials }: AppLayoutProps & { user: any; initials: string }) {
+    // Minimalist top bar — no search bar, just page title / notifications / avatar
+    return (
+        <SidebarShell
+            activeNav={activeNav}
+            pageTitle={pageTitle}
+            pageSubtitle={pageSubtitle}
+            user={user}
+            initials={initials}
+            sideNavItems={getJobSeekerSideNav()}
+            logoLinkHref={safeRoute('job-seeker.jobs.browse')}
+        // No topBarExtras — keep the top bar minimal
+        >
+            {children}
+        </SidebarShell>
+    );
+}
+
+/* ─────────────────────────────────────────
    LAYOUT (main entry point)
 ───────────────────────────────────────── */
 export default function AppLayout({ children, activeNav, pageTitle, pageSubtitle }: AppLayoutProps) {
+    usePreventAuthBack();
     const { auth } = usePage<PageProps>().props;
     const user = auth.user;
-    const [mobileOpen, setMobileOpen] = useState(false);
 
     if (!user) return null;
 
     const initials = `${user.first_name[0] ?? ''}${user.last_name[0] ?? ''}`.toUpperCase();
 
-    /* ── Employer gets sidebar layout ── */
+    if (user.role === 'admin') {
+        return (
+            <AdminLayout activeNav={activeNav} pageTitle={pageTitle} pageSubtitle={pageSubtitle} user={user} initials={initials}>
+                {children}
+            </AdminLayout>
+        );
+    }
+
     if (user.role === 'employer') {
         return (
-            <EmployerLayout
-                activeNav={activeNav}
-                pageTitle={pageTitle}
-                pageSubtitle={pageSubtitle}
-                user={user}
-                initials={initials}
-            >
+            <EmployerLayout activeNav={activeNav} pageTitle={pageTitle} pageSubtitle={pageSubtitle} user={user} initials={initials}>
                 {children}
             </EmployerLayout>
         );
     }
 
-    /* ── All other roles keep the original top-navbar layout ── */
-    const navItems = getTopNav(user.role);
+    if (user.role === 'job_seeker') {
+        return (
+            <JobSeekerLayout activeNav={activeNav} pageTitle={pageTitle} pageSubtitle={pageSubtitle} user={user} initials={initials}>
+                {children}
+            </JobSeekerLayout>
+        );
+    }
 
+    // Fallback for any other roles — minimal top-nav layout
     return (
         <div className="min-h-screen bg-[#e8efef]">
-
-            {/* ── Top Navbar ── */}
             <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
                 <div className="w-full px-8 lg:px-16 h-20 flex items-center gap-6">
-
-                    {/* Logo — left side */}
-                    <Link href={safeRoute('job-seeker.jobs.browse')} className="flex items-center flex-shrink-0">
+                    <Link href="/" className="flex items-center flex-shrink-0">
                         <img src="/storage/logos/System_Logo/AVAA_Banner.png" alt="AVAA" className="h-10 w-auto object-contain" />
                     </Link>
-
-                    {/* Spacer */}
                     <div className="flex-1" />
-
-                    {/* Desktop Nav */}
-                    <nav className="hidden md:flex items-center gap-2">
-                        {navItems.map(item => {
-                            const active = activeNav === item.label;
-                            return (
-                                <Link
-                                    key={item.label}
-                                    href={item.href}
-                                    className={`flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-[15px] font-semibold transition-all
-                                        ${active
-                                            ? 'bg-avaa-primary text-white shadow-sm'
-                                            : 'text-gray-600 hover:bg-avaa-primary-light hover:text-avaa-dark'
-                                        }`}
-                                >
-                                    <span className={active ? 'text-white' : 'text-avaa-muted'}>
-                                        {item.icon}
-                                    </span>
-                                    {item.label}
-                                </Link>
-                            );
-                        })}
-                    </nav>
-
-                    {/* Bell + Avatar */}
-                    <div className="flex items-center gap-3">
-                        <button className="relative p-2.5 rounded-xl hover:bg-avaa-primary-light text-avaa-muted hover:text-avaa-teal transition-colors">
-                            <IcoBell />
-                            <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-400 ring-2 ring-white" />
-                        </button>
-
-                        <AvatarDropdown
-                            initials={initials}
-                            avatar={user.avatar ?? undefined}
-                            name={`${user.first_name} ${user.last_name}`}
-                            email={user.email ?? ''}
-                            role={user.role}
-                        />
-
-                        {/* Mobile hamburger */}
-                        <button
-                            onClick={() => setMobileOpen(o => !o)}
-                            className="md:hidden p-2 rounded-xl hover:bg-avaa-primary-light text-avaa-muted transition-colors"
-                        >
-                            {mobileOpen ? <IcoClose /> : <IcoMenu />}
-                        </button>
-                    </div>
+                    <NotificationDropdown />
+                    <AvatarDropdown
+                        initials={initials}
+                        avatar={user.avatar ?? undefined}
+                        name={`${user.first_name} ${user.last_name}`}
+                        email={user.email ?? ''}
+                        role={user.role}
+                    />
                 </div>
-
-                {/* Mobile Nav Drawer */}
-                {mobileOpen && (
-                    <div className="md:hidden border-t border-gray-100 bg-white px-4 py-3 space-y-1">
-                        {navItems.map(item => {
-                            const active = activeNav === item.label;
-                            return (
-                                <Link
-                                    key={item.label}
-                                    href={item.href}
-                                    onClick={() => setMobileOpen(false)}
-                                    className={`flex items-center gap-3 px-4 py-3 rounded-xl text-[15px] font-semibold transition-all
-                                        ${active
-                                            ? 'bg-avaa-primary text-white'
-                                            : 'text-avaa-text hover:bg-avaa-primary-light hover:text-avaa-dark'
-                                        }`}
-                                >
-                                    <span className={active ? 'text-white' : 'text-avaa-muted'}>{item.icon}</span>
-                                    {item.label}
-                                </Link>
-                            );
-                        })}
-                    </div>
-                )}
             </header>
-
-            {/* ── Page Content ── */}
             <main className="w-full px-8 lg:px-16 py-10">
                 {children}
             </main>

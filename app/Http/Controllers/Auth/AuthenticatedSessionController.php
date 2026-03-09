@@ -17,7 +17,7 @@ class AuthenticatedSessionController extends Controller
     {
         return Inertia::render('Auth/Login', [
             'canResetPassword' => Route::has('password.request'),
-            'status'           => session('status'),
+            'status' => session('status'),
         ]);
     }
 
@@ -38,6 +38,11 @@ class AuthenticatedSessionController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect('/');
+        return redirect('/login')
+            ->withHeaders([
+                'Cache-Control' => 'no-cache, no-store, must-revalidate, max-age=0, private',
+                'Pragma' => 'no-cache',
+                'Expires' => '0',
+            ]);
     }
-}   
+}

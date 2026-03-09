@@ -53,7 +53,10 @@ function timeAgo(dateStr: string) {
 function formatSalary(min?: number | null, max?: number | null, currency = 'USD') {
     if (!min && !max) return null;
     const sym = currency === 'PHP' ? '₱' : currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '$';
-    const fmt = (n: number) => n >= 1000 ? `${sym}${Math.round(n / 1000)}k` : `${sym}${n.toLocaleString()}`;
+    const fmt = (n: number) => {
+        const num = Number(n);
+        return num >= 1000 ? `${sym}${Math.round(num / 1000)}k` : `${sym}${num.toLocaleString()}`;
+    };
     if (min && max) return `${fmt(min)}-${fmt(max)}`;
     if (min) return `${fmt(min)}+`;
     return `Up to ${fmt(max!)}`;
@@ -78,7 +81,7 @@ export default function JobDetail({ job, recruiter, similarJobs = [], isSaved: i
     };
 
     return (
-        <AppLayout activeNav="Jobs">
+        <AppLayout activeNav="Jobs" pageTitle="Job Details">
             <Head title={job.title} />
 
             {/* Breadcrumb — 14px standard */}
@@ -87,7 +90,7 @@ export default function JobDetail({ job, recruiter, similarJobs = [], isSaved: i
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                     <polyline points="9 18 15 12 9 6" />
                 </svg>
-                <span className="text-avaa-dark font-medium truncate">{job.title}</span>
+                <span className="text-avaa-teal font-semibold">Job Details</span>
             </nav>
 
             <div className="flex gap-7 items-start">
