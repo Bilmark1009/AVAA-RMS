@@ -16,7 +16,9 @@ export default function AuthLayout({ children, title, subtitle }: AuthLayoutProp
     // dashboard immediately — before any child component mounts.
     // This eliminates the "login flash" when pressing Back after login.
     useEffect(() => {
-        if (auth?.user && !redirecting.current) {
+        // Only redirect verified users away from auth pages.
+        // Unverified users must stay on /verify-email.
+        if (auth?.user && auth.user.email_verified_at && !redirecting.current) {
             redirecting.current = true;
             const dashboardPaths: Record<string, string> = {
                 admin: '/admin/dashboard',
@@ -29,7 +31,7 @@ export default function AuthLayout({ children, title, subtitle }: AuthLayoutProp
     }, [auth]);
 
     // While redirecting, render nothing to prevent any flash
-    if (auth?.user) {
+    if (auth?.user && auth.user.email_verified_at) {
         return null;
     }
 

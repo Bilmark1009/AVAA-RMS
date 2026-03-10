@@ -23,7 +23,7 @@
     <script>
         (function () {
             var p = window.location.pathname;
-            var guest = ['/', '/login', '/register', '/forgot-password', '/reset-password', '/verify-email', '/auth/google'];
+            var guest = ['/', '/login', '/register', '/forgot-password', '/reset-password', '/auth/google'];
             var isGuest = guest.some(function (g) { return p === g || p.indexOf(g + '/') === 0; });
             if (isGuest && sessionStorage.getItem('auth_logged_in') === '1') {
                 document.body.style.display = 'none';

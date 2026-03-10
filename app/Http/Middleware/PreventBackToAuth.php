@@ -20,7 +20,6 @@ class PreventBackToAuth
         '/register/job-seeker',
         '/forgot-password',
         '/reset-password',
-        '/verify-email',
         '/auth/google',
         '/auth/google/callback',
         '/auth/google/select-role',

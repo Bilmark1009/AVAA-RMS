@@ -44,7 +44,6 @@ export function usePreventAuthBack(): void {
             '/register',
             '/forgot-password',
             '/reset-password',
-            '/verify-email',
             '/auth/google',
         ];
 
