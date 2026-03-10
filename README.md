@@ -1,59 +1,276 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 📋 RMS – Recruitment Management System
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A full-stack web application for managing job listings, applications, interviews, and user accounts across three roles: **Admin**, **Employer**, and **Job Seeker**.
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 🚀 Tech Stack
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+### Backend
+| Technology | Version | Purpose |
+|---|---|---|
+| **PHP** | ^8.2 | Server-side language |
+| **Laravel** | ^12.0 | Backend framework (routing, ORM, auth, queues) |
+| **Inertia.js (Laravel adapter)** | ^2.0 | SPA bridge between Laravel and React |
+| **Laravel Sanctum** | ^4.0 | API token authentication |
+| **Laravel Socialite** | ^5.24 | OAuth login (Google) |
+| **Ziggy** | ^2.0 | Named Laravel routes in JavaScript |
+| **SQLite** | — | Default database (can be swapped to MySQL/PostgreSQL) |
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### Frontend
+| Technology | Version | Purpose |
+|---|---|---|
+| **React** | ^18.2 | UI component library |
+| **TypeScript** | ^5.0 | Typed JavaScript |
+| **Inertia.js (React adapter)** | ^2.0 | SPA page rendering without a separate API |
+| **Tailwind CSS** | ^3 / ^4 | Utility-first styling |
+| **Headless UI** | ^2.0 | Accessible UI components |
+| **Vite** | ^7.0 | Frontend build tool and dev server |
+| **Axios** | ^1.11 | HTTP client |
 
-## Learning Laravel
+### Dev Tools
+| Tool | Purpose |
+|---|---|
+| **Laravel Breeze** | Auth scaffolding |
+| **Laravel Pail** | Real-time log viewer |
+| **Laravel Pint** | PHP code style fixer |
+| **PHPUnit** | Backend testing |
+| **Concurrently** | Run multiple processes at once |
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+---
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## ✨ Features
 
-## Laravel Sponsors
+### 👤 Authentication & Security
+- Email/password registration and login
+- **Google OAuth** login via Laravel Socialite
+- **OTP Verification** on login/registration
+- Email verification flow
+- Password reset via email link
+- Session-based auth with CSRF protection
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### 🛡️ Role-Based Access Control (RBAC)
+Three distinct user roles, each with their own dashboard and features:
 
-### Premium Partners
+| Role | Access |
+|---|---|
+| **Admin** | Full system oversight, user management, verifications |
+| **Employer** | Post & manage jobs, view/filter applicants, schedule interviews |
+| **Job Seeker** | Browse & apply for jobs, manage profile, track applications |
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+### 🔒 Navigation Security (Browser History Protection)
+A 4-layer system preventing unauthorized access via browser back/forward button after login, logout, or role switches:
+- **`PreventBackToAuth` Middleware** — Adds `no-store, no-cache` HTTP headers on authenticated pages
+- **`PreventRoleMismatchAccess` Middleware** — Redirects users accessing pages outside their role
+- **`usePreventAuthBack` Hook** — Client-side React hook using `history.pushState` manipulation
+- **Inertia.js visit invalidation** — Forces fresh page loads on navigation events
 
-## Contributing
+### 💼 Job Seeker Features
+- Browse and search job listings with filters
+- View full job details
+- Apply for jobs (with document uploads)
+- Save/unsave jobs
+- Manage profile and work experience
+- Track submitted applications and statuses
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### 🏢 Employer Features
+- Create, edit, and manage job listings
+- View and filter job applicants per listing
+- Manage application statuses (pending, reviewed, shortlisted, rejected, hired)
+- Schedule and manage interviews
+- Employer profile management
+- Account and notification settings
 
-## Code of Conduct
+### 🔧 Admin Features
+- Dashboard overview of system activity
+- User management (view, soft delete/restore users)
+- Job listing management
+- Employer/Job Seeker verification system
+- Report management
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### 💬 Messaging System
+- Real-time-style conversation threads between Employers and Job Seekers
+- Full message history per conversation
 
-## Security Vulnerabilities
+### 🔔 Notifications
+- In-app notification system
+- Configurable notification settings per user
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### 📄 Documents
+- Job Seekers can upload and manage supporting documents (resume, certificates)
+- Documents attached to job applications
 
-## License
+---
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## ⚙️ System Requirements
+
+- **PHP** >= 8.2
+- **Composer** >= 2.x
+- **Node.js** >= 18.x & **npm** >= 9.x
+- **SQLite** (default, bundled with PHP) or MySQL / PostgreSQL
+
+---
+
+## 🛠️ Installation & Setup
+
+### 1. Clone the repository
+
+```bash
+git clone <repository-url>
+cd rms
+```
+
+### 2. Install PHP dependencies
+
+```bash
+composer install
+```
+
+### 3. Install Node.js dependencies
+
+```bash
+npm install
+```
+
+### 4. Configure environment
+
+```bash
+cp .env.example .env
+php artisan key:generate
+```
+
+Open `.env` and adjust the following as needed:
+
+```env
+APP_NAME="RMS"
+APP_URL=http://localhost:8000
+
+# Database (SQLite is default — no extra setup needed)
+DB_CONNECTION=sqlite
+
+# Mail (use 'log' for local dev, configure SMTP for production)
+MAIL_MAILER=log
+
+# Google OAuth (required for Google login)
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GOOGLE_REDIRECT_URI=http://localhost:8000/auth/google/callback
+```
+
+### 5. Run database migrations & seeders
+
+```bash
+php artisan migrate
+# Optional: seed with sample data
+php artisan db:seed
+```
+
+### 6. Create the storage symlink
+
+```bash
+php artisan storage:link
+```
+
+### 7. Start the development servers
+**Run separately:**
+```bash
+# Terminal 1 – Laravel
+php artisan serve
+
+# Terminal 2 – Vite (React/CSS hot reload)
+npm run dev
+
+### 8. Open the app
+
+```
+http://127.0.0.1:8000
+```
+
+---
+
+## 📁 Project Structure
+
+```
+rms/
+├── app/
+│   ├── Http/
+│   │   ├── Controllers/
+│   │   │   ├── Auth/          # Login, Register, Google OAuth, OTP, Password Reset
+│   │   │   ├── Admin/         # Admin-facing controllers
+│   │   │   ├── Employer/      # Employer-facing controllers
+│   │   │   ├── JobSeeker/     # Job Seeker-facing controllers
+│   │   │   ├── Messaging/     # Conversation & message controllers
+│   │   │   ├── Settings/      # Account/notification settings
+│   │   │   └── NotificationController.php
+│   │   ├── Middleware/
+│   │   │   ├── PreventBackToAuth.php         # Adds no-cache headers
+│   │   │   ├── PreventRoleMismatchAccess.php # Role guard on navigation
+│   │   │   ├── EnsureProfileCompleted.php    # Redirect if profile incomplete
+│   │   │   ├── CheckUserNotDeleted.php       # Soft-delete session guard
+│   │   │   └── RoleMiddleware.php            # Route-level role enforcement
+│   │   └── Requests/          # Form Request validation classes
+│   ├── Models/
+│   │   ├── User.php
+│   │   ├── EmployerProfile.php
+│   │   ├── JobSeekerProfile.php
+│   │   ├── JobListing.php
+│   │   ├── JobApplication.php
+│   │   ├── Interview.php
+│   │   ├── SavedJob.php
+│   │   ├── Conversation.php
+│   │   ├── Message.php
+│   │   ├── UserDocument.php
+│   │   ├── WorkExperience.php
+│   │   ├── UserNotificationSettings.php
+│   │   ├── UserSecuritySettings.php
+│   │   └── Report.php
+│   ├── Mail/                  # Mailable classes
+│   ├── Notifications/         # Notification classes
+│   └── Observers/             # Model observers
+│
+├── resources/js/
+│   ├── Pages/
+│   │   ├── Auth/              # Login, Register, Verify Email, etc.
+│   │   ├── Admin/             # Admin dashboard, users, verifications
+│   │   ├── Employer/          # Jobs, applications, interviews, settings
+│   │   ├── JobSeeker/         # Browse jobs, apply, profile, saved jobs
+│   │   ├── Messaging/         # Chat interface
+│   │   ├── Notifications/     # Notifications page
+│   │   ├── Settings/          # Account settings
+│   │   └── Welcome.tsx        # Landing page
+│   ├── Components/            # Reusable React components
+│   ├── Layouts/               # Page layout wrappers
+│   ├── hooks/
+│   │   └── usePreventAuthBack.ts  # Browser history security hook
+│   └── types/                 # TypeScript type definitions
+│
+├── database/
+│   ├── migrations/            # Database schema migrations
+│   ├── seeders/               # Sample data seeders
+│   └── database.sqlite        # SQLite database file
+│
+├── routes/                    # Laravel route definitions
+├── config/                    # App configuration files
+└── public/                    # Publicly served files
+```
+
+## 🏗️ Production Build
+
+```bash
+# Build optimized frontend assets
+npm run build
+
+# Optional: cache Laravel config/routes for performance
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+```
+
+---
+
+## 📝 Notes
+
+- **Queue worker** must be running for email notifications and OTP delivery to work.
+- **Google OAuth** credentials must be set in `.env` for social login to function.
+- The app uses **SQLite by default** — for production, switch to MySQL or PostgreSQL by updating `DB_CONNECTION` in `.env`.
+- File uploads (documents, profile photos) are stored in `storage/app/public` and served via the storage symlink.
