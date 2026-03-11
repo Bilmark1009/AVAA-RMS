@@ -5,12 +5,16 @@ namespace App\Http\Controllers\JobSeeker;
 use App\Http\Controllers\Controller;
 use App\Models\JobApplication;
 use App\Models\JobListing;
+use App\Models\User;
 use App\Notifications\ApplicationReceivedNotification;
+use App\Notifications\ApplicationWithdrawnByApplicantNotification;
+use App\Notifications\ApplicantWithdrewApplicationNotification;
 use App\Notifications\NewApplicationNotification;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Carbon\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -58,7 +62,7 @@ class JobApplicationController extends Controller
                             $logoUrl = '/'.$publicRelative;
                         } else {
                             // Fallback to storage disk (default Laravel behavior).
-                            $logoUrl = Storage::disk('public')->url($logoPath);
+                            $logoUrl = Storage::url($logoPath);
                         }
                     }
                 }
@@ -79,25 +83,56 @@ class JobApplicationController extends Controller
 
                 $canWithdraw = ! in_array($app->status, ['withdrawn', 'rejected', 'hired', 'contract_ended'], true);
 
+                $interview = $app->interview;
+                $interviewDate = $interview?->interview_date;
+                $interviewTime = $interview?->interview_time;
+
+                $salaryCurrency = $job?->salary_currency ?: 'USD';
+                $salaryMin = $job?->salary_min !== null ? (float) $job->salary_min : null;
+                $salaryMax = $job?->salary_max !== null ? (float) $job->salary_max : null;
+
                 return [
                     'id' => $app->id,
                     'status' => $app->status,
                     'stage' => $stage,
                     'applied_at' => optional($app->created_at)->toISOString(),
+                    'updated_at' => optional($app->updated_at)->toISOString(),
+                    'reviewed_at' => optional($app->reviewed_at)->toISOString(),
                     'time_ago' => optional($app->created_at)->diffForHumans(),
                     'can_withdraw' => $canWithdraw,
+                    'reviewer_notes' => $app->employer_notes,
+                    'rejection_reason' => $app->rejection_reason,
                     'job' => $job ? [
                         'id' => $job->id,
                         'title' => $job->title,
                         'location' => $job->location,
                         'is_remote' => (bool) $job->is_remote,
                         'employment_type' => $job->employment_type,
+                        'description' => $job->description,
+                        'industry' => $job->industry,
+                        'experience_level' => $job->experience_level,
+                        'skills_required' => $job->skills_required ?? [],
+                        'salary_min' => $salaryMin,
+                        'salary_max' => $salaryMax,
+                        'salary_currency' => $salaryCurrency,
                     ] : null,
                     'company' => [
                         'name' => $company,
                         'initials' => $initials ?: '??',
                         'logo_url' => $logoUrl,
+                        'size' => $employer?->employerProfile?->company_size,
                     ],
+                    'interview' => $interview ? [
+                        'status' => $interview->status,
+                        'interview_type' => $interview->interview_type,
+                        'interviewer_name' => $interview->interviewer_name,
+                        'location_or_link' => $interview->location_or_link,
+                        'notes' => $interview->notes,
+                        'date' => $interviewDate?->toDateString(),
+                        'date_label' => $interviewDate?->format('F j, Y'),
+                        'time' => $interviewTime,
+                        'time_label' => $interviewTime ? Carbon::parse((string) $interviewTime)->format('g:i A') : null,
+                    ] : null,
                 ];
             })
             ->values();
@@ -118,6 +153,19 @@ class JobApplicationController extends Controller
             return back();
         }
 
+        $job = $application->jobListing;
+        $applicant = $request->user();
+        $employer = $job?->employer;
+
+        // Notify both parties and keep the record as withdrawn for history filtering.
+        if ($job) {
+            $applicant->notify(new ApplicationWithdrawnByApplicantNotification($job));
+
+            if ($employer) {
+                $employer->notify(new ApplicantWithdrewApplicationNotification($job, $applicant));
+            }
+        }
+
         $application->update(['status' => 'withdrawn']);
 
         return back()->with('success', 'Application withdrawn successfully.');
@@ -128,6 +176,7 @@ class JobApplicationController extends Controller
      */
     public function create(JobListing $job): Response|RedirectResponse
     {
+        /** @var User $user */
         $user = Auth::user();
 
         // Already applied?
@@ -135,7 +184,7 @@ class JobApplicationController extends Controller
             ->where('job_listing_id', $job->id)
             ->first();
 
-        if ($existing && $existing->status !== 'draft') {
+        if ($existing && ! in_array($existing->status, ['draft', 'withdrawn'], true)) {
             return redirect()->route('job-seeker.jobs.show', $job->id)
                 ->with('info', 'You have already applied to this job.');
         }
@@ -202,7 +251,7 @@ class JobApplicationController extends Controller
             ->where('job_listing_id', $job->id)
             ->first();
 
-        if ($existing && $existing->status !== 'draft') {
+        if ($existing && ! in_array($existing->status, ['draft', 'withdrawn'], true)) {
             return redirect()->route('job-seeker.jobs.show', $job->id)
                 ->with('info', 'You have already applied to this job.');
         }
@@ -260,7 +309,15 @@ class JobApplicationController extends Controller
             'application_data' => $applicationData,
         ];
 
-        if ($existing && $existing->status === 'draft') {
+        if ($existing && in_array($existing->status, ['draft', 'withdrawn'], true)) {
+            // Reset any previous outcome-specific fields when reapplying.
+            $data = array_merge($data, [
+                'rejection_reason' => null,
+                'reviewed_at' => null,
+                'hired_at' => null,
+                'contract_ended_at' => null,
+            ]);
+
             $existing->update($data);
             $application = $existing->fresh();
         } else {
@@ -291,7 +348,7 @@ class JobApplicationController extends Controller
             ->where('job_listing_id', $job->id)
             ->first();
 
-        if ($existing && $existing->status !== 'draft') {
+        if ($existing && ! in_array($existing->status, ['draft', 'withdrawn'], true)) {
             return back()->with('info', 'You have already submitted this application.');
         }
 

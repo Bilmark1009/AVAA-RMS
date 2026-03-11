@@ -26,13 +26,17 @@ use App\Http\Controllers\Messaging\ConversationController;
 use App\Http\Controllers\Messaging\MessageController;
 use App\Http\Controllers\Messaging\ReportController;
 use App\Http\Controllers\NotificationController;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 // Home — redirect authenticated users to their dashboard; show Welcome to guests
 Route::get('/', function () {
-    if (auth()->check()) {
-        return redirect()->route(auth()->user()->getDashboardRoute());
+    if (Auth::check()) {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        return redirect()->route($user->getDashboardRoute());
     }
     return \Inertia\Inertia::render('Welcome');
 })->name('home');
