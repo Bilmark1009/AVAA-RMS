@@ -16,6 +16,7 @@ use App\Notifications\AdminNewJobPostedNotification;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -36,11 +37,16 @@ class JobListingController extends Controller
                 'id' => $job->id,
                 'title' => $job->title,
                 'location' => $job->location,
-                'company' => $user->employerProfile?->company_name ?? "{$user->first_name} {$user->last_name}",
+                'company' => $job->company_name ?? $user->employerProfile?->company_name ?? "{$user->first_name} {$user->last_name}",
                 'status' => $job->status,
                 'applications_count' => $job->applications_count,
                 'posted_date' => $job->created_at->toDateString(),
                 'description' => $job->description,
+                'responsibilities' => $job->responsibilities,
+                'qualifications' => $job->qualifications,
+                'project_timeline' => $job->project_timeline,
+                'onboarding_process' => $job->onboarding_process,
+                'logo_path' => $job->logo_path,
                 'employment_type' => $job->employment_type,
                 'salary_min' => $job->salary_min,
                 'salary_max' => $job->salary_max,
@@ -67,8 +73,14 @@ class JobListingController extends Controller
     {
         $request->validate([
             'title' => 'required|string|max:255',
+            'company' => 'nullable|string|max:255',
             'location' => 'required|string|max:255',
             'description' => 'required|string|min:10',
+            'responsibilities' => 'nullable|string|max:10000',
+            'qualifications' => 'nullable|string|max:10000',
+            'project_timeline' => 'nullable|string|max:10000',
+            'onboarding_process' => 'nullable|string|max:10000',
+            'logo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
             'employment_type' => 'required|string',
             'salary_min' => 'nullable|numeric|min:0',
             'salary_max' => 'nullable|numeric|min:0|gte:salary_min',
@@ -83,11 +95,23 @@ class JobListingController extends Controller
             'application_limit' => 'nullable|integer|min:1',
         ]);
 
+        $logoPath = null;
+        if ($request->hasFile('logo')) {
+            $storedPath = $request->file('logo')->store("job-logos/{$request->user()->id}", 'public');
+            $logoPath = '/storage/' . $storedPath;
+        }
+
         $job = JobListing::create([
             'employer_id' => $request->user()->id,
             'title' => $request->title,
+            'company_name' => $request->input('company'),
             'location' => $request->location,
             'description' => $request->description,
+            'responsibilities' => $request->input('responsibilities'),
+            'qualifications' => $request->input('qualifications'),
+            'project_timeline' => $request->input('project_timeline'),
+            'onboarding_process' => $request->input('onboarding_process'),
+            'logo_path' => $logoPath,
             'employment_type' => $request->employment_type,
             'salary_min' => $request->salary_min,
             'salary_max' => $request->salary_max,
@@ -120,8 +144,14 @@ class JobListingController extends Controller
 
         $request->validate([
             'title' => 'required|string|max:255',
+            'company' => 'nullable|string|max:255',
             'location' => 'required|string|max:255',
             'description' => 'required|string|min:10',
+            'responsibilities' => 'nullable|string|max:10000',
+            'qualifications' => 'nullable|string|max:10000',
+            'project_timeline' => 'nullable|string|max:10000',
+            'onboarding_process' => 'nullable|string|max:10000',
+            'logo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
             'employment_type' => 'required|string',
             'salary_min' => 'nullable|numeric|min:0',
             'salary_max' => 'nullable|numeric|min:0|gte:salary_min',
@@ -136,10 +166,24 @@ class JobListingController extends Controller
             'application_limit' => 'nullable|integer|min:1',
         ]);
 
+        $logoPath = $job->logo_path;
+        if ($request->hasFile('logo')) {
+            if (is_string($job->logo_path) && str_starts_with($job->logo_path, '/storage/')) {
+                Storage::disk('public')->delete(str_replace('/storage/', '', $job->logo_path));
+            }
+
+            $storedPath = $request->file('logo')->store("job-logos/{$request->user()->id}", 'public');
+            $logoPath = '/storage/' . $storedPath;
+        }
+
         $job->update($request->only([
             'title',
             'location',
             'description',
+            'responsibilities',
+            'qualifications',
+            'project_timeline',
+            'onboarding_process',
             'employment_type',
             'salary_min',
             'salary_max',
@@ -152,6 +196,11 @@ class JobListingController extends Controller
             'status',
             'application_limit',
         ]));
+
+        $job->update([
+            'company_name' => $request->input('company'),
+            'logo_path' => $logoPath,
+        ]);
 
         return back()->with('success', 'Job listing updated successfully!');
     }

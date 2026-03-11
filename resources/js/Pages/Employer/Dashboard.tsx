@@ -77,15 +77,15 @@ function StatCard({
                     {icon}
                 </span>
                 {badge && (
-                    <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${color}`}>
+                    <span className={`inline-flex items-center gap-1 text-sm font-semibold px-2 py-0.5 rounded-full ${color}`}>
                         <IcoTrendUp />
                         {badge}
                     </span>
                 )}
             </div>
-            <p className="text-sm text-gray-500 font-medium mb-1">{label}</p>
-            <p className="text-3xl font-extrabold text-gray-900 tracking-tight">{typeof value === 'number' ? value.toLocaleString() : value}</p>
-            {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
+            <p className="text-base text-gray-500 font-medium mb-1">{label}</p>
+            <p className="text-4xl font-extrabold text-gray-900 tracking-tight">{typeof value === 'number' ? value.toLocaleString() : value}</p>
+            {sub && <p className="text-sm text-gray-400 mt-1">{sub}</p>}
         </div>
     );
 }
@@ -101,7 +101,7 @@ function StatusBadge({ status }: { status: string }) {
     };
     const st = map[s] ?? map.active;
     return (
-        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${st.bg} ${st.text}`}>
+        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm font-semibold ${st.bg} ${st.text}`}>
             <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
             {status.charAt(0).toUpperCase() + status.slice(1)}
         </span>
@@ -112,7 +112,7 @@ function StatusBadge({ status }: { status: string }) {
 function InitialsAvatar({ name, color }: { name: string; color: string }) {
     const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
     return (
-        <span className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 ${color}`}>
+        <span className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0 ${color}`}>
             {initials}
         </span>
     );
@@ -163,7 +163,7 @@ export default function EmployerDashboard({
             >
                 {/* Verification status banner */}
                 {profileComplete && (
-                    <div className={`mb-6 flex items-center gap-3 px-4 py-3.5 rounded-2xl border text-sm
+                    <div className={`mb-6 flex items-center gap-3 px-4 py-3.5 rounded-2xl border text-base
                         ${isVerified
                             ? 'bg-avaa-primary-light border-avaa-primary/30 text-avaa-teal'
                             : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
@@ -224,12 +224,12 @@ export default function EmployerDashboard({
                     {/* header */}
                     <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
                         <div>
-                            <h2 className="text-lg font-bold text-gray-900">Posted Jobs</h2>
-                            <p className="text-sm text-gray-400">{recentJobs.length} total jobs</p>
+                            <h2 className="text-xl font-bold text-gray-900">Posted Jobs</h2>
+                            <p className="text-base text-gray-400">{recentJobs.length} total jobs</p>
                         </div>
                         <Link
                             href={route('employer.jobs.index')}
-                            className="text-sm font-semibold text-avaa-primary hover:text-avaa-primary-hover transition-colors"
+                            className="text-base font-semibold text-avaa-primary hover:text-avaa-primary-hover transition-colors"
                         >
                             View All Posted Jobs →
                         </Link>
@@ -241,7 +241,7 @@ export default function EmployerDashboard({
                             <div className="w-14 h-14 rounded-full bg-avaa-primary-light flex items-center justify-center mx-auto mb-4 text-avaa-teal">
                                 <IcoJobPosted />
                             </div>
-                            <p className="text-gray-500 text-sm mb-4">No job listings yet. Post your first job to start receiving applications.</p>
+                            <p className="text-gray-500 text-base mb-4">No job listings yet. Post your first job to start receiving applications.</p>
                             <Link
                                 href={route('employer.jobs.index')}
                                 className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-avaa-primary
@@ -255,7 +255,7 @@ export default function EmployerDashboard({
                         <div className="overflow-x-auto">
                             <table className="w-full text-left">
                                 <thead>
-                                    <tr className="text-xs uppercase tracking-wider text-gray-400 border-b border-gray-100">
+                                    <tr className="text-sm uppercase tracking-wider text-gray-400 border-b border-gray-100">
                                         <th className="px-6 py-3 font-semibold">Job</th>
                                         <th className="px-6 py-3 font-semibold">Status</th>
                                         <th className="px-6 py-3 font-semibold">Applications</th>
@@ -271,8 +271,8 @@ export default function EmployerDashboard({
                                                 <div className="flex items-center gap-3">
                                                     <InitialsAvatar name={job.title} color={pickColor(job.title)} />
                                                     <div className="min-w-0">
-                                                        <p className="text-sm font-semibold text-gray-900 truncate">{job.title}</p>
-                                                        <p className="text-xs text-gray-400 truncate">{profile?.company_name ?? 'Company'} · {job.location ?? 'Remote'}</p>
+                                                        <p className="text-base font-semibold text-gray-900 truncate">{job.title}</p>
+                                                        <p className="text-sm text-gray-400 truncate">{profile?.company_name ?? 'Company'} · {job.location ?? 'Remote'}</p>
                                                     </div>
                                                 </div>
                                             </td>
@@ -283,12 +283,12 @@ export default function EmployerDashboard({
                                             </td>
 
                                             {/* Applications */}
-                                            <td className="px-6 py-4 text-sm text-gray-600 font-medium">
+                                            <td className="px-6 py-4 text-base text-gray-600 font-medium">
                                                 {job.applications_count}
                                             </td>
 
                                             {/* Posted date */}
-                                            <td className="px-6 py-4 text-sm text-gray-500">
+                                            <td className="px-6 py-4 text-base text-gray-500">
                                                 {fmtDate(job.created_at)}
                                             </td>
 

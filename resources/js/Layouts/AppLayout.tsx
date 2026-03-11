@@ -349,7 +349,7 @@ function SidebarShell({
                     {!collapsed && (
                         <Link href={logoLinkHref} className="flex items-center">
                             <img
-                                src="/logo/avaa_logo.png"
+                                src="/logos/AVAA_Banner.png"
                                 alt="AVAA"
                                 className="h-9 w-auto object-contain"
                             />

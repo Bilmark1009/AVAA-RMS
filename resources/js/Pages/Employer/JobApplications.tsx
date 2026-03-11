@@ -65,8 +65,8 @@ const STATUS_CFG: Record<string, { dot: string; text: string; bg: string; label:
 };
 
 const INTERVIEW_TYPES = ['Online Interview', 'In-Person', 'Phone'];
-const inputClass = "w-full rounded-xl border border-gray-200 bg-gray-50 text-gray-800 text-sm px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-avaa-primary focus:border-transparent transition-all placeholder-gray-400";
-const labelClass = "block text-xs font-semibold text-gray-600 mb-1.5";
+const inputClass = "w-full rounded-xl border border-gray-200 bg-gray-50 text-gray-800 text-base px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-avaa-primary focus:border-transparent transition-all placeholder-gray-400";
+const labelClass = "block text-sm font-semibold text-gray-600 mb-1.5";
 
 /* ── Icons ── */
 const IcoX = () => (
@@ -140,8 +140,8 @@ function RejectModal({ app, jobId, onClose }: { app: Application; jobId: number;
                         </div>
                     )}
                     <div className="pb-1">
-                        <h2 className="text-base font-bold text-avaa-dark">{fullName}</h2>
-                        <p className="text-xs text-gray-500">{app.user.email}</p>
+                        <h2 className="text-lg font-bold text-avaa-dark">{fullName}</h2>
+                        <p className="text-sm text-gray-500">{app.user.email}</p>
                     </div>
                 </div>
 
@@ -249,8 +249,8 @@ function ApproveModal({ app, jobId, employerAddress, onClose }: {
                         </div>
                     )}
                     <div className="pb-1">
-                        <h2 className="text-base font-bold text-avaa-dark">{fullName}</h2>
-                        <p className="text-xs text-gray-500">{app.user.email}</p>
+                        <h2 className="text-lg font-bold text-avaa-dark">{fullName}</h2>
+                        <p className="text-sm text-gray-500">{app.user.email}</p>
                     </div>
                 </div>
 
@@ -625,7 +625,7 @@ export default function JobApplications({ job, applications, employerAddress }: 
                                 {job.company.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase()}
                             </div>
                             <div className="pb-0.5">
-                                <h2 className="text-lg font-bold text-avaa-dark">{job.title}</h2>
+                                <h2 className="text-xl font-bold text-avaa-dark">{job.title}</h2>
                                 <div className="flex items-center gap-3 mt-1">
                                     <span className="flex items-center gap-1 text-xs text-gray-500">
                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="10" r="3" /><path d="M12 2a8 8 0 00-8 8c0 5.25 8 14 8 14s8-8.75 8-14a8 8 0 00-8-8z" /></svg>
@@ -667,11 +667,11 @@ export default function JobApplications({ job, applications, employerAddress }: 
                     <table className="w-full">
                         <thead>
                             <tr className="border-b border-gray-100 bg-gray-50/50">
-                                <th className="text-left px-6 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-widest">Name</th>
-                                <th className="text-left px-4 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-widest">Curriculum Vitae</th>
-                                <th className="text-left px-4 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-widest">Date Applied</th>
-                                <th className="text-left px-4 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-widest">Status</th>
-                                <th className="px-6 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-widest text-right">Action</th>
+                                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase tracking-widest">Name</th>
+                                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-widest">Curriculum Vitae</th>
+                                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-widest">Date Applied</th>
+                                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-widest">Status</th>
+                                <th className="px-6 py-3 text-xs font-semibold text-gray-400 uppercase tracking-widest text-right">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
@@ -702,8 +702,8 @@ export default function JobApplications({ job, applications, employerAddress }: 
                                                     <div className={`w-9 h-9 rounded-full ${avatarColor(app.user.id)} flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>{initials}</div>
                                                 )}
                                                 <div className="min-w-0">
-                                                    <button onClick={() => setViewApp(app)} className="text-sm font-semibold text-avaa-dark hover:text-avaa-teal transition-colors truncate block text-left">{fullName}</button>
-                                                    {subTitle && <p className="text-xs text-avaa-muted truncate">{subTitle}</p>}
+                                                    <button onClick={() => setViewApp(app)} className="text-base font-semibold text-avaa-dark hover:text-avaa-teal transition-colors truncate block text-left">{fullName}</button>
+                                                    {subTitle && <p className="text-sm text-avaa-muted truncate">{subTitle}</p>}
                                                 </div>
                                             </div>
                                         </td>
@@ -712,7 +712,7 @@ export default function JobApplications({ job, applications, employerAddress }: 
                                                 <a href={resumePath} target="_blank" rel="noreferrer" className="text-sm text-avaa-teal hover:underline truncate block max-w-[180px]">{resumeName}</a>
                                             ) : <span className="text-sm text-gray-400 italic">—</span>}
                                         </td>
-                                        <td className="px-4 py-4"><span className="text-sm text-gray-600">{app.created_at}</span></td>
+                                        <td className="px-4 py-4"><span className="text-base text-gray-600">{app.created_at}</span></td>
                                         <td className="px-4 py-4">
                                             <AppStatusBadge status={app.status} jobId={job.id} appId={app.id}
                                                 onReject={() => setRejectApp(app)} onApprove={() => setApproveApp(app)} />
@@ -729,7 +729,7 @@ export default function JobApplications({ job, applications, employerAddress }: 
                 </div>
                 {filtered.length > 0 && (
                     <div className="px-5 py-3 border-t border-gray-100">
-                        <p className="text-xs text-avaa-muted">Showing <span className="font-semibold text-avaa-dark">{filtered.length}</span> of <span className="font-semibold text-avaa-dark">{applications.length}</span> applicants</p>
+                        <p className="text-sm text-avaa-muted">Showing <span className="font-semibold text-avaa-dark">{filtered.length}</span> of <span className="font-semibold text-avaa-dark">{applications.length}</span> applicants</p>
                     </div>
                 )}
             </div>

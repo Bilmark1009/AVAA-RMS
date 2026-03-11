@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
+import BlockUserModal from './BlockUserModal';
 import type { PageProps } from '@/types';
 import axios from 'axios';
 
@@ -54,6 +55,9 @@ interface MessagingIndexPageProps extends PageProps {
     activeConversationId: number | null;
     initialMessages: Message[];
     activeConversation: ConversationSummary | null;
+auth: { user: any; session_id: string };
+    unreadNotificationsCount: number;
+    [key: string]: any;
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -383,8 +387,8 @@ function useToast() {
 /* ══════════════════════════════════════════════════════════
    CONTEXT MENU
 ══════════════════════════════════════════════════════════ */
-function ContextMenu({ onArchive, onMute, onDelete, onDeleteGroup, onReport, onClose, isMuted, isGroup, isEmployer, showToast }: {
-    onArchive: () => void; onMute: () => void; onDelete: () => void; onDeleteGroup: () => void; onReport: () => void;
+function ContextMenu({ onArchive, onMute, onDelete, onDeleteGroup, onReport, onBlock, onClose, isMuted, isGroup, isEmployer, showToast }: {
+    onArchive: () => void; onMute: () => void; onDelete: () => void; onDeleteGroup: () => void; onReport: () => void; onBlock: () => void;
     onClose: () => void; isMuted: boolean; isGroup: boolean; isEmployer: boolean; showToast: (msg: string) => void;
 }) {
     const ref = useRef<HTMLDivElement>(null);
@@ -399,7 +403,7 @@ function ContextMenu({ onArchive, onMute, onDelete, onDeleteGroup, onReport, onC
             {[
                 { icon: <IcoMute />, label: isMuted ? 'Unmute Notification' : 'Mute Notification', action: () => { onMute(); onClose(); } },
                 { icon: <IcoArchive />, label: 'Archive Conversation', action: () => { onArchive(); onClose(); } },
-                { icon: <IcoBlock />, label: 'Block', action: () => { showToast('Block feature coming soon'); onClose(); } },
+                { icon: <IcoBlock />, label: 'Block', action: () => { onBlock(); onClose(); } },
                 { icon: <IcoFlag />, label: 'Report', action: () => { onReport(); onClose(); } },
             ].map(item => (
                 <button key={item.label} onClick={item.action}
@@ -645,13 +649,18 @@ export default function MessagingIndex({
     activeConversationId: initActiveId,
     initialMessages: initMsgs,
     activeConversation: initActive,
+    unreadNotificationsCount,
 }: {
     conversations: ConversationSummary[];
     activeConversationId: number | null;
     initialMessages: Message[];
     activeConversation: ConversationSummary | null;
+    unreadNotificationsCount: number;
 }) {
-    const { auth } = usePage<MessagingIndexPageProps>().props;
+const [showBlockModal, setShowBlockModal] = useState(false);
+    const [blocking, setBlocking] = useState(false);
+
+    const { auth } = usePage<PageProps>().props;
     const me = auth.user;
 
     const [convos, setConvos] = useState<ConversationSummary[]>(initConvos);
@@ -855,6 +864,28 @@ export default function MessagingIndex({
             setConfirmDeleteGroup(null);
         }
     };
+    /* ── PLACE THE BLOCK HANDLER HERE ── */
+    const handleBlockConfirm = async () => {
+        if (!activeConvo?.other_user) return;
+        setBlocking(true);
+        try {
+            // Replace with your actual backend block route
+            await axios.post(route('messages.block', activeConvo.other_user.id));
+            toast.show(`${activeConvo.name} has been blocked`);
+            
+            // Clean up: Remove the convo from the sidebar and clear chat
+            const blockedId = activeConvo.id;
+            setActiveConvo(null);
+            setMessages([]);
+            setConvos(prev => prev.filter(c => c.id !== blockedId));
+            stopPolling();
+        } catch (err) {
+            toast.show('Failed to block user');
+        } finally {
+            setBlocking(false);
+            setShowBlockModal(false);
+        }
+    };
 
     // Sidebar user search
     const handleSidebarSearch = (val: string) => {
@@ -894,6 +925,14 @@ export default function MessagingIndex({
 
             {/* Toast */}
             {toast.Toast}
+            {/* Modals go here, at the top level of the return */}
+            <BlockUserModal 
+                isOpen={showBlockModal}
+                onClose={() => setShowBlockModal(false)}
+                onConfirm={handleBlockConfirm}
+                userName={activeConvo?.name || 'this person'}
+                isProcessing={blocking}
+            />
 
             {/* New Message Modal */}
             {showNewMsg && (
@@ -1105,6 +1144,7 @@ export default function MessagingIndex({
                                             onDelete={() => deleteConvo(activeConvo.id)}
                                             onDeleteGroup={() => setConfirmDeleteGroup(activeConvo.id)}
                                             onReport={handleReportUser}
+                                            onBlock={() => setShowBlockModal(true)}
                                             onClose={() => setShowMenu(false)}
                                             isMuted={activeConvo.is_muted}
                                             isGroup={activeConvo.type === 'group'}

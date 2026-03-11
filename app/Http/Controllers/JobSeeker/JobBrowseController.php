@@ -334,7 +334,8 @@ class JobBrowseController extends Controller
     ───────────────────────────────────────── */
     private function shapeJob(JobListing $job, array $savedIds, array $appliedIds): array
     {
-        $companyName = $job->employer?->employerProfile?->company_name
+        $companyName = $job->company_name
+            ?? $job->employer?->employerProfile?->company_name
             ?? $job->employer?->first_name
             ?? 'Unknown Company';
 
@@ -350,9 +351,16 @@ class JobBrowseController extends Controller
             'skills_required' => $job->skills_required ?? [],
             'posted_date' => $job->created_at->toISOString(),
             'description' => $job->description,
+            'responsibilities' => $job->responsibilities,
+            'qualifications' => $job->qualifications,
+            'project_timeline' => $job->project_timeline,
+            'onboarding_process' => $job->onboarding_process,
             'experience_level' => $job->experience_level,
             'is_remote' => (bool) $job->is_remote,
             'industry' => $job->industry,
+            'deadline' => $job->deadline?->toDateString(),
+            'application_limit' => $job->application_limit,
+            'logo_path' => $job->logo_path,
             'has_applied' => in_array($job->id, $appliedIds),
         ];
     }

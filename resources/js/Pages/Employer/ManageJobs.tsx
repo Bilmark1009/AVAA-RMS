@@ -58,8 +58,8 @@ const EXPERIENCE_LEVELS = ['Entry Level', 'Mid Level', 'Senior Level', 'Lead', '
 const CURRENCIES = ['USD', 'PHP', 'EUR', 'GBP', 'SGD', 'AUD'];
 const STATUS_OPTIONS = ['active', 'inactive', 'draft'] as const;
 
-const inputClass = "w-full rounded-xl border border-gray-200 bg-gray-50 text-gray-800 text-sm px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-avaa-primary focus:border-transparent transition-all placeholder-gray-400";
-const labelClass = "block text-xs font-semibold text-gray-600 mb-1.5";
+const inputClass = "w-full rounded-xl border border-gray-200 bg-gray-50 text-gray-800 text-base px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-avaa-primary focus:border-transparent transition-all placeholder-gray-400";
+const labelClass = "block text-sm font-semibold text-gray-600 mb-1.5";
 
 /* ══════════════════════════════════════════════
    VIEW JOB MODAL — FIX: modal scrolls internally,
@@ -112,27 +112,27 @@ function ViewJobModal({ job, onClose, onEdit }: {
                 {/* Scrollable body */}
                 <div className="overflow-y-auto flex-1 px-6 pb-6 pt-3">
                     {/* Company name + meta */}
-                    <h2 className="text-xl font-bold text-avaa-dark">{job.company}</h2>
+                    <h2 className="text-2xl font-bold text-avaa-dark">{job.company}</h2>
                     <div className="flex flex-wrap items-center gap-3 mt-1.5 mb-5">
-                        <span className="flex items-center gap-1 text-xs text-gray-500">
+                        <span className="flex items-center gap-1 text-sm text-gray-500">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <circle cx="12" cy="10" r="3" /><path d="M12 2a8 8 0 00-8 8c0 5.25 8 14 8 14s8-8.75 8-14a8 8 0 00-8-8z" />
                             </svg>
                             {job.location}
                         </span>
-                        <span className="flex items-center gap-1 text-xs text-gray-400">
+                        <span className="flex items-center gap-1 text-sm text-gray-400">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                                 <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
                             </svg>
                             {timeAgo(job.posted_date)}
                         </span>
                         {job.employment_type && (
-                            <span className="px-2.5 py-0.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">
+                            <span className="px-2.5 py-0.5 bg-gray-100 text-gray-600 text-sm font-medium rounded-full">
                                 {job.employment_type}
                             </span>
                         )}
                         {(job.salary_min || job.salary_max) && (
-                            <span className="px-2.5 py-0.5 bg-avaa-primary-light text-avaa-teal text-xs font-medium rounded-full">
+                            <span className="px-2.5 py-0.5 bg-avaa-primary-light text-avaa-teal text-sm font-medium rounded-full">
                                 {job.salary_currency ?? 'USD'} {job.salary_min ? Number(job.salary_min).toLocaleString() : '—'}
                                 {job.salary_max ? ` – ${Number(job.salary_max).toLocaleString()}` : '+'}
                             </span>
@@ -142,13 +142,13 @@ function ViewJobModal({ job, onClose, onEdit }: {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
                         {/* Position */}
                         <div>
-                            <h4 className="text-sm font-bold text-avaa-dark mb-2">Position</h4>
+                            <h4 className="text-base font-bold text-avaa-dark mb-2">Position</h4>
                             <ul className="space-y-1.5">
-                                <li className="flex items-start gap-2 text-sm text-gray-600">
+                                <li className="flex items-start gap-2 text-base text-gray-600">
                                     <span className="mt-2 w-1.5 h-1.5 rounded-full bg-avaa-teal flex-shrink-0" />{job.title}
                                 </li>
                                 {job.experience_level && (
-                                    <li className="flex items-start gap-2 text-sm text-gray-600">
+                                    <li className="flex items-start gap-2 text-base text-gray-600">
                                         <span className="mt-2 w-1.5 h-1.5 rounded-full bg-avaa-teal flex-shrink-0" />{job.experience_level}
                                     </li>
                                 )}
@@ -158,10 +158,10 @@ function ViewJobModal({ job, onClose, onEdit }: {
                         {/* Tech Stack */}
                         {job.skills_required && job.skills_required.length > 0 && (
                             <div>
-                                <h4 className="text-sm font-bold text-avaa-dark mb-2">Tech Stack Requirements:</h4>
+                                <h4 className="text-base font-bold text-avaa-dark mb-2">Tech Stack Requirements:</h4>
                                 <div className="flex flex-wrap gap-1.5">
                                     {job.skills_required.map(s => (
-                                        <span key={s} className="px-2.5 py-0.5 bg-avaa-primary-light text-avaa-teal text-xs font-semibold rounded-full border border-avaa-primary/20">
+                                        <span key={s} className="px-2.5 py-0.5 bg-avaa-primary-light text-avaa-teal text-sm font-semibold rounded-full border border-avaa-primary/20">
                                             {s}
                                         </span>
                                     ))}
@@ -173,25 +173,25 @@ function ViewJobModal({ job, onClose, onEdit }: {
                     {/* Description */}
                     {job.description && (
                         <div className="mb-5">
-                            <h4 className="text-sm font-bold text-avaa-dark mb-2">Description</h4>
-                            <div className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">{job.description}</div>
+                            <h4 className="text-base font-bold text-avaa-dark mb-2">Description</h4>
+                            <div className="text-base text-gray-600 leading-relaxed whitespace-pre-line">{job.description}</div>
                         </div>
                     )}
 
                     {/* Stats */}
                     <div className="flex gap-6 pt-3 border-t border-gray-100">
                         <div>
-                            <p className="text-lg font-extrabold text-avaa-dark">{job.applications_count}</p>
-                            <p className="text-xs text-avaa-muted">Applications</p>
+                            <p className="text-xl font-extrabold text-avaa-dark">{job.applications_count}</p>
+                            <p className="text-sm text-avaa-muted">Applications</p>
                         </div>
                         <div>
-                            <p className="text-lg font-extrabold text-avaa-dark capitalize">{job.status}</p>
-                            <p className="text-xs text-avaa-muted">Status</p>
+                            <p className="text-xl font-extrabold text-avaa-dark capitalize">{job.status}</p>
+                            <p className="text-sm text-avaa-muted">Status</p>
                         </div>
                         {job.deadline && (
                             <div>
-                                <p className="text-lg font-extrabold text-avaa-dark">{job.deadline}</p>
-                                <p className="text-xs text-avaa-muted">Deadline</p>
+                                <p className="text-xl font-extrabold text-avaa-dark">{job.deadline}</p>
+                                <p className="text-sm text-avaa-muted">Deadline</p>
                             </div>
                         )}
                     </div>
@@ -219,6 +219,11 @@ interface JobFormData {
     status: 'active' | 'inactive' | 'draft';
     employment_type: string; experience_level: string;
     industry: string; is_remote: boolean; deadline: string;
+    responsibilities: string;
+    qualifications: string;          
+    project_timeline: string;        
+    onboarding_process: string;
+    
 }
 
 function JobFormModal({ mode, job, companyName, onClose }: {
@@ -230,13 +235,21 @@ function JobFormModal({ mode, job, companyName, onClose }: {
             location: job.location ?? '', salary_min: job.salary_min ? String(job.salary_min) : '',
             salary_max: job.salary_max ? String(job.salary_max) : '',
             salary_currency: job.salary_currency ?? 'USD', skills_required: job.skills_required ?? [],
-            description: job.description ?? '', application_limit: '',
+            description: job.description ?? '', responsibilities: job.description ?? '',
+            qualifications: '',      // Add this
+            project_timeline: '',    // Add this
+            onboarding_process: '',
+            application_limit: '',
             status: job.status ?? 'active', employment_type: job.employment_type ?? '',
             experience_level: job.experience_level ?? '', industry: job.industry ?? '',
             is_remote: job.is_remote ?? false, deadline: job.deadline ?? '',
         } : {
             title: '', company: companyName ?? '', location: '', salary_min: '', salary_max: '',
-            salary_currency: 'USD', skills_required: [], description: '', application_limit: '',
+            salary_currency: 'USD', skills_required: [], description: '', responsibilities: '',
+            qualifications: '',      // Add this
+            project_timeline: '',    // Add this
+            onboarding_process: '',
+            application_limit: '',
             status: 'active', employment_type: '', experience_level: '',
             industry: '', is_remote: false, deadline: '',
         }
@@ -246,6 +259,8 @@ function JobFormModal({ mode, job, companyName, onClose }: {
     const [skillDropOpen, setSkillDropOpen] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [saving, setSaving] = useState(false);
+    const [logoFile, setLogoFile] = useState<File | null>(null);
+    const [logoPreview, setLogoPreview] = useState<string | null>(null);
     const skillRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -274,37 +289,109 @@ function JobFormModal({ mode, job, companyName, onClose }: {
         setSkillInput('');
     };
 
+    const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+        setLogoFile(file);
+        setLogoPreview(URL.createObjectURL(file));
+    }
+    };
+
     const validate = () => {
         const e: Record<string, string> = {};
         if (!form.title.trim()) e.title = 'Job title is required.';
         if (!form.location.trim()) e.location = 'Location is required.';
         if (!form.description.trim()) e.description = 'Description is required.';
+        
         if (!form.employment_type) e.employment_type = 'Employment type is required.';
         return e;
     };
 
+    // const handleSubmit = () => {
+    //     const e = validate();
+    //     if (Object.keys(e).length) { setErrors(e); return; }
+    //     setSaving(true);
+    //     const payload = {
+    //         title: form.title, location: form.location, description: form.description,
+    //         responsibilities: form.responsibilities,
+    //         qualifications: form.qualifications,
+    //         project_timeline: form.project_timeline,
+    //         onboarding_process: form.onboarding_process,
+    //         employment_type: form.employment_type, salary_min: form.salary_min || null,
+    //         salary_max: form.salary_max || null, salary_currency: form.salary_currency,
+    //         skills_required: form.skills_required, experience_level: form.experience_level,
+    //         industry: form.industry, is_remote: form.is_remote,
+    //         deadline: form.deadline || null, status: form.status,
+    //         application_limit: form.application_limit || null,
+    //     };
+    //     const opts = {
+    //         preserveScroll: true,
+    //         onSuccess: () => { setSaving(false); onClose(); },
+    //         onError: (errs: any) => { setErrors(errs); setSaving(false); },
+    //     };
+    //     mode === 'edit' && job
+    //         ? router.put(route('employer.jobs.update', job.id), payload, opts)
+    //         : router.post(route('employer.jobs.store'), payload, opts);
+    // };
+
     const handleSubmit = () => {
-        const e = validate();
-        if (Object.keys(e).length) { setErrors(e); return; }
-        setSaving(true);
-        const payload = {
-            title: form.title, location: form.location, description: form.description,
-            employment_type: form.employment_type, salary_min: form.salary_min || null,
-            salary_max: form.salary_max || null, salary_currency: form.salary_currency,
-            skills_required: form.skills_required, experience_level: form.experience_level,
-            industry: form.industry, is_remote: form.is_remote,
-            deadline: form.deadline || null, status: form.status,
-            application_limit: form.application_limit || null,
-        };
-        const opts = {
-            preserveScroll: true,
-            onSuccess: () => { setSaving(false); onClose(); },
-            onError: (errs: any) => { setErrors(errs); setSaving(false); },
-        };
-        mode === 'edit' && job
-            ? router.put(route('employer.jobs.update', job.id), payload, opts)
-            : router.post(route('employer.jobs.store'), payload, opts);
+    const e = validate();
+    if (Object.keys(e).length) { setErrors(e); return; }
+    setSaving(true);
+
+    // 1. Initialize FormData
+    const data = new FormData();
+    
+    // 2. Append all text fields
+    data.append('title', form.title);
+    data.append('company', form.company);
+    data.append('location', form.location);
+    data.append('description', form.description);
+    data.append('responsibilities', form.responsibilities);
+    data.append('qualifications', form.qualifications);
+    data.append('project_timeline', form.project_timeline);
+    data.append('onboarding_process', form.onboarding_process);
+    data.append('employment_type', form.employment_type);
+    data.append('salary_currency', form.salary_currency);
+    data.append('experience_level', form.experience_level);
+    data.append('industry', form.industry);
+    data.append('status', form.status);
+    
+    // Handle nullable/conditional fields
+    if (form.salary_min) data.append('salary_min', form.salary_min);
+    if (form.salary_max) data.append('salary_max', form.salary_max);
+    if (form.application_limit) data.append('application_limit', form.application_limit);
+    if (form.deadline) data.append('deadline', form.deadline);
+    
+    // Booleans must be sent as strings '1' or '0' for Laravel to parse correctly from FormData
+    data.append('is_remote', form.is_remote ? '1' : '0');
+
+    // 3. Append the Array (Skills)
+    form.skills_required.forEach((skill, index) => {
+        data.append(`skills_required[${index}]`, skill);
+    });
+
+    // 4. Append the Logo File (Only if a new one was selected)
+    if (logoFile) {
+        data.append('logo', logoFile);
+    }
+
+    const opts = {
+        preserveScroll: true,
+        onSuccess: () => { setSaving(false); onClose(); },
+        onError: (errs: any) => { setErrors(errs); setSaving(false); },
+        forceFormData: true, // Ensures Inertia treats this as a file upload
     };
+
+    // 5. Submit Logic
+    if (mode === 'edit' && job) {
+        // Special Laravel Trick: Use POST but spoof it as PUT so files work
+        data.append('_method', 'put');
+        router.post(route('employer.jobs.update', job.id), data as any, opts);
+    } else {
+        router.post(route('employer.jobs.store'), data as any, opts);
+    }
+};
 
     const filteredSkills = SKILL_OPTIONS.filter(s =>
         !form.skills_required.includes(s) && s.toLowerCase().includes(skillInput.toLowerCase())
@@ -316,13 +403,43 @@ function JobFormModal({ mode, job, companyName, onClose }: {
             <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[92vh] overflow-hidden flex flex-col">
 
                 <div className="h-14 bg-gradient-to-r from-avaa-primary/80 via-avaa-teal to-emerald-400 flex-shrink-0 relative flex items-center px-5">
-                    <h2 className="text-white font-bold text-sm">{mode === 'create' ? 'Post New Job' : 'Edit Job Listing'}</h2>
+                    <h2 className="text-white font-bold text-base">{mode === 'create' ? 'Post New Job' : 'Edit Job Listing'}</h2>
                     <button onClick={onClose}
                         className="absolute top-3 right-3 w-7 h-7 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-white transition-colors">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                             <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                         </svg>
                     </button>
+                </div>
+                {/* ─── LOGO UPLOAD BLOCK ─── */}
+                {/* Added pt-4 for top spacing and px-4 for responsiveness */}
+                <div className="flex flex-col items-center pt-4 pb-6 w-full px-4 sm:px-6">
+                    <label className="relative group cursor-pointer w-full max-w-md"> 
+                        {/* Changed h-28 to aspect ratio for better responsiveness */}
+                        <div className="w-full aspect-[3/1] sm:h-28 rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden group-hover:border-avaa-primary/50 transition-all shadow-sm">
+                            {logoPreview ? (
+                                <img src={logoPreview} alt="Logo" className="w-full h-full object-contain p-4" /> 
+                            ) : (
+                                <div className="flex flex-col items-center">
+                                    <div className="p-3 bg-white rounded-full shadow-sm border border-gray-100 mb-2">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400">
+                                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                                        </svg>
+                                    </div>
+                                    <span className="text-[13px] text-gray-400 font-semibold">Upload Company Logo</span>
+                                    <span className="text-[10px] text-gray-300 mt-0.5 font-medium italic">Supports JPG, PNG</span>
+                                </div>
+                            )}
+                            
+                            {/* Change Logo Overlay */}
+                            <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all duration-200 backdrop-blur-[1px]">
+                                <span className="text-[11px] text-white font-bold uppercase tracking-wider bg-avaa-primary/80 px-4 py-2 rounded-xl shadow-lg">
+                                    Upload Logo
+                                </span>
+                            </div>
+                        </div>
+                        <input type="file" className="hidden" accept="image/*" onChange={handleLogoChange} />
+                    </label>
                 </div>
 
                 <div className="overflow-y-auto flex-1 px-5 py-5 space-y-4">
@@ -417,6 +534,65 @@ function JobFormModal({ mode, job, companyName, onClose }: {
                             rows={4} className={`${inputClass} resize-none`} placeholder="Job Description" />
                         {errors.description && <p className="text-xs text-red-500 mt-1">{errors.description}</p>}
                     </div>
+                        <div>
+                            <label className={labelClass}>Key Responsibilities</label>
+                            <textarea 
+                                value={form.responsibilities} 
+                                onChange={e => set('responsibilities', e.target.value)}
+                                rows={4} 
+                                className={`${inputClass} resize-none`} 
+                                placeholder="List the primary duties and responsibilities..." 
+                            />
+                            {errors.responsibilities && (
+                                <p className="text-xs text-red-500 mt-1">{errors.responsibilities}</p>
+                            )}
+                        </div>
+                        {/* Ideal Qualifications */}
+                            <div>
+                                <label className={labelClass}>Ideal Qualifications</label>
+                                <textarea 
+                                    value={form.qualifications} 
+                                    onChange={e => set('qualifications', e.target.value)}
+                                    rows={4} 
+                                    className={`${inputClass} resize-none`} 
+                                    placeholder="What skills and experience should the perfect candidate have?" 
+                                />
+                                {errors.qualifications && (
+                                    <p className="text-xs text-red-500 mt-1">{errors.qualifications}</p>
+                                )}
+                            </div>
+
+                            {/* Project Timeline */}
+                            <div>
+                                <label className={labelClass}>Project Timeline</label>
+                                <textarea 
+                                    value={form.project_timeline} 
+                                    onChange={e => set('project_timeline', e.target.value)}
+                                    rows={3} 
+                                    className={`${inputClass} resize-none`} 
+                                    placeholder="e.g., Phase 1: Planning (2 weeks), Phase 2: Execution..." 
+                                />
+                                {errors.project_timeline && (
+                                    <p className="text-xs text-red-500 mt-1">{errors.project_timeline}</p>
+                                )}
+                            </div>
+
+                            {/* Application and Onboarding Process */}
+                            <div>
+                                <label className={labelClass}>Application and Onboarding Process</label>
+                                <textarea 
+                                    value={form.onboarding_process} 
+                                    onChange={e => set('onboarding_process', e.target.value)}
+                                    rows={3} 
+                                    className={`${inputClass} resize-none`} 
+                                    placeholder="Explain the steps from application to the first day..." 
+                                />
+                                {errors.onboarding_process && (
+                                    <p className="text-xs text-red-500 mt-1">{errors.onboarding_process}</p>
+                                )}
+                            </div>
+
+
                     <div className="grid grid-cols-2 gap-3">
                         <div>
                             <label className={labelClass}>Application Limit</label>
@@ -709,11 +885,11 @@ export default function ManageJobs({ user, profile, jobs, isVerified }: Props) {
                         <table className="w-full">
                             <thead>
                                 <tr className="border-b border-gray-100 bg-gray-50/50">
-                                    <th className="text-left px-6 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-widest w-[35%]">User</th>
-                                    <th className="text-left px-4 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-widest">Company</th>
-                                    <th className="text-left px-4 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-widest">Status</th>
-                                    <th className="text-left px-4 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-widest">Applications</th>
-                                    <th className="text-left px-4 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-widest">Posted Date</th>
+                                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase tracking-widest w-[35%]">User</th>
+                                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-widest">Company</th>
+                                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-widest">Status</th>
+                                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-widest">Applications</th>
+                                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-widest">Posted Date</th>
                                     <th className="px-4 py-3 w-12" />
                                 </tr>
                             </thead>

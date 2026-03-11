@@ -25,8 +25,8 @@ const IcoEyeOff = () => (
 );
 
 /* ── Shared styles ── */
-const inputClass = "block w-full rounded-xl border border-gray-200 bg-gray-50 text-gray-900 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-avaa-primary focus:border-transparent transition-all placeholder-gray-400";
-const labelClass = "block text-xs font-semibold text-gray-500 mb-1.5";
+const inputClass = "block w-full rounded-xl border border-gray-200 bg-gray-50 text-gray-900 px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-avaa-primary focus:border-transparent transition-all placeholder-gray-400";
+const labelClass = "block text-sm font-semibold text-gray-500 mb-1.5";
 
 /* ── Reusable components ── */
 function Card({ children }: { children: React.ReactNode }) {
@@ -35,8 +35,8 @@ function Card({ children }: { children: React.ReactNode }) {
 function CardHeader({ title, subtitle }: { title: string; subtitle: string }) {
     return (
         <div className="px-6 py-4 border-b border-gray-100">
-            <h3 className="text-sm font-semibold text-avaa-dark">{title}</h3>
-            <p className="text-xs text-avaa-muted mt-0.5">{subtitle}</p>
+            <h3 className="text-base font-semibold text-avaa-dark">{title}</h3>
+            <p className="text-sm text-avaa-muted mt-0.5">{subtitle}</p>
         </div>
     );
 }
@@ -82,7 +82,7 @@ function TabBar({ tabs, active, onChange }: { tabs: string[]; active: number; on
                 <button
                     key={tab}
                     onClick={() => onChange(i)}
-                    className={`px-4 py-2.5 text-sm font-semibold transition-colors relative
+                    className={`px-4 py-2.5 text-base font-semibold transition-colors relative
                         ${active === i
                             ? 'text-avaa-teal'
                             : 'text-avaa-muted hover:text-avaa-dark'
@@ -453,8 +453,8 @@ export default function EmployerSettings({ user, profile, security }: Props) {
                                     {/* 2FA */}
                                     <div className="flex items-start justify-between gap-4 p-4 rounded-xl border border-gray-100">
                                         <div>
-                                            <p className="text-sm font-semibold text-avaa-dark">Two-Factor Authentication (2FA)</p>
-                                            <p className="text-xs text-avaa-muted mt-0.5 max-w-md">
+                                            <p className="text-base font-semibold text-avaa-dark">Two-Factor Authentication (2FA)</p>
+                                            <p className="text-sm text-avaa-muted mt-0.5 max-w-md">
                                                 Protect your account with an extra layer of security. We will ask for a verification code when you log in on a new device.
                                             </p>
                                         </div>
@@ -463,20 +463,20 @@ export default function EmployerSettings({ user, profile, security }: Props) {
 
                                     {/* Login Alerts */}
                                     <div>
-                                        <h4 className="text-sm font-semibold text-avaa-dark mb-1">Login Alerts</h4>
-                                        <p className="text-xs text-avaa-muted mb-3">Choose how you want to be notified when a new login is detected on your account.</p>
+                                        <h4 className="text-base font-semibold text-avaa-dark mb-1">Login Alerts</h4>
+                                        <p className="text-sm text-avaa-muted mb-3">Choose how you want to be notified when a new login is detected on your account.</p>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <div className="flex items-start justify-between gap-4 p-4 rounded-xl border border-gray-100">
                                                 <div>
-                                                    <p className="text-sm font-medium text-avaa-dark">Email Notifications</p>
-                                                    <p className="text-xs text-avaa-muted mt-0.5">Send an alert your email</p>
+                                                    <p className="text-base font-medium text-avaa-dark">Email Notifications</p>
+                                                    <p className="text-sm text-avaa-muted mt-0.5">Send an alert your email</p>
                                                 </div>
                                                 <Toggle checked={secForm.login_alert_email} onChange={v => updateSecurity('login_alert_email', v)} />
                                             </div>
                                             <div className="flex items-start justify-between gap-4 p-4 rounded-xl border border-gray-100">
                                                 <div>
-                                                    <p className="text-sm font-medium text-avaa-dark">Push Notifications</p>
-                                                    <p className="text-xs text-avaa-muted mt-0.5">Alerts via desktop or mobile app</p>
+                                                    <p className="text-base font-medium text-avaa-dark">Push Notifications</p>
+                                                    <p className="text-sm text-avaa-muted mt-0.5">Alerts via desktop or mobile app</p>
                                                 </div>
                                                 <Toggle checked={secForm.login_alert_push} onChange={v => updateSecurity('login_alert_push', v)} />
                                             </div>

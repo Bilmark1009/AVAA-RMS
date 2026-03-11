@@ -16,6 +16,9 @@ interface ReportPageProps extends PageProps {
     reportedUser: ReportedUser;
     conversationId: number | null;
     flash?: { success?: string } | null;
+auth: { user: any; session_id: string };
+    unreadNotificationsCount: number;
+    [key: string]: any;
 }
 
 const reasons = [
@@ -46,23 +49,45 @@ const reasons = [
     },
 ];
 
-export default function ReportPage({ reportedUser, conversationId }: ReportPageProps) {
-    const { flash } = usePage<ReportPageProps>().props;
+export default function ReportPage({ reportedUser, conversationId, unreadNotificationsCount }: PageProps) {
+    const { flash } = usePage<PageProps>().props;
     const [reason, setReason] = useState('');
     const [details, setDetails] = useState('');
     const [submitting, setSubmitting] = useState(false);
 
-    const handleSubmit = (e: FormEvent) => {
-        e.preventDefault();
-        if (!reason) return;
-        setSubmitting(true);
-        router.post(route('messages.report.store', reportedUser.id), {
-            reason,
-            details: details.trim() || null,
-        } as any, {
-            onFinish: () => setSubmitting(false),
-        });
+    const [images, setImages] = useState<File[]>([]);
+    const [previews, setPreviews] = useState<string[]>([]);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            const selectedFiles = Array.from(e.target.files);
+            setImages(prev => [...prev, ...selectedFiles]);
+
+            const newPreviews = selectedFiles.map(file => URL.createObjectURL(file));
+            setPreviews(prev => [...prev, ...newPreviews]);
+        }
     };
+
+    const removeImage = (index: number) => {
+        setImages(images.filter((_, i) => i !== index));
+        setPreviews(previews.filter((_, i) => i !== index));
+    };
+
+        /* ── Replace your existing handleSubmit ── */
+        const handleSubmit = (e: FormEvent) => {
+            e.preventDefault();
+            if (!reason) return;
+            setSubmitting(true);
+            
+            router.post(route('messages.report.store', reportedUser.id), {
+                reason,
+                details: details.trim() || null,
+                evidence: images, // <── Added this
+            }, {
+                forceFormData: true, // <── Important: Allows file uploads
+                onFinish: () => setSubmitting(false),
+            });
+        };
 
     const initials = `${reportedUser.first_name?.[0] ?? ''}${reportedUser.last_name?.[0] ?? ''}`.toUpperCase();
 
@@ -113,6 +138,8 @@ export default function ReportPage({ reportedUser, conversationId }: ReportPageP
                         </div>
                     </div>
 
+
+
                     <form onSubmit={handleSubmit}>
                         {/* Reason selection */}
                         <div className="px-6 pb-5">
@@ -143,6 +170,53 @@ export default function ReportPage({ reportedUser, conversationId }: ReportPageP
                                         </div>
                                     </label>
                                 ))}
+                            </div>
+                        </div>
+
+                        {/* Evidence Upload */}
+                        <div className="px-6 pb-5">
+                            <h3 className="text-[14px] font-semibold text-avaa-dark mb-2">
+                                Upload evidence <span className="text-avaa-muted font-normal">(Optional)</span>
+                            </h3>
+                            <p className="text-[12px] text-avaa-muted mb-3 leading-relaxed">
+                                Upload screenshots of the conversation to help us investigate.
+                            </p>
+                            
+                            <div className="flex flex-col gap-3">
+                                {/* Container for Previews - Grid layout works best for multiple images */}
+                                {previews.length > 0 && (
+                                    <div className="grid grid-cols-4 sm:grid-cols-5 gap-3 mb-1">
+                                        {previews.map((src, index) => (
+                                            <div key={index} className="relative aspect-square rounded-xl border border-gray-200 overflow-hidden group">
+                                                <img src={src} className="w-full h-full object-cover" alt="Preview" />
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => removeImage(index)}
+                                                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                                                >
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                                                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Full Width Dropzone/Button */}
+                                {images.length < 5 && (
+                                    <label className="w-full py-8 flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-avaa-primary/50 hover:bg-gray-50 bg-gray-50/30 transition-all">
+                                        <div className="bg-white p-2.5 rounded-full shadow-sm border border-gray-100 mb-2">
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-avaa-primary">
+                                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                                            </svg>
+                                        </div>
+                                        <span className="text-[13px] text-avaa-dark font-semibold">Click to upload images</span>
+                                        <span className="text-[11px] text-gray-500 mt-1">{5 - images.length} slots remaining</span>
+                                        <input type="file" multiple accept="image/*" className="hidden" onChange={handleFileChange} />
+                                    </label>
+                                )}
                             </div>
                         </div>
 

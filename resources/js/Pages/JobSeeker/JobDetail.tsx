@@ -17,6 +17,9 @@ interface JobListing {
     description?: string;
     responsibilities?: string[];
     qualifications?: string[];
+    project_timeline?: string;        
+    application_process?: string;     
+    onboarding_process?: string;
     experience_level?: string | null;
     is_remote?: boolean;
     has_applied?: boolean;
@@ -206,6 +209,41 @@ export default function JobDetail({ job, recruiter, similarJobs = [], isSaved: i
                                 </div>
                             )}
                         </div>
+                        {/* ─── NEW SECTIONS ─── */}
+
+                            {/* Project Timeline */}
+                            {job.project_timeline && (
+                                <div>
+                                    <h3 className="text-base font-bold text-avaa-dark mb-3">Project Timeline</h3>
+                                    <p className="text-[15px] text-gray-600 leading-relaxed whitespace-pre-line bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                                        {job.project_timeline}
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Application Process */}
+                            {job.application_process && (
+                                <div>
+                                    <h3 className="text-base font-bold text-avaa-dark mb-3">Application Process</h3>
+                                    <div className="relative border-l-2 border-dashed border-avaa-teal/30 ml-2 pl-6 py-1 space-y-4">
+                                        <p className="text-[15px] text-gray-600 leading-relaxed whitespace-pre-line">
+                                            {job.application_process}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Onboarding Process */}
+                            {job.onboarding_process && (
+                                <div>
+                                    <h3 className="text-base font-bold text-avaa-dark mb-3">Onboarding Process</h3>
+                                    <div className="bg-emerald-50/50 border border-emerald-100 p-5 rounded-2xl">
+                                        <p className="text-[15px] text-gray-700 leading-relaxed whitespace-pre-line">
+                                            {job.onboarding_process}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
 
                         {/* Footer */}
                         <div className="px-8 py-5 border-t border-gray-100 flex items-center justify-between text-sm text-gray-400">

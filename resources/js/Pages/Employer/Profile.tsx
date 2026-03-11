@@ -138,7 +138,7 @@ export default function Profile({ user, profile }: Props) {
                             {/* Name, industry, status */}
                             <div className="mb-1">
                                 <div className="flex items-center gap-2.5 mb-0.5">
-                                    <h2 className="text-xl font-bold text-avaa-dark">{fullName}</h2>
+                                    <h2 className="text-2xl font-bold text-avaa-dark">{fullName}</h2>
                                     <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${user.status === 'active'
                                             ? 'bg-emerald-100 text-emerald-600'
                                             : user.status === 'pending'
@@ -151,7 +151,7 @@ export default function Profile({ user, profile }: Props) {
                                         {statusLabel}
                                     </span>
                                 </div>
-                                <p className="text-sm text-avaa-teal font-medium">
+                                <p className="text-base text-avaa-teal font-medium">
                                     {p?.industry ? `${p.industry} · ${p.company_size} company` : (
                                         <span className="text-gray-400 italic">No company info set</span>
                                     )}
@@ -159,7 +159,7 @@ export default function Profile({ user, profile }: Props) {
                             </div>
 
                             {/* Location & email meta row */}
-                            <div className="flex flex-wrap items-center gap-4 mt-2 text-xs text-avaa-muted">
+                            <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-avaa-muted">
                                 {location && (
                                     <span className="flex items-center gap-1">
                                         <IcoMapPin /> {location}
@@ -179,13 +179,13 @@ export default function Profile({ user, profile }: Props) {
 
                     {/* ── About ── */}
                     <div className="bg-white rounded-2xl border border-gray-200 p-6">
-                        <h3 className="text-sm font-bold text-avaa-dark mb-3">About</h3>
+                        <h3 className="text-base font-bold text-avaa-dark mb-3">About</h3>
                         {p?.company_description ? (
-                            <p className="text-sm text-avaa-muted leading-relaxed whitespace-pre-line">
+                            <p className="text-base text-avaa-muted leading-relaxed whitespace-pre-line">
                                 {p.company_description}
                             </p>
                         ) : (
-                            <p className="text-sm text-gray-400 italic">
+                            <p className="text-base text-gray-400 italic">
                                 No company description yet — edit your profile to add one.
                             </p>
                         )}
@@ -193,31 +193,31 @@ export default function Profile({ user, profile }: Props) {
 
                     {/* ── Personal Information ── */}
                     <div className="bg-white rounded-2xl border border-gray-200 p-6">
-                        <h3 className="text-sm font-bold text-avaa-dark mb-4">Personal Information</h3>
+                        <h3 className="text-base font-bold text-avaa-dark mb-4">Personal Information</h3>
                         <div className="grid grid-cols-2 gap-x-6 gap-y-3">
                             <div>
                                 <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">First Name</p>
-                                <p className="text-sm text-avaa-dark mt-0.5">{user.first_name}</p>
+                                <p className="text-base text-avaa-dark mt-0.5">{user.first_name}</p>
                             </div>
                             <div>
                                 <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Last Name</p>
-                                <p className="text-sm text-avaa-dark mt-0.5">{user.last_name}</p>
+                                <p className="text-base text-avaa-dark mt-0.5">{user.last_name}</p>
                             </div>
                             <div>
                                 <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Role</p>
                                 <div className="flex items-center gap-1.5 mt-0.5">
-                                    <p className="text-sm text-avaa-dark">{p?.industry ?? 'Employer'}</p>
+                                    <p className="text-base text-avaa-dark">{p?.industry ?? 'Employer'}</p>
                                     <IcoLock />
                                 </div>
                             </div>
                             <div>
                                 <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Complete Address</p>
-                                <p className="text-sm text-avaa-dark mt-0.5">{location || '—'}</p>
+                                <p className="text-base text-avaa-dark mt-0.5">{location || '—'}</p>
                             </div>
                             <div>
                                 <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Email Address</p>
                                 <div className="flex items-center gap-2 mt-0.5">
-                                    <p className="text-sm text-avaa-dark">{user.email}</p>
+                                    <p className="text-base text-avaa-dark">{user.email}</p>
                                     {user.email_verified_at && (
                                         <span className="text-[10px] font-semibold text-avaa-teal">Verified</span>
                                     )}
@@ -226,7 +226,7 @@ export default function Profile({ user, profile }: Props) {
                             <div>
                                 <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Phone Number</p>
                                 <div className="flex items-center gap-2 mt-0.5">
-                                    <p className="text-sm text-avaa-dark">{user.phone ?? '—'}</p>
+                                    <p className="text-base text-avaa-dark">{user.phone ?? '—'}</p>
                                     {user.phone && (
                                         <span className="text-[10px] font-semibold text-avaa-teal">Verified</span>
                                     )}
@@ -238,27 +238,27 @@ export default function Profile({ user, profile }: Props) {
                     {/* ── Company Details ── */}
                     {p && (
                         <div className="bg-white rounded-2xl border border-gray-200 p-6">
-                            <h3 className="text-sm font-bold text-avaa-dark mb-4">Company Details</h3>
+                            <h3 className="text-base font-bold text-avaa-dark mb-4">Company Details</h3>
                             <div className="grid grid-cols-2 gap-x-6 gap-y-3">
                                 <div>
                                     <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Company Name</p>
-                                    <p className="text-sm text-avaa-dark mt-0.5">{p.company_name}</p>
+                                    <p className="text-base text-avaa-dark mt-0.5">{p.company_name}</p>
                                 </div>
                                 <div>
                                     <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Industry</p>
-                                    <p className="text-sm text-avaa-dark mt-0.5">{p.industry}</p>
+                                    <p className="text-base text-avaa-dark mt-0.5">{p.industry}</p>
                                 </div>
                                 <div>
                                     <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Company Size</p>
-                                    <p className="text-sm text-avaa-dark mt-0.5">{p.company_size}</p>
+                                    <p className="text-base text-avaa-dark mt-0.5">{p.company_size}</p>
                                 </div>
                                 <div>
                                     <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Year Established</p>
-                                    <p className="text-sm text-avaa-dark mt-0.5">{p.year_established ?? '—'}</p>
+                                    <p className="text-base text-avaa-dark mt-0.5">{p.year_established ?? '—'}</p>
                                 </div>
                                 <div className="col-span-2">
                                     <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Headquarters</p>
-                                    <p className="text-sm text-avaa-dark mt-0.5 flex items-center gap-1.5">
+                                    <p className="text-base text-avaa-dark mt-0.5 flex items-center gap-1.5">
                                         <IcoMapPin />
                                         {p.headquarters_address}, {p.city}, {p.state} {p.postal_code}, {p.country}
                                     </p>
@@ -270,11 +270,11 @@ export default function Profile({ user, profile }: Props) {
                     {/* ── Links ── */}
                     {(p?.company_website || p?.linkedin_url || p?.facebook_url || p?.twitter_url || p?.instagram_url) && (
                         <div className="bg-white rounded-2xl border border-gray-200 p-6">
-                            <h3 className="text-sm font-bold text-avaa-dark mb-3">Links</h3>
+                            <h3 className="text-base font-bold text-avaa-dark mb-3">Links</h3>
                             <div className="space-y-2">
                                 {p?.company_website && (
                                     <a href={p.company_website} target="_blank" rel="noreferrer"
-                                        className="flex items-center gap-2 text-sm text-avaa-teal hover:underline">
+                                        className="flex items-center gap-2 text-base text-avaa-teal hover:underline">
                                         <IcoGlobe /> {p.company_website}
                                     </a>
                                 )}
@@ -314,26 +314,26 @@ export default function Profile({ user, profile }: Props) {
 
                     {/* ── Company Overview ── */}
                     <div className="bg-white rounded-2xl border border-gray-200 p-5">
-                        <h3 className="text-sm font-bold text-avaa-dark mb-4">Company Overview</h3>
+                        <h3 className="text-base font-bold text-avaa-dark mb-4">Company Overview</h3>
                         <div className="space-y-3">
                             <div className="flex items-center justify-between">
-                                <span className="text-xs text-avaa-muted">Verification</span>
-                                <span className={`text-xs font-semibold ${p?.is_verified ? 'text-avaa-teal' : 'text-amber-500'}`}>
+                                <span className="text-sm text-avaa-muted">Verification</span>
+                                <span className={`text-sm font-semibold ${p?.is_verified ? 'text-avaa-teal' : 'text-amber-500'}`}>
                                     {p?.is_verified ? '✓ Verified' : 'Pending'}
                                 </span>
                             </div>
                             <div className="flex items-center justify-between">
-                                <span className="text-xs text-avaa-muted">Industry</span>
-                                <span className="text-xs font-semibold text-avaa-dark">{p?.industry ?? '—'}</span>
+                                <span className="text-sm text-avaa-muted">Industry</span>
+                                <span className="text-sm font-semibold text-avaa-dark">{p?.industry ?? '—'}</span>
                             </div>
                             <div className="flex items-center justify-between">
-                                <span className="text-xs text-avaa-muted">Company Size</span>
-                                <span className="text-xs font-semibold text-avaa-dark">{p?.company_size ?? '—'}</span>
+                                <span className="text-sm text-avaa-muted">Company Size</span>
+                                <span className="text-sm font-semibold text-avaa-dark">{p?.company_size ?? '—'}</span>
                             </div>
                             {p?.year_established && (
                                 <div className="flex items-center justify-between">
-                                    <span className="text-xs text-avaa-muted">Established</span>
-                                    <span className="text-xs font-semibold text-avaa-dark">{p.year_established}</span>
+                                    <span className="text-sm text-avaa-muted">Established</span>
+                                    <span className="text-sm font-semibold text-avaa-dark">{p.year_established}</span>
                                 </div>
                             )}
                         </div>
