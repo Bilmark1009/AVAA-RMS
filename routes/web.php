@@ -180,7 +180,12 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         Route::get('/jobs/{job}/apply', [JobApplicationController::class, 'create'])->name('jobs.apply.form');
         Route::post('/jobs/{job}/apply', [JobApplicationController::class, 'store'])->name('jobs.apply');
         Route::post('/jobs/{job}/apply/draft', [JobApplicationController::class, 'saveDraft'])->name('jobs.apply.draft');
+        Route::get('/jobs/history', [JobBrowseController::class, 'history'])->name('jobs.history');
         Route::get('/jobs/{job}', [JobBrowseController::class, 'show'])->name('jobs.show');
+
+        // Application History
+        Route::get('/applications', [JobApplicationController::class, 'index'])->name('applications.index');
+        Route::patch('/applications/{application}/withdraw', [JobApplicationController::class, 'withdraw'])->name('applications.withdraw');
     });
     // ─────────────────────────────────────────────────────────────────────────
 
