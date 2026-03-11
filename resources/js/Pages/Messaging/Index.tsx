@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
+import type { PageProps } from '@/types';
 import axios from 'axios';
 
 /* ══════════════════════════════════════════════════════════
@@ -48,13 +49,11 @@ interface UserResult {
     role: string;
     subtitle: string;
 }
-interface PageProps {
+interface MessagingIndexPageProps extends PageProps {
     conversations: ConversationSummary[];
     activeConversationId: number | null;
     initialMessages: Message[];
     activeConversation: ConversationSummary | null;
-    auth: { user: any };
-    [key: string]: any;
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -652,7 +651,7 @@ export default function MessagingIndex({
     initialMessages: Message[];
     activeConversation: ConversationSummary | null;
 }) {
-    const { auth } = usePage<PageProps>().props;
+    const { auth } = usePage<MessagingIndexPageProps>().props;
     const me = auth.user;
 
     const [convos, setConvos] = useState<ConversationSummary[]>(initConvos);
