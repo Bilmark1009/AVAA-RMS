@@ -163,11 +163,11 @@ export default function JobDetail({ job, recruiter, similarJobs = [], isSaved: i
                         <div className="p-8 space-y-7">
 
                             {/* Skills */}
-                            {job.skills_required && job.skills_required.length > 0 && (
+                            {job.skills_required && (
                                 <div className="flex flex-wrap gap-2">
-                                    {job.skills_required.map(s => (
+                                    {(Array.isArray(job.skills_required) ? job.skills_required : [job.skills_required]).filter(Boolean).map(s => (
                                         <span key={s} className="px-3 py-1.5 bg-avaa-primary-light text-avaa-teal text-sm font-semibold rounded-full border border-avaa-primary/20">
-                                            {s}
+                                            {String(s)}
                                         </span>
                                     ))}
                                 </div>
@@ -182,13 +182,13 @@ export default function JobDetail({ job, recruiter, similarJobs = [], isSaved: i
                             )}
 
                             {/* Responsibilities */}
-                            {job.responsibilities && job.responsibilities.length > 0 && (
+                            {job.responsibilities && (
                                 <div>
                                     <h3 className="text-base font-bold text-avaa-dark mb-3">Responsibilities</h3>
                                     <ul className="space-y-2">
-                                        {job.responsibilities.map((r, i) => (
+                                        {(Array.isArray(job.responsibilities) ? job.responsibilities : [job.responsibilities]).filter(Boolean).map((r, i) => (
                                             <li key={i} className="flex items-start gap-3 text-[15px] text-gray-600">
-                                                <span className="mt-2 w-1.5 h-1.5 rounded-full bg-avaa-teal flex-shrink-0" />{r}
+                                                <span className="mt-2 w-1.5 h-1.5 rounded-full bg-avaa-teal flex-shrink-0" />{String(r)}
                                             </li>
                                         ))}
                                     </ul>
@@ -196,13 +196,13 @@ export default function JobDetail({ job, recruiter, similarJobs = [], isSaved: i
                             )}
 
                             {/* Qualifications */}
-                            {job.qualifications && job.qualifications.length > 0 && (
+                            {job.qualifications && (
                                 <div>
                                     <h3 className="text-base font-bold text-avaa-dark mb-3">Qualifications</h3>
                                     <ul className="space-y-2">
-                                        {job.qualifications.map((q, i) => (
+                                        {(Array.isArray(job.qualifications) ? job.qualifications : [job.qualifications]).filter(Boolean).map((q, i) => (
                                             <li key={i} className="flex items-start gap-3 text-[15px] text-gray-600">
-                                                <span className="mt-2 w-1.5 h-1.5 rounded-full bg-avaa-teal flex-shrink-0" />{q}
+                                                <span className="mt-2 w-1.5 h-1.5 rounded-full bg-avaa-teal flex-shrink-0" />{String(q)}
                                             </li>
                                         ))}
                                     </ul>

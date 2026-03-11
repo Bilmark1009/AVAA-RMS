@@ -114,11 +114,11 @@ function JobCard({ job, saved, onSave, onApply, onView }: {
 
             {/* Footer: salary + actions */}
             <div className="flex items-center justify-between pt-4 border-t border-gray-100 mt-auto">
-                <div>
+                <div className="flex items-center">
                     {salary ? (
                         <>
                             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-0.5">Salary Range</p>
-                            <p className="text-base font-extrabold text-avaa-dark">{salary}</p>
+                            <p className="text-base font-extrabold text-avaa-dark ml-3">{salary}</p>
                         </>
                     ) : (
                         <p className="text-sm text-gray-400 italic">Salary not disclosed</p>
@@ -151,7 +151,7 @@ function JobCard({ job, saved, onSave, onApply, onView }: {
 function FilterPill({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
     return (
         <button onClick={onClick}
-            className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all whitespace-nowrap ${active
+            className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all whitespace-nowrap self-stretch ${active
                 ? 'bg-avaa-primary text-white border-avaa-primary shadow-sm'
                 : 'bg-white text-gray-600 border-gray-200 hover:border-avaa-primary/40 hover:text-avaa-teal'}`}>
             {label}
@@ -245,7 +245,7 @@ export default function BrowseJobs({ jobs, savedJobIds, filters, availableSkills
                         {/* Date Posted */}
                         <div>
                             <p className="text-sm font-bold text-avaa-dark mb-3">Date Posted</p>
-                            <div className="flex flex-wrap gap-2">
+                            <div className="flex flex-wrap gap-2 items-stretch">
                                 {DATE_FILTERS.map(f => (
                                     <FilterPill key={f.value} label={f.label} active={dateFilter === f.value} onClick={() => setDateFilter(f.value)} />
                                 ))}
@@ -256,7 +256,7 @@ export default function BrowseJobs({ jobs, savedJobIds, filters, availableSkills
                         {availableSkills.length > 0 && (
                             <div>
                                 <p className="text-sm font-bold text-avaa-dark mb-3">Skills</p>
-                                <div className="flex flex-wrap gap-2">
+                                <div className="flex flex-wrap gap-2 items-stretch">
                                     {availableSkills.map(s => (
                                         <FilterPill key={s} label={s} active={selectedSkills.includes(s)}
                                             onClick={() => setSelectedSkills(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])} />

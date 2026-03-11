@@ -85,6 +85,16 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasOne(UserNotificationSettings::class);
     }
 
+    public function blockedUsers(): HasMany
+    {
+        return $this->hasMany(BlockedUser::class, 'blocker_id');
+    }
+
+    public function blockedByUsers(): HasMany
+    {
+        return $this->hasMany(BlockedUser::class, 'blocked_user_id');
+    }
+
     /* ── Role helpers ──────────────────────────────────────────────────── */
 
     public function isAdmin(): bool
@@ -135,5 +145,53 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         $otp = $this->generateAndSaveOtp();
         $this->notify(new EmailOtpNotification($otp));
+    }
+
+    /* ── Blocking functionality ───────────────────────────────────────────── */
+
+    public function block(User $user, ?string $reason = null): BlockedUser
+    {
+        abort_if($this->id === $user->id, 422, 'You cannot block yourself.');
+
+        return $this->blockedUsers()->firstOrCreate(
+            ['blocked_user_id' => $user->id],
+            ['reason' => $reason]
+        );
+    }
+
+    public function unblock(User $user): bool
+    {
+        return $this->blockedUsers()
+            ->where('blocked_user_id', $user->id)
+            ->delete() > 0;
+    }
+
+    public function hasBlocked(User $user): bool
+    {
+        return $this->blockedUsers()
+            ->where('blocked_user_id', $user->id)
+            ->exists();
+    }
+
+    public function isBlockedBy(User $user): bool
+    {
+        return $this->blockedByUsers()
+            ->where('blocker_id', $user->id)
+            ->exists();
+    }
+
+    public function canMessage(User $user): bool
+    {
+        // Users cannot message themselves
+        if ($this->id === $user->id) {
+            return false;
+        }
+
+        // Check if either user has blocked the other
+        if ($this->hasBlocked($user) || $this->isBlockedBy($user)) {
+            return false;
+        }
+
+        return true;
     }
 }

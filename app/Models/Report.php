@@ -11,6 +11,7 @@ class Report extends Model
         'reporter_id',
         'reported_user_id',
         'conversation_id',
+        'message_id',
         'reason',
         'details',
         'status',
@@ -31,5 +32,10 @@ class Report extends Model
     public function conversation(): BelongsTo
     {
         return $this->belongsTo(Conversation::class);
+    }
+
+    public function message(): BelongsTo
+    {
+        return $this->belongsTo(Message::class);
     }
 }

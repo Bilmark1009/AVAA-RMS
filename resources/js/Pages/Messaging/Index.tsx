@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { router, usePage } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
-import BlockUserModal from './BlockUserModal';
-import type { PageProps } from '@/types';
+import { PageProps, User } from '@/types';
 import axios from 'axios';
 
 /* ══════════════════════════════════════════════════════════
@@ -193,6 +192,54 @@ function Avatar({ src, initials, size = 'md', online }: {
 }
 
 /* ══════════════════════════════════════════════════════════
+   BLOCK USER MODAL
+══════════════════════════════════════════════════════════ */
+function BlockUserModal({ isOpen, onClose, onConfirm, userName, isProcessing }: {
+    isOpen: boolean;
+    onClose: () => void;
+    onConfirm: () => void;
+    userName: string;
+    isProcessing: boolean;
+}) {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden">
+                <div className="px-6 py-5">
+                    <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center text-red-500 mb-4">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                        </svg>
+                    </div>
+                    <h3 className="text-[15px] font-bold text-avaa-dark mb-1">Block {userName}?</h3>
+                    <p className="text-[13px] text-avaa-muted leading-relaxed">
+                        They won't be able to message you, and you won't see their messages. You can unblock them anytime in your settings.
+                    </p>
+                </div>
+                <div className="px-6 pb-5 flex gap-2 justify-end">
+                    <button
+                        onClick={onClose}
+                        disabled={isProcessing}
+                        className="px-4 py-2 text-[13px] font-semibold text-avaa-muted hover:text-avaa-dark transition-colors disabled:opacity-50"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        disabled={isProcessing}
+                        className="px-5 py-2 bg-red-500 hover:bg-red-600 text-white text-[13px] font-semibold rounded-xl transition-colors disabled:opacity-50"
+                    >
+                        {isProcessing ? 'Blocking...' : 'Block User'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+/* ══════════════════════════════════════════════════════════
    NEW MESSAGE MODAL
 ══════════════════════════════════════════════════════════ */
 function NewMessageModal({ onClose, onStart }: {
@@ -266,7 +313,7 @@ function NewMessageModal({ onClose, onStart }: {
                             ref={inputRef}
                             value={query}
                             onChange={handleInput}
-                            placeholder="Search by name or email..."
+                            placeholder="Search by email..."
                             className="flex-1 bg-transparent text-[13.5px] text-avaa-dark placeholder-avaa-muted outline-none border-0"
                         />
                         {loading && (
@@ -280,7 +327,7 @@ function NewMessageModal({ onClose, onStart }: {
                     {!loading && results.length === 0 ? (
                         <div className="text-center py-10">
                             <p className="text-[13px] text-avaa-muted">
-                                {query ? 'No users found matching your search' : 'No users available to message'}
+                                {query ? 'No users found matching this email' : 'No users available to message'}
                             </p>
                         </div>
                     ) : (
@@ -433,7 +480,13 @@ function ContextMenu({ onArchive, onMute, onDelete, onDeleteGroup, onReport, onB
 /* ══════════════════════════════════════════════════════════
    MESSAGE BUBBLE
 ══════════════════════════════════════════════════════════ */
-function Bubble({ msg, isOwn, showAvatar }: { msg: Message; isOwn: boolean; showAvatar: boolean }) {
+function Bubble({ msg, isOwn, showAvatar, onImageClick, onFileClick }: { 
+    msg: Message; 
+    isOwn: boolean; 
+    showAvatar: boolean;
+    onImageClick: (url: string, name: string) => void;
+    onFileClick: (url: string, name: string) => void;
+}) {
     if (msg.type === 'system') {
         return (
             <div className="flex justify-center my-3">
@@ -460,13 +513,20 @@ function Bubble({ msg, isOwn, showAvatar }: { msg: Message; isOwn: boolean; show
                         : 'bg-white text-avaa-dark border border-gray-100 shadow-sm rounded-bl-sm'
                     }`}>
                     {msg.type === 'image' && msg.attachment_url ? (
-                        <img src={msg.attachment_url} alt="attachment" className="max-w-[220px] rounded-xl" />
+                        <img 
+                            src={msg.attachment_url} 
+                            alt="attachment" 
+                            className="max-w-[220px] rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
+                            onClick={() => onImageClick(msg.attachment_url!, msg.attachment_name || 'Image')}
+                        />
                     ) : msg.type === 'file' && msg.attachment_url ? (
-                        <a href={msg.attachment_url} download={msg.attachment_name}
-                            className={`flex items-center gap-2 underline underline-offset-2 ${isOwn ? 'text-white/90' : 'text-avaa-primary'}`}>
+                        <button
+                            onClick={() => onFileClick(msg.attachment_url!, msg.attachment_name || 'File')}
+                            className={`flex items-center gap-2 underline underline-offset-2 ${isOwn ? 'text-white/90' : 'text-avaa-primary'} hover:opacity-80 transition-opacity`}
+                        >
                             <IcoAttach />
                             {msg.attachment_name ?? 'Download'}
-                        </a>
+                        </button>
                     ) : msg.body}
                 </div>
                 <span className="text-[10.5px] text-avaa-muted">{msgTime(msg.created_at)}</span>
@@ -659,6 +719,8 @@ export default function MessagingIndex({
 }) {
 const [showBlockModal, setShowBlockModal] = useState(false);
     const [blocking, setBlocking] = useState(false);
+    const [imageModal, setImageModal] = useState<{ url: string; name: string } | null>(null);
+    const [fileDownloadModal, setFileDownloadModal] = useState<{ url: string; name: string } | null>(null);
 
     const { auth } = usePage<PageProps>().props;
     const me = auth.user;
@@ -981,6 +1043,87 @@ const [showBlockModal, setShowBlockModal] = useState(false);
                 </div>
             )}
 
+            {/* Image Preview Modal */}
+            {imageModal && (
+                <div 
+                    className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+                    onClick={() => setImageModal(null)}
+                >
+                    <div className="relative max-w-4xl max-h-full">
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setImageModal(null);
+                            }}
+                            className="absolute -top-10 right-0 text-white hover:text-gray-300 transition-colors"
+                        >
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                        <img 
+                            src={imageModal.url} 
+                            alt={imageModal.name}
+                            className="max-w-full max-h-full rounded-lg shadow-2xl"
+                            onClick={(e) => e.stopPropagation()}
+                        />
+                        <div className="absolute -bottom-10 left-0 right-0 text-center text-white text-sm">
+                            {imageModal.name}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* File Download Confirmation Modal */}
+            {fileDownloadModal && (
+                <div 
+                    className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+                    onClick={() => setFileDownloadModal(null)}
+                >
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden">
+                        <div className="px-6 py-5">
+                            <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-500 mb-4">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7,10 12,15 17,10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                            </div>
+                            <h3 className="text-[15px] font-bold text-avaa-dark mb-1">Download File?</h3>
+                            <p className="text-[13px] text-avaa-muted leading-relaxed mb-3">
+                                Are you sure you want to download <span className="font-semibold text-avaa-dark">{fileDownloadModal.name}</span>?
+                            </p>
+                            <p className="text-[12px] text-avaa-muted">
+                                Always scan files before opening to ensure they're safe.
+                            </p>
+                        </div>
+                        <div className="px-6 pb-5 flex gap-2 justify-end">
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setFileDownloadModal(null);
+                                }}
+                                className="px-4 py-2 text-[13px] font-semibold text-avaa-muted hover:text-avaa-dark transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <a
+                                href={fileDownloadModal.url}
+                                download={fileDownloadModal.name}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setFileDownloadModal(null);
+                                }}
+                                className="px-5 py-2 bg-blue-500 hover:bg-blue-600 text-white text-[13px] font-semibold rounded-xl transition-colors inline-block"
+                            >
+                                Download
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="flex rounded-2xl overflow-hidden border border-gray-200 bg-white shadow-sm"
                 style={{ height: 'calc(100vh - 9rem)' }}>
 
@@ -1033,7 +1176,7 @@ const [showBlockModal, setShowBlockModal] = useState(false);
                                 <input
                                     value={searchQuery}
                                     onChange={e => handleSidebarSearch(e.target.value)}
-                                    placeholder="Search users..."
+                                    placeholder="Search users by email..."
                                     className="flex-1 bg-transparent text-[13px] text-avaa-dark placeholder-avaa-muted outline-none border-0"
                                 />
                                 {searchQuery && (
@@ -1178,6 +1321,8 @@ const [showBlockModal, setShowBlockModal] = useState(false);
                                                     msg={msg}
                                                     isOwn={msg.sender_id === me.id}
                                                     showAvatar={!group.items[idx - 1] || group.items[idx - 1].sender_id !== msg.sender_id}
+                                                    onImageClick={(url, name) => setImageModal({ url, name })}
+                                                    onFileClick={(url, name) => setFileDownloadModal({ url, name })}
                                                 />
                                             ))}
                                         </div>

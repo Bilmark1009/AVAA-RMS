@@ -1,8 +1,9 @@
-import { Head, useForm, router, Link } from '@inertiajs/react';
+import { Head, useForm, router, Link, usePage } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import InputError from '@/Components/InputError';
 import { FormEventHandler, useRef, useState } from 'react';
 import { PageProps, EmployerProfile } from '@/types';
+import EmployerBlockedUsers from './Settings/BlockedUsers';
 
 /* ── Icons ── */
 const IcoCamera = () => (
@@ -235,7 +236,7 @@ export default function EmployerSettings({ user, profile, security }: Props) {
 
                     {/* ── Tab Bar ── */}
                     <TabBar
-                        tabs={['Platform Settings', 'Security & Privacy']}
+                        tabs={['Platform Settings', 'Security & Privacy', 'Blocked Users']}
                         active={activeTab}
                         onChange={setActiveTab}
                     />
@@ -576,6 +577,11 @@ export default function EmployerSettings({ user, profile, security }: Props) {
                                 )}
                             </Card>
                         </div>
+                    )}
+
+                    {/* ═══ TAB 2: Blocked Users ═══ */}
+                    {activeTab === 2 && (
+                        <EmployerBlockedUsers auth={{ user }} />
                     )}
 
                 </div>
