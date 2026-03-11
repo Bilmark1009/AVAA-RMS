@@ -10,19 +10,42 @@ interface ApplicationItem {
     status: string;
     stage: Stage;
     applied_at: string | null;
+    updated_at?: string | null;
+    reviewed_at?: string | null;
     time_ago: string | null;
     can_withdraw: boolean;
+    reviewer_notes?: string | null;
+    rejection_reason?: string | null;
+    interview?: {
+        status: string | null;
+        interview_type: string | null;
+        interviewer_name: string | null;
+        location_or_link: string | null;
+        notes: string | null;
+        date: string | null;
+        date_label: string | null;
+        time: string | null;
+        time_label: string | null;
+    } | null;
     job: null | {
         id: number;
         title: string;
         location: string;
         is_remote: boolean;
         employment_type: string | null;
+        description?: string | null;
+        industry?: string | null;
+        experience_level?: string | null;
+        skills_required?: string[];
+        salary_min?: number | null;
+        salary_max?: number | null;
+        salary_currency?: string | null;
     };
     company: {
         name: string;
         initials: string;
         logo_url?: string | null;
+        size?: string | null;
     };
 }
 
@@ -45,7 +68,41 @@ const statusLabel = (stage: Stage) => {
     if (s === 'pending') return 'Pending';
     if (s === 'withdrawn') return 'Withdrawn';
     if (s === 'rejected') return 'Rejected';
+    if (s === 'contract_ended') return 'Contract Ended';
     return (stage || 'Unknown').toString();
+};
+
+const formatDisplayDate = (value?: string | null) => {
+    if (!value) return 'Not available';
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return 'Not available';
+
+    return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+    });
+};
+
+const formatSalaryRange = (job: ApplicationItem['job']) => {
+    if (!job) return 'Not specified';
+
+    const currency = job.salary_currency || 'USD';
+    const formatCurrency = (value: number) => new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency,
+        maximumFractionDigits: 0,
+    }).format(value);
+
+    const hasMin = typeof job.salary_min === 'number';
+    const hasMax = typeof job.salary_max === 'number';
+
+    if (hasMin && hasMax) return `${formatCurrency(job.salary_min as number)} - ${formatCurrency(job.salary_max as number)} / yr`;
+    if (hasMin) return `${formatCurrency(job.salary_min as number)}+ / yr`;
+    if (hasMax) return `Up to ${formatCurrency(job.salary_max as number)} / yr`;
+
+    return 'Not specified';
 };
 
 function MetaItem({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
@@ -85,6 +142,12 @@ function SegmentedTabs({ value, onChange, tabs }: {
 
 function ApplicationCard({ app, onView }: { app: ApplicationItem; onView: (app: ApplicationItem) => void }) {
     const canWithdraw = app.can_withdraw && ['pending', 'interviewing', 'approved'].includes((app.stage || '').toString().toLowerCase());
+    const onWithdraw = () => {
+        const confirmed = window.confirm('Are you sure you want to withdraw this application? This action cannot be undone.');
+        if (!confirmed) return;
+
+        router.patch(route('job-seeker.applications.withdraw', app.id), {}, { preserveScroll: true });
+    };
 
     return (
         <div className="bg-white border border-gray-200 rounded-2xl px-5 sm:px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6">
@@ -168,10 +231,10 @@ function ApplicationCard({ app, onView }: { app: ApplicationItem; onView: (app: 
                 {canWithdraw && (
                     <button
                         type="button"
-                        onClick={() => router.patch(route('job-seeker.applications.withdraw', app.id), {}, { preserveScroll: true })}
+                        onClick={onWithdraw}
                         className="w-full sm:w-auto px-4 py-2 rounded-lg text-xs font-semibold border border-rose-200 text-rose-600 hover:bg-rose-50 transition"
                     >
-                        Withdrawn Application
+                        Withdraw Application
                     </button>
                 )}
             </div>
@@ -186,7 +249,12 @@ function DemoApplicationCard({
     app: ApplicationItem;
     onView: (app: ApplicationItem) => void;
 }) {
-    const onWithdraw = () => router.visit(route('job-seeker.applications.index'));
+    const onWithdraw = () => {
+        const confirmed = window.confirm('Are you sure you want to withdraw this application? This action cannot be undone.');
+        if (!confirmed) return;
+
+        router.visit(route('job-seeker.applications.index'));
+    };
 
     const canWithdraw = app.can_withdraw && ['pending', 'interviewing', 'approved'].includes((app.stage || '').toString().toLowerCase());
 
@@ -275,7 +343,7 @@ function DemoApplicationCard({
                         onClick={onWithdraw}
                         className="w-full sm:w-auto px-4 py-2 rounded-lg text-xs font-semibold border border-rose-200 text-rose-600 hover:bg-rose-50 transition"
                     >
-                        Withdrawn Application
+                        Withdraw Application
                     </button>
                 )}
             </div>
@@ -363,6 +431,49 @@ function ApplicationDetailsModal({
 
     if (!open || !app) return null;
 
+    const stage = (app.stage || '').toString().toLowerCase();
+    const appliedDate = formatDisplayDate(app.applied_at);
+    const updatedDate = formatDisplayDate(app.updated_at ?? app.reviewed_at ?? app.applied_at);
+    const salaryRange = formatSalaryRange(app.job);
+    const skills = app.job?.skills_required ?? [];
+    const isPending = stage === 'pending';
+    const isWithdrawn = stage === 'withdrawn';
+    const isInterviewing = stage === 'interviewing' && !!app.interview;
+
+    const statusHeading = isInterviewing
+        ? 'Interview Scheduled'
+        : stage === 'pending'
+            ? 'Application Pending'
+            : stage === 'withdrawn'
+                ? 'Application Withdrawn'
+                : stage === 'rejected'
+                    ? 'Application Rejected'
+                    : stage === 'contract_ended'
+                        ? 'Contract Ended'
+                    : `${statusLabel(app.stage)} Status`;
+
+    const statusSubHeading = isInterviewing
+        ? `${app.interview?.date_label ?? 'Date TBD'}${app.interview?.time_label ? ` · ${app.interview.time_label}` : ''}`
+        : stage === 'pending'
+            ? 'Waiting for recruiter review.'
+            : stage === 'withdrawn'
+                ? 'This application has been withdrawn.'
+                : stage === 'rejected'
+                    ? (app.rejection_reason || 'This application was not selected.')
+                    : stage === 'contract_ended'
+                        ? 'Your contract ended.'
+                    : 'Status has been updated.';
+
+    const messageAuthor = app.interview?.interviewer_name || app.company.name;
+    const messageRole = app.interview?.interview_type || 'Hiring Team';
+    const messageBody = isInterviewing
+        ? (app.interview?.notes || 'Interview details have been shared. Please review the schedule and prepare accordingly.')
+        : stage === 'withdrawn'
+            ? 'Sorry, you have withdrawn your application. If this was a mistake or you wish to reapply, feel free to submit a new application to this job in the future.'
+            : stage === 'contract_ended'
+                ? 'Thank you for joining us. Good luck on your future journey!'
+            : (app.reviewer_notes || app.rejection_reason || 'Your application is in progress. You will receive updates when the hiring team reviews it.');
+
     return (
         <div className="fixed inset-0 z-[80]">
             <div className="absolute inset-0 bg-black/50" onClick={onClose} />
@@ -429,28 +540,44 @@ function ApplicationDetailsModal({
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                     <div className="border border-gray-200 rounded-xl p-4 text-center">
                                         <p className="text-xs text-gray-500">Applied</p>
-                                        <p className="text-sm font-extrabold text-avaa-dark">Jun 10, 2025</p>
+                                        <p className="text-sm font-extrabold text-avaa-dark">{appliedDate}</p>
                                     </div>
                                     <div className="border border-gray-200 rounded-xl p-4 text-center">
                                         <p className="text-xs text-gray-500">Last Updated</p>
-                                        <p className="text-sm font-extrabold text-avaa-dark">Jun 13, 2025</p>
+                                        <p className="text-sm font-extrabold text-avaa-dark">{updatedDate}</p>
                                     </div>
                                     <div className="border border-gray-200 rounded-xl p-4 text-center">
                                         <p className="text-xs text-gray-500">Salary Range</p>
-                                        <p className="text-sm font-extrabold text-avaa-primary">$120,000 - $150,000 / yr</p>
+                                        <p className="text-sm font-extrabold text-avaa-primary">{salaryRange}</p>
                                     </div>
                                 </div>
 
                                 <div className="border border-avaa-primary/40 bg-avaa-primary-light rounded-xl p-4 flex items-start gap-3">
-                                    <div className="w-9 h-9 rounded-lg bg-white border border-avaa-primary/30 flex items-center justify-center text-avaa-primary flex-shrink-0">
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                                            <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" />
-                                            <line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
-                                        </svg>
+                                    <div className={`w-9 h-9 rounded-lg bg-white border flex items-center justify-center flex-shrink-0 ${isWithdrawn ? 'border-rose-300 text-rose-600' : 'border-avaa-primary/30 text-avaa-primary'}`}>
+                                        {isWithdrawn ? (
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <circle cx="12" cy="12" r="9" />
+                                                <line x1="12" y1="7.5" x2="12" y2="13" />
+                                                <circle cx="12" cy="16.5" r="1" fill="currentColor" stroke="none" />
+                                            </svg>
+                                        ) : isPending ? (
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <circle cx="12" cy="12" r="9" />
+                                                <polyline points="12 7 12 12 15 14" />
+                                            </svg>
+                                        ) : (
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                                                <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" />
+                                                <line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+                                            </svg>
+                                        )}
                                     </div>
                                     <div className="min-w-0">
-                                        <p className="text-xs text-gray-500">Interview Scheduled</p>
-                                        <p className="text-sm font-bold text-avaa-dark">June 18, 2025 · 10:00 AM</p>
+                                        <p className="text-xs text-gray-500">{statusHeading}</p>
+                                        <p className="text-sm font-bold text-avaa-dark">{statusSubHeading}</p>
+                                        {isInterviewing && app.interview?.location_or_link && (
+                                            <p className="text-xs text-gray-500 mt-1 truncate">{app.interview.location_or_link}</p>
+                                        )}
                                     </div>
                                 </div>
 
@@ -459,10 +586,10 @@ function ApplicationDetailsModal({
                                         <div className="w-9 h-9 rounded-full bg-gray-200" />
                                     </div>
                                     <div className="min-w-0">
-                                        <p className="text-sm font-extrabold text-avaa-dark">Sarah Mitchell</p>
-                                        <p className="text-xs text-gray-500 -mt-0.5">Talent Acquisition Lead</p>
+                                        <p className="text-sm font-extrabold text-avaa-dark">{messageAuthor}</p>
+                                        <p className="text-xs text-gray-500 -mt-0.5">{messageRole}</p>
                                         <p className="text-sm text-gray-600 mt-2">
-                                            Your profile stood out among 200+ applicants. The hiring team is excited to meet you for a technical interview.
+                                            {messageBody}
                                         </p>
                                     </div>
                                 </div>
@@ -470,7 +597,7 @@ function ApplicationDetailsModal({
                                 <div>
                                     <p className="text-sm font-extrabold text-avaa-dark mb-2">Required Skills</p>
                                     <div className="flex flex-wrap gap-2">
-                                        {['React', 'TypeScript', 'Node.js', 'AWS'].map(s => (
+                                        {(skills.length ? skills : ['No skills listed']).map(s => (
                                             <span key={s} className="text-xs px-3 py-1 bg-avaa-primary-light text-avaa-dark rounded-full font-semibold border border-avaa-primary/20">
                                                 {s}
                                             </span>
@@ -487,7 +614,7 @@ function ApplicationDetailsModal({
                                                 <line x1="12" y1="17" x2="12" y2="21" />
                                             </svg>
                                         </span>
-                                        Remote
+                                        {app.job?.is_remote ? 'Remote' : 'On-site'}
                                     </div>
                                     <div className="flex items-center gap-2 text-sm text-gray-600">
                                         <span className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400">
@@ -496,7 +623,7 @@ function ApplicationDetailsModal({
                                                 <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" />
                                             </svg>
                                         </span>
-                                        Full-time
+                                        {app.job?.employment_type || 'Employment type not specified'}
                                     </div>
                                     <div className="flex items-center gap-2 text-sm text-gray-600">
                                         <span className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400">
@@ -504,7 +631,7 @@ function ApplicationDetailsModal({
                                                 <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" />
                                             </svg>
                                         </span>
-                                        500–1,000 employees
+                                        {app.company.size || 'Company size not specified'}
                                     </div>
                                 </div>
                             </div>
@@ -512,13 +639,14 @@ function ApplicationDetailsModal({
 
                         {tab === 'timeline' && (
                             <div className="py-12 text-center text-sm text-gray-500">
-                                Timeline UI will go here.
+                                Applied: {appliedDate} · Last Updated: {updatedDate}
+                                {isInterviewing && app.interview ? ` · Interview: ${app.interview.date_label ?? 'Date TBD'}${app.interview.time_label ? ` ${app.interview.time_label}` : ''}` : ''}
                             </div>
                         )}
 
                         {tab === 'job' && (
                             <div className="py-12 text-center text-sm text-gray-500">
-                                Job details UI will go here.
+                                {app.job?.description || 'No additional job details available.'}
                             </div>
                         )}
                     </div>
@@ -540,7 +668,7 @@ function ApplicationDetailsModal({
 }
 
 export default function ApplicationHistory({ applications }: Props) {
-    const [tab, setTab] = useState<'all' | 'pending' | 'interviewing' | 'withdrawn_rejected'>('all');
+    const [tab, setTab] = useState<'all' | 'pending' | 'interviewing' | 'withdrawn'>('all');
     const [detailsOpen, setDetailsOpen] = useState(false);
     const [selected, setSelected] = useState<ApplicationItem | null>(null);
 
@@ -549,7 +677,7 @@ export default function ApplicationHistory({ applications }: Props) {
         if (tab === 'all') return applications;
         if (tab === 'pending') return applications.filter(a => norm(a.stage) === 'pending');
         if (tab === 'interviewing') return applications.filter(a => norm(a.stage) === 'interviewing');
-        return applications.filter(a => ['withdrawn', 'rejected'].includes(norm(a.stage)));
+        return applications.filter(a => norm(a.stage) === 'withdrawn');
     }, [applications, tab]);
 
     const openDetails = (app: ApplicationItem) => {
@@ -579,7 +707,7 @@ export default function ApplicationHistory({ applications }: Props) {
                             { key: 'all', label: 'All' },
                             { key: 'pending', label: 'Pending' },
                             { key: 'interviewing', label: 'Interviewing' },
-                            { key: 'withdrawn_rejected', label: 'Withdrawn/Rejected' },
+                            { key: 'withdrawn', label: 'Withdrawn' },
                         ]}
                     />
                 </div>
@@ -587,15 +715,8 @@ export default function ApplicationHistory({ applications }: Props) {
                 <div className="bg-white border border-gray-200 rounded-2xl p-5">
                     <div className="space-y-4">
                         {filtered.length === 0 ? (
-                            <div className="space-y-4">
-                                <div className="py-2 text-center">
-                                    <p className="text-sm text-gray-500">No applications found for this filter.</p>
-                                </div>
-
-                                {/* Keep UI visible even when empty */}
-                                {DEMO_APPLICATIONS.map(a => (
-                                    <DemoApplicationCard key={a.id} app={a} onView={openDetails} />
-                                ))}
+                            <div className="py-2 text-center">
+                                <p className="text-sm text-gray-500">No applications found for this filter.</p>
                             </div>
                         ) : (
                             filtered.map(app => <ApplicationCard key={app.id} app={app} onView={openDetails} />)

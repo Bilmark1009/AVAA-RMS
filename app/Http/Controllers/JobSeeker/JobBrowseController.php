@@ -66,6 +66,7 @@ class JobBrowseController extends Controller
 
         // IDs the current user has applied to
         $appliedJobIds = JobApplication::where('user_id', $user->id)
+            ->whereNotIn('status', ['withdrawn', 'accepted', 'hired', 'contract_ended'])
             ->pluck('job_listing_id')
             ->toArray();
 
@@ -98,7 +99,10 @@ class JobBrowseController extends Controller
         $user = Auth::user();
 
         $savedJobIds = SavedJob::where('user_id', $user->id)->pluck('job_listing_id')->toArray();
-        $appliedJobIds = JobApplication::where('user_id', $user->id)->pluck('job_listing_id')->toArray();
+        $appliedJobIds = JobApplication::where('user_id', $user->id)
+            ->whereNotIn('status', ['withdrawn', 'accepted', 'hired', 'contract_ended'])
+            ->pluck('job_listing_id')
+            ->toArray();
 
         $similarJobs = JobListing::where('status', 'active')
             ->where('id', '!=', $job->id)
@@ -161,7 +165,10 @@ class JobBrowseController extends Controller
 
         $jobs = $query->latest()->get();
 
-        $appliedJobIds = JobApplication::where('user_id', $user->id)->pluck('job_listing_id')->toArray();
+        $appliedJobIds = JobApplication::where('user_id', $user->id)
+            ->whereNotIn('status', ['withdrawn', 'accepted', 'hired', 'contract_ended'])
+            ->pluck('job_listing_id')
+            ->toArray();
 
         $shaped = $jobs->map(fn($job) => $this->shapeJob($job, $savedIds->toArray(), $appliedJobIds));
 
@@ -213,7 +220,7 @@ class JobBrowseController extends Controller
         $apps = JobApplication::query()
             ->with(['jobListing.employer.employerProfile'])
             ->where('user_id', $user->id)
-            ->whereIn('status', ['hired', 'contract_ended'])
+            ->whereIn('status', ['accepted', 'hired', 'contract_ended'])
             ->orderByDesc('hired_at')
             ->get();
 
@@ -243,7 +250,7 @@ class JobBrowseController extends Controller
                     if (file_exists(public_path($publicRelative))) {
                         $logoUrl = '/'.$publicRelative;
                     } else {
-                        $logoUrl = Storage::disk('public')->url($logoPath);
+                        $logoUrl = Storage::url($logoPath);
                     }
                 }
             }
@@ -281,7 +288,7 @@ class JobBrowseController extends Controller
             ];
         };
 
-        $current = $apps->first(fn ($a) => $a->status === 'hired' && $a->contract_ended_at === null);
+        $current = $apps->first(fn ($a) => in_array($a->status, ['accepted', 'hired'], true) && $a->contract_ended_at === null);
         $currentShaped = $current ? $shape($current) : null;
 
         $past = $apps
