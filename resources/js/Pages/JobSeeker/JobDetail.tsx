@@ -17,6 +17,9 @@ interface JobListing {
     description?: string;
     responsibilities?: string[];
     qualifications?: string[];
+    project_timeline?: string;        
+    application_process?: string;     
+    onboarding_process?: string;
     experience_level?: string | null;
     is_remote?: boolean;
     has_applied?: boolean;
@@ -160,11 +163,11 @@ export default function JobDetail({ job, recruiter, similarJobs = [], isSaved: i
                         <div className="p-8 space-y-7">
 
                             {/* Skills */}
-                            {job.skills_required && job.skills_required.length > 0 && (
+                            {job.skills_required && (
                                 <div className="flex flex-wrap gap-2">
-                                    {job.skills_required.map(s => (
+                                    {(Array.isArray(job.skills_required) ? job.skills_required : [job.skills_required]).filter(Boolean).map(s => (
                                         <span key={s} className="px-3 py-1.5 bg-avaa-primary-light text-avaa-teal text-sm font-semibold rounded-full border border-avaa-primary/20">
-                                            {s}
+                                            {String(s)}
                                         </span>
                                     ))}
                                 </div>
@@ -179,13 +182,13 @@ export default function JobDetail({ job, recruiter, similarJobs = [], isSaved: i
                             )}
 
                             {/* Responsibilities */}
-                            {job.responsibilities && job.responsibilities.length > 0 && (
+                            {job.responsibilities && (
                                 <div>
                                     <h3 className="text-base font-bold text-avaa-dark mb-3">Responsibilities</h3>
                                     <ul className="space-y-2">
-                                        {job.responsibilities.map((r, i) => (
+                                        {(Array.isArray(job.responsibilities) ? job.responsibilities : [job.responsibilities]).filter(Boolean).map((r, i) => (
                                             <li key={i} className="flex items-start gap-3 text-[15px] text-gray-600">
-                                                <span className="mt-2 w-1.5 h-1.5 rounded-full bg-avaa-teal flex-shrink-0" />{r}
+                                                <span className="mt-2 w-1.5 h-1.5 rounded-full bg-avaa-teal flex-shrink-0" />{String(r)}
                                             </li>
                                         ))}
                                     </ul>
@@ -193,19 +196,54 @@ export default function JobDetail({ job, recruiter, similarJobs = [], isSaved: i
                             )}
 
                             {/* Qualifications */}
-                            {job.qualifications && job.qualifications.length > 0 && (
+                            {job.qualifications && (
                                 <div>
                                     <h3 className="text-base font-bold text-avaa-dark mb-3">Qualifications</h3>
                                     <ul className="space-y-2">
-                                        {job.qualifications.map((q, i) => (
+                                        {(Array.isArray(job.qualifications) ? job.qualifications : [job.qualifications]).filter(Boolean).map((q, i) => (
                                             <li key={i} className="flex items-start gap-3 text-[15px] text-gray-600">
-                                                <span className="mt-2 w-1.5 h-1.5 rounded-full bg-avaa-teal flex-shrink-0" />{q}
+                                                <span className="mt-2 w-1.5 h-1.5 rounded-full bg-avaa-teal flex-shrink-0" />{String(q)}
                                             </li>
                                         ))}
                                     </ul>
                                 </div>
                             )}
                         </div>
+                        {/* ─── NEW SECTIONS ─── */}
+
+                            {/* Project Timeline */}
+                            {job.project_timeline && (
+                                <div>
+                                    <h3 className="text-base font-bold text-avaa-dark mb-3">Project Timeline</h3>
+                                    <p className="text-[15px] text-gray-600 leading-relaxed whitespace-pre-line bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                                        {job.project_timeline}
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Application Process */}
+                            {job.application_process && (
+                                <div>
+                                    <h3 className="text-base font-bold text-avaa-dark mb-3">Application Process</h3>
+                                    <div className="relative border-l-2 border-dashed border-avaa-teal/30 ml-2 pl-6 py-1 space-y-4">
+                                        <p className="text-[15px] text-gray-600 leading-relaxed whitespace-pre-line">
+                                            {job.application_process}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Onboarding Process */}
+                            {job.onboarding_process && (
+                                <div>
+                                    <h3 className="text-base font-bold text-avaa-dark mb-3">Onboarding Process</h3>
+                                    <div className="bg-emerald-50/50 border border-emerald-100 p-5 rounded-2xl">
+                                        <p className="text-[15px] text-gray-700 leading-relaxed whitespace-pre-line">
+                                            {job.onboarding_process}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
 
                         {/* Footer */}
                         <div className="px-8 py-5 border-t border-gray-100 flex items-center justify-between text-sm text-gray-400">

@@ -6,6 +6,7 @@ use App\Http\Controllers\Employer\DashboardController as EmployerDashboardContro
 use App\Http\Controllers\Employer\JobListingController;
 use App\Http\Controllers\Employer\InterviewController;
 use App\Http\Controllers\Employer\EmployeeController;
+use App\Http\Controllers\Employer\BlockedUsersController as EmployerBlockedUsersController;
 
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\EmployerVerificationController;
@@ -17,22 +18,29 @@ use App\Http\Controllers\JobSeeker\ProfileController as JobSeekerProfileControll
 use App\Http\Controllers\Admin\VerificationsController;
 use App\Http\Controllers\JobSeeker\JobBrowseController;
 use App\Http\Controllers\JobSeeker\JobApplicationController;
+use App\Http\Controllers\JobSeeker\BlockedUsersController as JobSeekerBlockedUsersController;
 use App\Http\Controllers\Settings\AccountController;
 use App\Http\Controllers\Settings\SecurityController;
 use App\Http\Controllers\Settings\NotificationsController;
 use App\Http\Controllers\Settings\JobPreferencesController;
 use App\Http\Controllers\Settings\DocumentsController;
+use App\Http\Controllers\Settings\BlockedUsersController;
 use App\Http\Controllers\Messaging\ConversationController;
 use App\Http\Controllers\Messaging\MessageController;
 use App\Http\Controllers\Messaging\ReportController;
+use App\Http\Controllers\Messaging\BlockController;
 use App\Http\Controllers\NotificationController;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 // Home — redirect authenticated users to their dashboard; show Welcome to guests
 Route::get('/', function () {
-    if (auth()->check()) {
-        return redirect()->route(auth()->user()->getDashboardRoute());
+    if (Auth::check()) {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        return redirect()->route($user->getDashboardRoute());
     }
     return \Inertia\Inertia::render('Welcome');
 })->name('home');
@@ -54,6 +62,7 @@ Route::middleware(['auth'])->prefix('messages')->name('messages.')->group(functi
     Route::get('/search-users', [ConversationController::class, 'searchUsers'])->name('search-users');
     Route::get('/report/{user}', [ReportController::class, 'create'])->name('report');
     Route::post('/report/{user}', [ReportController::class, 'store'])->name('report.store');
+    Route::get('/archived-count', [ConversationController::class, 'archivedCount'])->name('archived-count');
 
     // ✅ ->missing() redirects to messages index instead of 404
     // when conversation is deleted and user reloads the old URL
@@ -66,6 +75,7 @@ Route::middleware(['auth'])->prefix('messages')->name('messages.')->group(functi
 
     // ── Conversation actions (JSON) ───────────────────────────────────────
     Route::post('/{conversation}/archive', [ConversationController::class, 'archive'])->name('archive');
+    Route::post('/{conversation}/unarchive', [ConversationController::class, 'unarchive'])->name('unarchive');
     Route::post('/{conversation}/mute', [ConversationController::class, 'toggleMute'])->name('mute');
     Route::delete('/{conversation}', [ConversationController::class, 'destroy'])->name('destroy');
 
@@ -84,8 +94,19 @@ Route::middleware(['auth'])->prefix('messages')->name('messages.')->group(functi
     Route::post('/{conversation}/send', [MessageController::class, 'send'])->name('send');
     // Soft-delete a message (sender only)
     Route::delete('/{conversation}/messages/{message}', [MessageController::class, 'destroy'])->name('messages.destroy');
+    // Download attachment
+    Route::get('/{conversation}/messages/{message}/download', [MessageController::class, 'downloadAttachment'])->name('messages.download');
     // Mark all messages as read
     Route::post('/{conversation}/read', [MessageController::class, 'markRead'])->name('read');
+
+    // ── Blocking (JSON) ───────────────────────────────────────────────────
+    Route::get('/blocked', [BlockController::class, 'index'])->name('blocked.index');
+    Route::post('/block/{user}', [BlockController::class, 'block'])->name('block');
+    Route::delete('/block/{user}', [BlockController::class, 'unblock'])->name('unblock');
+    Route::get('/block/{user}/check', [BlockController::class, 'check'])->name('block.check');
+
+    // ── Report Message (JSON) ───────────────────────────────────────────
+    Route::post('/report/message/{message}', [ReportController::class, 'reportMessage'])->name('report.message');
 });
 
 // Role-based dashboards
@@ -129,6 +150,12 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         Route::post('/documents', [DocumentsController::class, 'store'])->name('documents.store');
         Route::get('/documents/{document}/download', [DocumentsController::class, 'download'])->name('documents.download');
         Route::delete('/documents/{document}', [DocumentsController::class, 'destroy'])->name('documents.destroy');
+
+        // Blocked Users
+        Route::get('/blocked-users', [BlockedUsersController::class, 'index'])->name('blocked-users');
+        Route::post('/blocked-users/block', [BlockedUsersController::class, 'block'])->name('blocked-users.block');
+        Route::delete('/blocked-users/unblock', [BlockedUsersController::class, 'unblock'])->name('blocked-users.unblock');
+        Route::get('/blocked-users/search', [BlockedUsersController::class, 'searchUsers'])->name('blocked-users.search');
     });
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -145,6 +172,12 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         Route::patch('/settings/company', [EmployerProfileController::class, 'updateCompany'])->name('settings.company.update');
         Route::post('/profile/avatar', [EmployerProfileController::class, 'uploadAvatar'])->name('profile.avatar');
         Route::delete('/profile/avatar', [EmployerProfileController::class, 'removeAvatar'])->name('profile.avatar.remove');
+        
+        // Blocked Users
+        Route::get('/settings/blocked-users', [EmployerBlockedUsersController::class, 'index'])->name('settings.blocked-users');
+        Route::post('/settings/blocked-users/block', [EmployerBlockedUsersController::class, 'block'])->name('settings.blocked-users.block');
+        Route::delete('/settings/blocked-users/unblock', [EmployerBlockedUsersController::class, 'unblock'])->name('settings.blocked-users.unblock');
+        Route::get('/settings/blocked-users/search', [EmployerBlockedUsersController::class, 'searchUsers'])->name('settings.blocked-users.search');
 
         Route::get('/jobs', [JobListingController::class, 'index'])->name('jobs.index');
         Route::post('/jobs', [JobListingController::class, 'store'])->name('jobs.store');
@@ -173,6 +206,12 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         Route::get('/profile', [JobSeekerProfileController::class, 'show'])->name('profile.show');
         Route::get('/profile/edit', [JobSeekerProfileController::class, 'edit'])->name('profile.edit');
         Route::match(['POST', 'PATCH'], '/profile', [JobSeekerProfileController::class, 'update'])->name('profile.update');
+        
+        // Blocked Users
+        Route::get('/settings/blocked-users', [JobSeekerBlockedUsersController::class, 'index'])->name('settings.blocked-users');
+        Route::post('/settings/blocked-users/block', [JobSeekerBlockedUsersController::class, 'block'])->name('settings.blocked-users.block');
+        Route::delete('/settings/blocked-users/unblock', [JobSeekerBlockedUsersController::class, 'unblock'])->name('settings.blocked-users.unblock');
+        Route::get('/settings/blocked-users/search', [JobSeekerBlockedUsersController::class, 'searchUsers'])->name('settings.blocked-users.search');
         Route::get('/jobs', [JobBrowseController::class, 'browse'])->name('jobs.browse');
         Route::get('/jobs/saved', [JobBrowseController::class, 'saved'])->name('jobs.saved');
         Route::post('/jobs/{job}/save', [JobBrowseController::class, 'save'])->name('jobs.save');
@@ -180,7 +219,12 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         Route::get('/jobs/{job}/apply', [JobApplicationController::class, 'create'])->name('jobs.apply.form');
         Route::post('/jobs/{job}/apply', [JobApplicationController::class, 'store'])->name('jobs.apply');
         Route::post('/jobs/{job}/apply/draft', [JobApplicationController::class, 'saveDraft'])->name('jobs.apply.draft');
+        Route::get('/jobs/history', [JobBrowseController::class, 'history'])->name('jobs.history');
         Route::get('/jobs/{job}', [JobBrowseController::class, 'show'])->name('jobs.show');
+
+        // Application History
+        Route::get('/applications', [JobApplicationController::class, 'index'])->name('applications.index');
+        Route::patch('/applications/{application}/withdraw', [JobApplicationController::class, 'withdraw'])->name('applications.withdraw');
     });
     // ─────────────────────────────────────────────────────────────────────────
 

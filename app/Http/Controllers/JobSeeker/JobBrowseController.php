@@ -8,7 +8,9 @@ use App\Models\SavedJob;
 use App\Models\JobApplication;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
+use Carbon\Carbon;
 
 class JobBrowseController extends Controller
 {
@@ -64,6 +66,7 @@ class JobBrowseController extends Controller
 
         // IDs the current user has applied to
         $appliedJobIds = JobApplication::where('user_id', $user->id)
+            ->whereNotIn('status', ['withdrawn', 'accepted', 'hired', 'contract_ended'])
             ->pluck('job_listing_id')
             ->toArray();
 
@@ -96,7 +99,10 @@ class JobBrowseController extends Controller
         $user = Auth::user();
 
         $savedJobIds = SavedJob::where('user_id', $user->id)->pluck('job_listing_id')->toArray();
-        $appliedJobIds = JobApplication::where('user_id', $user->id)->pluck('job_listing_id')->toArray();
+        $appliedJobIds = JobApplication::where('user_id', $user->id)
+            ->whereNotIn('status', ['withdrawn', 'accepted', 'hired', 'contract_ended'])
+            ->pluck('job_listing_id')
+            ->toArray();
 
         $similarJobs = JobListing::where('status', 'active')
             ->where('id', '!=', $job->id)
@@ -159,7 +165,10 @@ class JobBrowseController extends Controller
 
         $jobs = $query->latest()->get();
 
-        $appliedJobIds = JobApplication::where('user_id', $user->id)->pluck('job_listing_id')->toArray();
+        $appliedJobIds = JobApplication::where('user_id', $user->id)
+            ->whereNotIn('status', ['withdrawn', 'accepted', 'hired', 'contract_ended'])
+            ->pluck('job_listing_id')
+            ->toArray();
 
         $shaped = $jobs->map(fn($job) => $this->shapeJob($job, $savedIds->toArray(), $appliedJobIds));
 
@@ -202,6 +211,98 @@ class JobBrowseController extends Controller
     }
 
     /* ─────────────────────────────────────────
+       Job history (hired placements)
+    ───────────────────────────────────────── */
+    public function history(Request $request)
+    {
+        $user = $request->user();
+
+        $apps = JobApplication::query()
+            ->with(['jobListing.employer.employerProfile'])
+            ->where('user_id', $user->id)
+            ->whereIn('status', ['accepted', 'hired', 'contract_ended'])
+            ->orderByDesc('hired_at')
+            ->get();
+
+        $shape = function (JobApplication $app) {
+            $job = $app->jobListing;
+            $employer = $job?->employer;
+            $company = $employer?->employerProfile?->company_name
+                ?? trim(($employer?->first_name ?? '').' '.($employer?->last_name ?? ''))
+                ?: 'Unknown Company';
+
+            $initials = collect(preg_split('/\s+/', trim($company)))
+                ->filter()
+                ->map(fn ($w) => mb_substr($w, 0, 1))
+                ->join('');
+            $initials = mb_strtoupper(mb_substr($initials, 0, 2)) ?: '??';
+
+            $logoPath = $employer?->employerProfile?->logo_path;
+            $logoUrl = null;
+            if ($logoPath) {
+                $relative = ltrim($logoPath, '/');
+                if (str_starts_with($relative, 'http://') || str_starts_with($relative, 'https://')) {
+                    $logoUrl = $relative;
+                } else {
+                    $publicRelative = str_starts_with($relative, 'logos/')
+                        ? $relative
+                        : 'logos/'.$relative;
+                    if (file_exists(public_path($publicRelative))) {
+                        $logoUrl = '/'.$publicRelative;
+                    } else {
+                        $logoUrl = Storage::url($logoPath);
+                    }
+                }
+            }
+
+            $start = $app->hired_at ?: $app->created_at;
+            $end = $app->contract_ended_at;
+
+            $startDate = $start ? Carbon::parse($start)->toDateString() : null;
+            $endDate = $end ? Carbon::parse($end)->toDateString() : null;
+
+            $durationLabel = null;
+            if ($start) {
+                $to = $end ?: now();
+                $months = Carbon::parse($start)->diffInMonths($to);
+                $years = intdiv($months, 12);
+                $rem = $months % 12;
+                if ($years > 0 && $rem > 0) $durationLabel = "{$years} year".($years !== 1 ? 's' : '')." {$rem} month".($rem !== 1 ? 's' : '');
+                elseif ($years > 0) $durationLabel = "{$years} year".($years !== 1 ? 's' : '');
+                else $durationLabel = max(1, $rem)." month".(max(1, $rem) !== 1 ? 's' : '');
+            }
+
+            return [
+                'id' => $app->id,
+                'job_title' => $job?->title ?? 'Job',
+                'company' => [
+                    'name' => $company,
+                    'initials' => $initials,
+                    'logo_url' => $logoUrl,
+                ],
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+                'duration' => $durationLabel,
+                'location' => $job?->location,
+                'is_remote' => (bool) ($job?->is_remote ?? false),
+            ];
+        };
+
+        $current = $apps->first(fn ($a) => in_array($a->status, ['accepted', 'hired'], true) && $a->contract_ended_at === null);
+        $currentShaped = $current ? $shape($current) : null;
+
+        $past = $apps
+            ->reject(fn ($a) => $current && $a->id === $current->id)
+            ->map(fn ($a) => $shape($a))
+            ->values();
+
+        return Inertia::render('JobSeeker/JobHistory', [
+            'currentPosition' => $currentShaped,
+            'pastPlacements' => $past,
+        ]);
+    }
+
+    /* ─────────────────────────────────────────
        Apply to a job
     ───────────────────────────────────────── */
     public function apply(Request $request, JobListing $job)
@@ -233,7 +334,8 @@ class JobBrowseController extends Controller
     ───────────────────────────────────────── */
     private function shapeJob(JobListing $job, array $savedIds, array $appliedIds): array
     {
-        $companyName = $job->employer?->employerProfile?->company_name
+        $companyName = $job->company_name
+            ?? $job->employer?->employerProfile?->company_name
             ?? $job->employer?->first_name
             ?? 'Unknown Company';
 
@@ -249,9 +351,16 @@ class JobBrowseController extends Controller
             'skills_required' => $job->skills_required ?? [],
             'posted_date' => $job->created_at->toISOString(),
             'description' => $job->description,
+            'responsibilities' => $job->responsibilities,
+            'qualifications' => $job->qualifications,
+            'project_timeline' => $job->project_timeline,
+            'onboarding_process' => $job->onboarding_process,
             'experience_level' => $job->experience_level,
             'is_remote' => (bool) $job->is_remote,
             'industry' => $job->industry,
+            'deadline' => $job->deadline?->toDateString(),
+            'application_limit' => $job->application_limit,
+            'logo_path' => $job->logo_path,
             'has_applied' => in_array($job->id, $appliedIds),
         ];
     }

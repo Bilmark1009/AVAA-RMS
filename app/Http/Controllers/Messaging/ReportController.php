@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Messaging;
 use App\Http\Controllers\Controller;
 use App\Models\Report;
 use App\Models\User;
+use App\Models\Message;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -68,5 +69,52 @@ class ReportController extends Controller
 
         return redirect()->route('messages.index')
             ->with('success', 'Your report has been submitted. Our team will review it within 24 hours.');
+    }
+
+    /**
+     * Report a specific message.
+     * POST /messages/report/message/{message}
+     */
+    public function reportMessage(Request $request, Message $message): \Illuminate\Http\JsonResponse
+    {
+        $current = $request->user();
+        abort_if($current->id === $message->sender_id, 403, 'You cannot report your own message.');
+
+        // Check if user is part of the conversation
+        $isParticipant = $message->conversation->participants()
+            ->where('user_id', $current->id)
+            ->exists();
+        abort_unless($isParticipant, 403, 'You are not part of this conversation.');
+
+        $request->validate([
+            'reason' => 'required|in:inappropriate_behavior,spam,suspicious_job,identity_theft,other',
+            'details' => 'nullable|string|max:1000',
+        ]);
+
+        // Check if already reported
+        $existingReport = Report::where('reporter_id', $current->id)
+            ->where('message_id', $message->id)
+            ->first();
+        
+        if ($existingReport) {
+            return response()->json([
+                'error' => 'You have already reported this message.',
+            ], 422);
+        }
+
+        Report::create([
+            'reporter_id' => $current->id,
+            'reported_user_id' => $message->sender_id,
+            'conversation_id' => $message->conversation_id,
+            'message_id' => $message->id,
+            'reason' => $request->reason,
+            'details' => $request->details,
+            'status' => 'pending',
+        ]);
+
+        return response()->json([
+            'ok' => true,
+            'message' => 'Message reported successfully. Our team will review it.',
+        ]);
     }
 }

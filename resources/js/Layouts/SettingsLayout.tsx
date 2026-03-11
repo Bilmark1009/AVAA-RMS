@@ -27,6 +27,12 @@ const IcoDoc = () => (
         <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><polyline points="14 2 14 8 20 8" />
     </svg>
 );
+const IcoBlock = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+    </svg>
+);
 
 function safeRoute(name: string, params?: any): string {
     try { return route(name, params); }
@@ -46,6 +52,7 @@ const NAV_ITEMS: NavItem[] = [
     { label: 'Job Preferences',   href: safeRoute('settings.job-preferences'), icon: <IcoBriefcase />, routeName: 'settings.job-preferences' },
     { label: 'Notifications',     href: safeRoute('settings.notifications'), icon: <IcoBell />,      routeName: 'settings.notifications'  },
     { label: 'Documents',         href: safeRoute('settings.documents'),     icon: <IcoDoc />,       routeName: 'settings.documents'      },
+    { label: 'Blocked Users',     href: safeRoute('settings.blocked-users'),  icon: <IcoBlock />,    routeName: 'settings.blocked-users'  },
 ];
 
 interface SettingsLayoutProps {

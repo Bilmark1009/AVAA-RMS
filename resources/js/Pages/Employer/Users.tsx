@@ -263,11 +263,11 @@ export default function Users({ employees, activeCount }: Props) {
                     <table className="w-full">
                         <thead>
                             <tr className="border-b border-gray-100 bg-gray-50/50">
-                                <th className="text-left px-6 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-widest min-w-[250px]">Employee</th>
-                                <th className="text-left px-4 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-widest min-w-[200px]">Role / Position</th>
-                                <th className="text-left px-4 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-widest whitespace-nowrap">Hired Date</th>
-                                <th className="text-center px-4 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-widest min-w-[100px]">Status</th>
-                                <th className="px-6 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-widest text-right min-w-[120px]">Actions</th>
+                                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase tracking-widest min-w-[250px]">Employee</th>
+                                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-widest min-w-[200px]">Role / Position</th>
+                                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-widest whitespace-nowrap">Hired Date</th>
+                                <th className="text-center px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-widest min-w-[100px]">Status</th>
+                                <th className="px-6 py-3 text-xs font-semibold text-gray-400 uppercase tracking-widest text-right min-w-[120px]">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
@@ -277,8 +277,8 @@ export default function Users({ employees, activeCount }: Props) {
                                         <div className="inline-flex w-16 h-16 rounded-2xl bg-gray-50 border border-gray-100 items-center justify-center text-gray-300 mb-4 shadow-inner">
                                             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
                                         </div>
-                                        <p className="text-gray-900 font-bold mb-1">No employees found</p>
-                                        <p className="text-xs text-gray-500 font-medium">It looks like no one has been hired yet or matched your search.</p>
+                                        <p className="text-base text-gray-900 font-bold mb-1">No employees found</p>
+                                        <p className="text-sm text-gray-500 font-medium">It looks like no one has been hired yet or matched your search.</p>
                                     </td>
                                 </tr>
                             ) : (
@@ -296,8 +296,8 @@ export default function Users({ employees, activeCount }: Props) {
                                                         <div className={`w-10 h-10 rounded-full shadow-sm ${avatarColor(emp.candidate.id)} flex items-center justify-center text-white text-sm font-bold flex-shrink-0`}>{initials}</div>
                                                     )}
                                                     <div className="min-w-0">
-                                                        <p className="text-sm font-bold text-gray-900 truncate">{fullName}</p>
-                                                        <p className="text-[11px] font-medium text-gray-500 truncate mt-0.5">{emp.candidate.email}</p>
+                                                        <p className="text-base font-bold text-gray-900 truncate">{fullName}</p>
+                                                        <p className="text-xs font-medium text-gray-500 truncate mt-0.5">{emp.candidate.email}</p>
                                                     </div>
                                                 </div>
                                             </td>
@@ -307,13 +307,13 @@ export default function Users({ employees, activeCount }: Props) {
                                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" /></svg>
                                                     </div>
                                                     <div className="min-w-0">
-                                                        <p className="text-sm font-bold text-gray-800 truncate">{emp.job.title}</p>
+                                                        <p className="text-base font-bold text-gray-800 truncate">{emp.job.title}</p>
                                                         {emp.candidate.title && <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mt-0.5 truncate">{emp.candidate.title}</p>}
                                                     </div>
                                                 </div>
                                             </td>
                                             <td className="px-4 py-4">
-                                                <p className="text-sm font-semibold text-gray-700">{new Date(emp.hired_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</p>
+                                                <p className="text-base font-semibold text-gray-700">{new Date(emp.hired_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</p>
                                             </td>
                                             <td className="px-4 py-4 text-center">
                                                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide uppercase bg-emerald-50 text-emerald-600 border border-emerald-100">

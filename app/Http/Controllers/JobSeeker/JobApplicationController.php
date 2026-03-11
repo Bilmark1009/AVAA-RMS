@@ -5,22 +5,179 @@ namespace App\Http\Controllers\JobSeeker;
 use App\Http\Controllers\Controller;
 use App\Models\JobApplication;
 use App\Models\JobListing;
+use App\Models\User;
 use App\Notifications\ApplicationReceivedNotification;
+use App\Notifications\ApplicationWithdrawnByApplicantNotification;
+use App\Notifications\ApplicantWithdrewApplicationNotification;
 use App\Notifications\NewApplicationNotification;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Carbon\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class JobApplicationController extends Controller
 {
     /**
+     * Job Seeker: Application History index.
+     */
+    public function index(Request $request): Response
+    {
+        $user = $request->user();
+
+        $applications = JobApplication::query()
+            ->with([
+                'jobListing' => function ($q) {
+                    $q->with(['employer.employerProfile']);
+                },
+                'interview',
+            ])
+            ->where('user_id', $user->id)
+            ->where('status', '!=', 'draft')
+            ->whereNotIn('status', ['accepted', 'hired', 'contract_ended'])
+            ->latest()
+            ->get()
+            ->map(function (JobApplication $app) {
+                $job = $app->jobListing;
+                $employer = $job?->employer;
+                $company = $employer?->employerProfile?->company_name
+                    ?? trim(($employer?->first_name ?? '').' '.($employer?->last_name ?? ''))
+                    ?: 'Unknown Company';
+                $logoPath = $employer?->employerProfile?->logo_path;
+                $logoUrl = null;
+                if ($logoPath) {
+                    $relative = ltrim($logoPath, '/');
+
+                    // If it's already an absolute URL, keep it.
+                    if (str_starts_with($relative, 'http://') || str_starts_with($relative, 'https://')) {
+                        $logoUrl = $relative;
+                    } else {
+                        // Prefer public/ logos folder if present (your setup).
+                        $publicRelative = str_starts_with($relative, 'logos/')
+                            ? $relative
+                            : 'logos/'.$relative;
+
+                        if (file_exists(public_path($publicRelative))) {
+                            $logoUrl = '/'.$publicRelative;
+                        } else {
+                            // Fallback to storage disk (default Laravel behavior).
+                            $logoUrl = Storage::url($logoPath);
+                        }
+                    }
+                }
+
+                $initials = collect(preg_split('/\s+/', trim($company)))
+                    ->filter()
+                    ->map(fn ($w) => mb_substr($w, 0, 1))
+                    ->join('');
+                $initials = mb_strtoupper(mb_substr($initials, 0, 2));
+
+                // Derive "Interviewing" stage if an active interview exists.
+                $stage = $app->status;
+                if (! in_array($app->status, ['rejected', 'withdrawn', 'accepted', 'hired', 'contract_ended'], true)) {
+                    if ($app->interview && ($app->interview->status ?? null) === 'active') {
+                        $stage = 'interviewing';
+                    }
+                }
+
+                $canWithdraw = ! in_array($app->status, ['withdrawn', 'rejected', 'accepted', 'hired', 'contract_ended'], true);
+
+                $interview = $app->interview;
+                $interviewDate = $interview?->interview_date;
+                $interviewTime = $interview?->interview_time;
+
+                $salaryCurrency = $job?->salary_currency ?: 'USD';
+                $salaryMin = $job?->salary_min !== null ? (float) $job->salary_min : null;
+                $salaryMax = $job?->salary_max !== null ? (float) $job->salary_max : null;
+
+                return [
+                    'id' => $app->id,
+                    'status' => $app->status,
+                    'stage' => $stage,
+                    'applied_at' => optional($app->created_at)->toISOString(),
+                    'updated_at' => optional($app->updated_at)->toISOString(),
+                    'reviewed_at' => optional($app->reviewed_at)->toISOString(),
+                    'time_ago' => optional($app->created_at)->diffForHumans(),
+                    'can_withdraw' => $canWithdraw,
+                    'reviewer_notes' => $app->employer_notes,
+                    'rejection_reason' => $app->rejection_reason,
+                    'job' => $job ? [
+                        'id' => $job->id,
+                        'title' => $job->title,
+                        'location' => $job->location,
+                        'is_remote' => (bool) $job->is_remote,
+                        'employment_type' => $job->employment_type,
+                        'description' => $job->description,
+                        'industry' => $job->industry,
+                        'experience_level' => $job->experience_level,
+                        'skills_required' => $job->skills_required ?? [],
+                        'salary_min' => $salaryMin,
+                        'salary_max' => $salaryMax,
+                        'salary_currency' => $salaryCurrency,
+                    ] : null,
+                    'company' => [
+                        'name' => $company,
+                        'initials' => $initials ?: '??',
+                        'logo_url' => $logoUrl,
+                        'size' => $employer?->employerProfile?->company_size,
+                    ],
+                    'interview' => $interview ? [
+                        'status' => $interview->status,
+                        'interview_type' => $interview->interview_type,
+                        'interviewer_name' => $interview->interviewer_name,
+                        'location_or_link' => $interview->location_or_link,
+                        'notes' => $interview->notes,
+                        'date' => $interviewDate?->toDateString(),
+                        'date_label' => $interviewDate?->format('F j, Y'),
+                        'time' => $interviewTime,
+                        'time_label' => $interviewTime ? Carbon::parse((string) $interviewTime)->format('g:i A') : null,
+                    ] : null,
+                ];
+            })
+            ->values();
+
+        return Inertia::render('JobSeeker/ApplicationHistory', [
+            'applications' => $applications,
+        ]);
+    }
+
+    /**
+     * Job Seeker: Withdraw a submitted application.
+     */
+    public function withdraw(Request $request, JobApplication $application): RedirectResponse
+    {
+        abort_unless($application->user_id === $request->user()->id, 403);
+
+        if (in_array($application->status, ['withdrawn', 'rejected', 'accepted', 'hired', 'contract_ended'], true)) {
+            return back();
+        }
+
+        $job = $application->jobListing;
+        $applicant = $request->user();
+        $employer = $job?->employer;
+
+        // Notify both parties and keep the record as withdrawn for history filtering.
+        if ($job) {
+            $applicant->notify(new ApplicationWithdrawnByApplicantNotification($job));
+
+            if ($employer) {
+                $employer->notify(new ApplicantWithdrewApplicationNotification($job, $applicant));
+            }
+        }
+
+        $application->update(['status' => 'withdrawn']);
+
+        return back()->with('success', 'Application withdrawn successfully.');
+    }
+
+    /**
      * Show the multi-step application form (pre-filled from profile).
      */
     public function create(JobListing $job): Response|RedirectResponse
     {
+        /** @var User $user */
         $user = Auth::user();
 
         // Already applied?
@@ -28,12 +185,11 @@ class JobApplicationController extends Controller
             ->where('job_listing_id', $job->id)
             ->first();
 
-        if ($existing && $existing->status !== 'draft') {
+        if ($existing && ! in_array($existing->status, ['draft', 'withdrawn'], true)) {
             return redirect()->route('job-seeker.jobs.show', $job->id)
                 ->with('info', 'You have already applied to this job.');
         }
 
-        $user->load('jobSeekerProfile');
         $profile = $user->jobSeekerProfile;
 
         // Pre-fill data from profile
@@ -72,11 +228,23 @@ class JobApplicationController extends Controller
             'job' => [
                 'id' => $job->id,
                 'title' => $job->title,
-                'company' => $job->employer?->employerProfile?->company_name
+                'company' => $job->company_name
+                    ?? $job->employer?->employerProfile?->company_name
                     ?? $job->employer?->first_name
                     ?? 'Unknown Company',
                 'location' => $job->location,
                 'employment_type' => $job->employment_type,
+                'description' => $job->description,
+                'responsibilities' => $job->responsibilities,
+                'qualifications' => $job->qualifications,
+                'project_timeline' => $job->project_timeline,
+                'onboarding_process' => $job->onboarding_process,
+                'salary_min' => $job->salary_min,
+                'salary_max' => $job->salary_max,
+                'salary_currency' => $job->salary_currency,
+                'skills_required' => $job->skills_required ?? [],
+                'deadline' => $job->deadline?->toDateString(),
+                'logo_path' => $job->logo_path,
             ],
             'prefill' => $prefill,
             'draftId' => $existing?->id,
@@ -90,12 +258,20 @@ class JobApplicationController extends Controller
     {
         $user = $request->user();
 
+        if ($job->status !== 'active') {
+            return back()->withErrors(['apply' => 'This job is not currently accepting applications.']);
+        }
+
+        if ($job->deadline && now()->startOfDay()->gt($job->deadline)) {
+            return back()->withErrors(['apply' => 'This job posting has expired.']);
+        }
+
         // Check for existing non-draft application
         $existing = JobApplication::where('user_id', $user->id)
             ->where('job_listing_id', $job->id)
             ->first();
 
-        if ($existing && $existing->status !== 'draft') {
+        if ($existing && ! in_array($existing->status, ['draft', 'withdrawn'], true)) {
             return redirect()->route('job-seeker.jobs.show', $job->id)
                 ->with('info', 'You have already applied to this job.');
         }
@@ -153,7 +329,15 @@ class JobApplicationController extends Controller
             'application_data' => $applicationData,
         ];
 
-        if ($existing && $existing->status === 'draft') {
+        if ($existing && in_array($existing->status, ['draft', 'withdrawn'], true)) {
+            // Reset any previous outcome-specific fields when reapplying.
+            $data = array_merge($data, [
+                'rejection_reason' => null,
+                'reviewed_at' => null,
+                'hired_at' => null,
+                'contract_ended_at' => null,
+            ]);
+
             $existing->update($data);
             $application = $existing->fresh();
         } else {
@@ -180,11 +364,15 @@ class JobApplicationController extends Controller
     {
         $user = $request->user();
 
+        if ($job->status !== 'active') {
+            return back()->withErrors(['apply' => 'This job is not currently accepting applications.']);
+        }
+
         $existing = JobApplication::where('user_id', $user->id)
             ->where('job_listing_id', $job->id)
             ->first();
 
-        if ($existing && $existing->status !== 'draft') {
+        if ($existing && ! in_array($existing->status, ['draft', 'withdrawn'], true)) {
             return back()->with('info', 'You have already submitted this application.');
         }
 

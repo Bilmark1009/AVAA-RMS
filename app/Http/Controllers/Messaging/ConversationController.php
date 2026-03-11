@@ -21,12 +21,14 @@ class ConversationController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
+        $showArchived = $request->query('archived', false);
 
         return Inertia::render('Messaging/Index', [
-            'conversations' => $this->getConversations($user),
+            'conversations' => $this->getConversations($user, $showArchived),
             'activeConversationId' => null,
             'initialMessages' => [],
             'activeConversation' => null,
+            'showArchived' => $showArchived,
         ]);
     }
 
@@ -80,6 +82,11 @@ class ConversationController extends Controller
 
         $this->enforceRolePair($current, $target);
 
+        // Check if users can message each other
+        if (!$current->canMessage($target)) {
+            return back()->with('error', 'You cannot start a conversation with this user.');
+        }
+
         $conversation = Conversation::findOrCreateDirect($current, $target);
 
         // Make sure current user is a participant (handles edge cases)
@@ -103,6 +110,20 @@ class ConversationController extends Controller
 
         $conversation->participants()->updateExistingPivot($request->user()->id, [
             'is_archived' => true,
+        ]);
+
+        return response()->json(['ok' => true]);
+    }
+
+    /**
+     * Unarchive a conversation for the current user (JSON).
+     */
+    public function unarchive(Request $request, Conversation $conversation): JsonResponse
+    {
+        $this->authorizeParticipant($conversation, $request->user()->id);
+
+        $conversation->participants()->updateExistingPivot($request->user()->id, [
+            'is_archived' => false,
         ]);
 
         return response()->json(['ok' => true]);
@@ -207,6 +228,21 @@ class ConversationController extends Controller
         return response()->json(['ok' => true]);
     }
 
+    /**
+     * Get archived conversations count for the current user (JSON).
+     */
+    public function archivedCount(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $userId = $user->id;
+
+        $count = Conversation::whereHas('participants', fn($q) => $q->where('user_id', $userId))
+            ->whereHas('participants', fn($q) => $q->where('user_id', $userId)->where('is_archived', true))
+            ->count();
+
+        return response()->json(['count' => $count]);
+    }
+
     public function debug(Request $request): JsonResponse
     {
         $current = $request->user();
@@ -240,7 +276,7 @@ class ConversationController extends Controller
 
     /* ── Private helpers ───────────────────────────────────────────────── */
 
-    private function getConversations(User $user): array
+    private function getConversations(User $user, bool $showArchived = false): array
     {
         $userId = $user->id;
 
@@ -255,18 +291,29 @@ class ConversationController extends Controller
             ])
             ->orderByDesc('last_message_at')
             ->get()
-            ->filter(function (Conversation $c) use ($userId) {
+            ->filter(function (Conversation $c) use ($userId, $showArchived) {
                 $pivot = $c->participants->firstWhere('id', $userId)?->pivot;
-                $clearedAt = $pivot?->cleared_at;
+                $isArchived = (bool) ($pivot?->is_archived ?? false);
+                
+                // Filter based on archived status
+                if ($showArchived) {
+                    // For archived view, only check if archived, ignore cleared_at
+                    return $isArchived;
+                } else {
+                    // For normal view, exclude archived and check cleared_at
+                    if ($isArchived) return false;
+                    
+                    $clearedAt = $pivot?->cleared_at;
 
-                // If never cleared, always show
-                if (!$clearedAt) return true;
+                    // If never cleared, always show
+                    if (!$clearedAt) return true;
 
-                // Show only if there are messages AFTER cleared_at
-                return $c->messages()
-                    ->whereNull('deleted_at')
-                    ->where('created_at', '>', $clearedAt)
-                    ->exists();
+                    // Show only if there are messages AFTER cleared_at
+                    return $c->messages()
+                        ->whereNull('deleted_at')
+                        ->where('created_at', '>', $clearedAt)
+                        ->exists();
+                }
             })
             ->map(fn($c) => $this->formatConversation($c, $userId))
             ->values()
@@ -312,10 +359,20 @@ class ConversationController extends Controller
             ->where('id', '!=', $current->id)
             ->where(function ($query) use ($q) {
                 if ($q !== '') {
-                    $query->where('first_name', 'like', "%{$q}%")
-                        ->orWhere('last_name', 'like', "%{$q}%")
-                        ->orWhere('email', 'like', "%{$q}%");
+                    $query->where('email', 'like', "%{$q}%");
                 }
+            })
+            ->whereNotIn('id', function ($query) use ($current) {
+                // Exclude users that current user has blocked
+                $query->select('blocked_user_id')
+                    ->from('blocked_users')
+                    ->where('blocker_id', $current->id);
+            })
+            ->whereNotIn('id', function ($query) use ($current) {
+                // Exclude users that have blocked current user
+                $query->select('blocker_id')
+                    ->from('blocked_users')
+                    ->where('blocked_user_id', $current->id);
             })
             ->with([
                 'jobSeekerProfile:user_id,professional_title,current_job_title',

@@ -161,7 +161,7 @@ export default function Welcome() {
                     {/* Logo */}
                     <a href="/" className="flex items-center gap-2.5 flex-shrink-0">
                         <img
-                            src="/storage/logos/System_Logo/AVAA_Logo.png"
+                            src="/logos/AVAA_Logo.png"
                             alt="AVAA"
                             className="h-8 w-auto object-contain"
                         />
@@ -615,7 +615,7 @@ export default function Welcome() {
                             <div className="sm:col-span-2 lg:col-span-1">
                                 <div className="flex items-center gap-2.5 mb-4">
                                     <img
-                                        src="/storage/logos/System_Logo/AVAA_Logo.png"
+                                        src="/logos/AVAA_Logo.png"
                                         alt="AVAA"
                                         className="h-7 w-auto object-contain brightness-0 invert"
                                     />

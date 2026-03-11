@@ -349,7 +349,7 @@ function SidebarShell({
                     {!collapsed && (
                         <Link href={logoLinkHref} className="flex items-center">
                             <img
-                                src="/storage/logos/System_Logo/AVAA_Banner.png"
+                                src="/logos/AVAA_Banner.png"
                                 alt="AVAA"
                                 className="h-9 w-auto object-contain"
                             />
@@ -358,11 +358,11 @@ function SidebarShell({
                     {collapsed && (
                         <Link href={logoLinkHref} className="flex items-center justify-center">
                             <img
-                                src="/storage/logos/System_Logo/AVAA_Icon.png"
+                                src="/logos/avaa_logo.png"
                                 alt="AVAA"
                                 className="h-9 w-9 object-contain"
                                 onError={(e) => {
-                                    (e.target as HTMLImageElement).src = '/storage/logos/System_Logo/AVAA_Banner.png';
+                                    (e.target as HTMLImageElement).src = '/logos/AVAA_Logo.png';
                                     (e.target as HTMLImageElement).className = 'h-7 w-auto object-contain';
                                 }}
                             />
@@ -430,7 +430,7 @@ function SidebarShell({
                 ${mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
                 <div className="h-20 flex items-center justify-between px-5 border-b border-gray-100">
                     <Link href={logoLinkHref}>
-                        <img src="/storage/logos/System_Logo/AVAA_Banner.png" alt="AVAA" className="h-9 w-auto object-contain" />
+                        <img src="/logos/avaa_logo.png" alt="AVAA" className="h-9 w-auto object-contain" />
                     </Link>
                     <button onClick={() => setMobileSidebarOpen(false)} className="p-2 rounded-xl hover:bg-gray-100 text-avaa-muted">
                         <IcoClose />
@@ -510,7 +510,7 @@ function SidebarShell({
                 </header>
 
                 {/* Page Content */}
-                <main className="flex-1 px-6 lg:px-8 py-8">
+                <main className="flex-1 px-4 sm:px-6 lg:px-8 py-8">
                     {children}
                 </main>
             </div>
@@ -636,7 +636,7 @@ export default function AppLayout({ children, activeNav, pageTitle, pageSubtitle
             <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
                 <div className="w-full px-8 lg:px-16 h-20 flex items-center gap-6">
                     <Link href="/" className="flex items-center flex-shrink-0">
-                        <img src="/storage/logos/System_Logo/AVAA_Banner.png" alt="AVAA" className="h-10 w-auto object-contain" />
+                        <img src="/logos/avaa_logo.png" alt="AVAA" className="h-10 w-auto object-contain" />
                     </Link>
                     <div className="flex-1" />
                     <NotificationDropdown />
@@ -649,7 +649,7 @@ export default function AppLayout({ children, activeNav, pageTitle, pageSubtitle
                     />
                 </div>
             </header>
-            <main className="w-full px-8 lg:px-16 py-10">
+            <main className="w-full px-4 sm:px-8 lg:px-16 py-10">
                 {children}
             </main>
         </div>

@@ -28,7 +28,16 @@ interface InterviewData {
 interface Stats {
     todays_total: number;
     upcoming: number;
-    pending_feedback: number;
+    total_change?: string; 
+    upcoming_change?: string;
+}
+interface StatCardProps {
+    label: string;
+    value: number | string;
+    color: string;     // Now expects Tailwind classes like "bg-emerald-50 text-emerald-600"
+    sub?: string;      // Optional: "Users currently active"
+    icon?: React.ReactNode; // Optional: <IcoActiveUsers />
+    badge?: string;    // Optional: "+12%"
 }
 
 interface Props {
@@ -48,8 +57,8 @@ const STATUS_CFG: Record<string, { dot: string; text: string; bg: string; label:
 };
 
 const INTERVIEW_TYPES = ['Online Interview', 'In-Person', 'Phone'];
-const inputClass = "w-full rounded-xl border border-gray-200 bg-gray-50 text-gray-800 text-sm px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-avaa-primary focus:border-transparent transition-all placeholder-gray-400";
-const labelClass = "block text-xs font-semibold text-gray-600 mb-1.5";
+const inputClass = "w-full rounded-xl border border-gray-200 bg-gray-50 text-gray-800 text-base px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-avaa-primary focus:border-transparent transition-all placeholder-gray-400";
+const labelClass = "block text-sm font-semibold text-gray-600 mb-1.5";
 
 /* ── Icons ── */
 const IcoX = () => (
@@ -73,20 +82,55 @@ const IcoChevronDown = ({ open }: { open: boolean }) => (
         <polyline points="6 9 12 15 18 9" />
     </svg>
 );
+const IcoTotal = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M23 21v-2a4 4 0 00-3-3.87" />
+        <path d="M16 3.13a4 4 0 010 7.75" />
+    </svg>
+);
+
+const IcoUpcoming = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+        <line x1="16" y1="2" x2="16" y2="6" />
+        <line x1="8" y1="2" x2="8" y2="6" />
+        <line x1="3" y1="10" x2="21" y2="10" />
+    </svg>
+);
 
 /* ══════════════════════════════════════════════
    STAT CARD
 ══════════════════════════════════════════════ */
-function StatCard({ label, value, color }: { label: string; value: number; color: string }) {
-    const colors: Record<string, string> = {
-        navy: 'from-[#122431] to-[#1D2835]',
-        teal: 'from-[#7EB0AB] to-[#6A9E99]',
-        mid: 'from-[#172F37] to-[#2C3E50]',
-    };
+function StatCard({ label, value, color, sub, icon, badge }: StatCardProps) {
     return (
-        <div className={`bg-gradient-to-br ${colors[color] ?? colors.navy} rounded-2xl px-5 py-4 text-white shadow-md min-w-[160px]`}>
-            <p className="text-xs font-semibold opacity-80 mb-1">{label}</p>
-            <p className="text-3xl font-bold">{value}</p>
+        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between h-full transition-all hover:shadow-md">
+            <div className="flex justify-between items-start mb-4">
+                {/* Icon Container - using the color prop for the bg and text */}
+                <div className={`p-2.5 rounded-xl ${color}`}>
+                    {icon}
+                </div>
+                
+                {/* Optional Badge */}
+                {badge && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 border border-gray-200">
+                        {badge}
+                    </span>
+                )}
+            </div>
+            
+            <div>
+                <p className="text-sm font-bold text-gray-500 uppercase tracking-wider">{label}</p>
+                <h3 className="text-3xl font-extrabold text-gray-900 mt-1">{value}</h3>
+                
+                {/* Optional Sub-text */}
+                {sub && (
+                    <p className="text-[11px] text-gray-400 mt-1.5 font-medium leading-tight">
+                        {sub}
+                    </p>
+                )}
+            </div>
         </div>
     );
 }
@@ -108,7 +152,7 @@ function InterviewStatusBadge({ interviewId, status }: { interviewId: number; st
     return (
         <div ref={ref} className="relative inline-block">
             <button onClick={() => setOpen(o => !o)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${cfg.bg} ${cfg.text} hover:shadow-sm transition-all`}>
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold ${cfg.bg} ${cfg.text} hover:shadow-sm transition-all`}>
                 <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
                 {cfg.label}
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="opacity-60"><polyline points="6 9 12 15 18 9" /></svg>
@@ -120,7 +164,7 @@ function InterviewStatusBadge({ interviewId, status }: { interviewId: number; st
                             router.patch(route('employer.interviews.status', { interview: interviewId }), { status: k }, { preserveScroll: true });
                             setOpen(false);
                         }}
-                            className="flex items-center gap-2 w-full px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                            className="flex items-center gap-2 w-full px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
                             <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />{c.label}
                         </button>
                     ))}
@@ -181,7 +225,7 @@ function EditModal({ interview, onClose }: { interview: InterviewData; onClose: 
                     )}
                     <div className="pb-1">
                         <h2 className="text-base font-bold text-avaa-dark">{fullName}</h2>
-                        <p className="text-xs text-gray-500">{interview.job.title}</p>
+                        <p className="text-sm text-gray-500">{interview.job.title}</p>
                     </div>
                 </div>
 
@@ -317,8 +361,8 @@ function JobGroup({
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" /></svg>
                     </div>
                     <div className="text-left">
-                        <h2 className="text-base font-bold text-gray-900">{jobTitle}</h2>
-                        <p className="text-xs text-gray-500 font-medium">{interviews.length} Scheduled Interviews</p>
+                        <h2 className="text-lg font-bold text-gray-900">{jobTitle}</h2>
+                        <p className="text-sm text-gray-500 font-medium">{interviews.length} Scheduled Interviews</p>
                     </div>
                 </div>
                 <div className="text-gray-400">
@@ -353,21 +397,21 @@ function JobGroup({
                                                     <div className={`w-10 h-10 rounded-full shadow-sm ${avatarColor(i.candidate.id)} flex items-center justify-center text-white text-sm font-bold flex-shrink-0`}>{initials}</div>
                                                 )}
                                                 <div className="min-w-0">
-                                                    <p className="text-sm font-bold text-gray-900 truncate">{fullName}</p>
+                                                    <p className="text-base font-bold text-gray-900 truncate">{fullName}</p>
                                                     {i.candidate.title && <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider truncate mt-0.5">{i.candidate.title}</p>}
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="px-4 py-4">
-                                            <p className="text-sm text-gray-700 font-semibold">{i.interview_date}</p>
-                                            <p className="text-xs text-gray-500 font-medium mt-0.5">{formatTime(i.interview_time)}</p>
+                                            <p className="text-base text-gray-700 font-semibold">{i.interview_date}</p>
+                                            <p className="text-sm text-gray-500 font-medium mt-0.5">{formatTime(i.interview_time)}</p>
                                         </td>
                                         <td className="px-4 py-4">
                                             <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-gray-50 border border-gray-100">
                                                 <div className="w-5 h-5 rounded-full bg-avaa-dark flex flex-shrink-0 items-center justify-center text-[9px] font-bold text-white">
                                                     {i.interviewer_name.substring(0, 2).toUpperCase()}
                                                 </div>
-                                                <span className="text-xs font-semibold text-gray-700">{i.interviewer_name}</span>
+                                                <span className="text-sm font-semibold text-gray-700">{i.interviewer_name}</span>
                                             </div>
                                         </td>
                                         <td className="px-4 py-4">
@@ -439,10 +483,23 @@ export default function Interviews({ interviews, stats }: Props) {
             {editInterview && <EditModal interview={editInterview} onClose={() => setEditInterview(null)} />}
 
             {/* Stat Cards */}
-            <div className="flex items-center gap-4 mb-8 flex-wrap">
-                <StatCard label="Today's Total" value={stats.todays_total} color="navy" />
-                <StatCard label="Pending Feedback" value={stats.pending_feedback} color="mid" />
-                <StatCard label="Upcoming" value={stats.upcoming} color="teal" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+                <StatCard
+                    label="Total Interviews"
+                    value={stats.todays_total}
+                    sub="Scheduled for today"
+                    icon={<IcoTotal />} 
+                    color="bg-blue-50 text-blue-600"
+                    badge="Today"
+                />
+                <StatCard
+                    label="Upcoming"
+                    value={stats.upcoming}
+                    sub="Pending sessions"
+                    icon={<IcoUpcoming />}
+                    color="bg-teal-50 text-teal-600"
+                    badge="Next"
+                />
             </div>
 
             {/* Toolbar */}
@@ -481,7 +538,7 @@ export default function Interviews({ interviews, stats }: Props) {
                             </svg>
                         </div>
                         <p className="text-gray-900 font-bold mb-1">No interviews found</p>
-                        <p className="text-sm text-gray-500 font-medium">Try adjusting your search or filters.</p>
+                        <p className="text-base text-gray-500 font-medium">Try adjusting your search or filters.</p>
                     </div>
                 </div>
             ) : (

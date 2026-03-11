@@ -64,6 +64,17 @@ class MessageController extends Controller
         $user = $request->user();
         $this->authorizeParticipant($conversation, $user->id);
 
+        // Check if user is blocked by any participant
+        $otherParticipant = $conversation->otherParticipant($user->id);
+        if ($otherParticipant && !$user->canMessage($otherParticipant)) {
+            return response()->json([
+                'error' => 'You cannot message this user.',
+                'reason' => $user->hasBlocked($otherParticipant) 
+                    ? 'You have blocked this user.' 
+                    : 'This user has blocked you.',
+            ], 403);
+        }
+
         $request->validate([
             'body'       => 'required_without:attachment|nullable|string|max:5000',
             'attachment' => 'nullable|file|max:10240', // 10 MB
@@ -146,6 +157,25 @@ class MessageController extends Controller
         ]);
 
         return response()->json(['ok' => true]);
+    }
+
+    /**
+     * Download message attachment.
+     *
+     * GET /messages/{conversation}/messages/{message}/download
+     */
+    public function downloadAttachment(Request $request, Conversation $conversation, Message $message): \Illuminate\Http\Response
+    {
+        $this->authorizeParticipant($conversation, $request->user()->id);
+
+        abort_unless($message->attachment_path, 404, 'Attachment not found.');
+
+        $filePath = storage_path('app/public/' . $message->attachment_path);
+        abort_unless(file_exists($filePath), 404, 'Attachment file not found.');
+
+        return response()->download($filePath, $message->attachment_name, [
+            'Content-Type' => $message->attachment_mime ?? 'application/octet-stream',
+        ]);
     }
 
     /* ── Private helpers ───────────────────────────────────────────────── */
