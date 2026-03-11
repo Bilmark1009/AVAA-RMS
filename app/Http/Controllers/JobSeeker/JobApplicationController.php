@@ -17,6 +17,113 @@ use Inertia\Response;
 class JobApplicationController extends Controller
 {
     /**
+     * Job Seeker: Application History index.
+     */
+    public function index(Request $request): Response
+    {
+        $user = $request->user();
+
+        $applications = JobApplication::query()
+            ->with([
+                'jobListing' => function ($q) {
+                    $q->with(['employer.employerProfile']);
+                },
+                'interview',
+            ])
+            ->where('user_id', $user->id)
+            ->where('status', '!=', 'draft')
+            ->latest()
+            ->get()
+            ->map(function (JobApplication $app) {
+                $job = $app->jobListing;
+                $employer = $job?->employer;
+                $company = $employer?->employerProfile?->company_name
+                    ?? trim(($employer?->first_name ?? '').' '.($employer?->last_name ?? ''))
+                    ?: 'Unknown Company';
+                $logoPath = $employer?->employerProfile?->logo_path;
+                $logoUrl = null;
+                if ($logoPath) {
+                    $relative = ltrim($logoPath, '/');
+
+                    // If it's already an absolute URL, keep it.
+                    if (str_starts_with($relative, 'http://') || str_starts_with($relative, 'https://')) {
+                        $logoUrl = $relative;
+                    } else {
+                        // Prefer public/ logos folder if present (your setup).
+                        $publicRelative = str_starts_with($relative, 'logos/')
+                            ? $relative
+                            : 'logos/'.$relative;
+
+                        if (file_exists(public_path($publicRelative))) {
+                            $logoUrl = '/'.$publicRelative;
+                        } else {
+                            // Fallback to storage disk (default Laravel behavior).
+                            $logoUrl = Storage::disk('public')->url($logoPath);
+                        }
+                    }
+                }
+
+                $initials = collect(preg_split('/\s+/', trim($company)))
+                    ->filter()
+                    ->map(fn ($w) => mb_substr($w, 0, 1))
+                    ->join('');
+                $initials = mb_strtoupper(mb_substr($initials, 0, 2));
+
+                // Derive "Interviewing" stage if an active interview exists.
+                $stage = $app->status;
+                if (! in_array($app->status, ['rejected', 'withdrawn', 'hired', 'contract_ended'], true)) {
+                    if ($app->interview && ($app->interview->status ?? null) === 'active') {
+                        $stage = 'interviewing';
+                    }
+                }
+
+                $canWithdraw = ! in_array($app->status, ['withdrawn', 'rejected', 'hired', 'contract_ended'], true);
+
+                return [
+                    'id' => $app->id,
+                    'status' => $app->status,
+                    'stage' => $stage,
+                    'applied_at' => optional($app->created_at)->toISOString(),
+                    'time_ago' => optional($app->created_at)->diffForHumans(),
+                    'can_withdraw' => $canWithdraw,
+                    'job' => $job ? [
+                        'id' => $job->id,
+                        'title' => $job->title,
+                        'location' => $job->location,
+                        'is_remote' => (bool) $job->is_remote,
+                        'employment_type' => $job->employment_type,
+                    ] : null,
+                    'company' => [
+                        'name' => $company,
+                        'initials' => $initials ?: '??',
+                        'logo_url' => $logoUrl,
+                    ],
+                ];
+            })
+            ->values();
+
+        return Inertia::render('JobSeeker/ApplicationHistory', [
+            'applications' => $applications,
+        ]);
+    }
+
+    /**
+     * Job Seeker: Withdraw a submitted application.
+     */
+    public function withdraw(Request $request, JobApplication $application): RedirectResponse
+    {
+        abort_unless($application->user_id === $request->user()->id, 403);
+
+        if (in_array($application->status, ['withdrawn', 'rejected', 'hired', 'contract_ended'], true)) {
+            return back();
+        }
+
+        $application->update(['status' => 'withdrawn']);
+
+        return back()->with('success', 'Application withdrawn successfully.');
+    }
+
+    /**
      * Show the multi-step application form (pre-filled from profile).
      */
     public function create(JobListing $job): Response|RedirectResponse
