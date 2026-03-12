@@ -234,6 +234,9 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         Route::post('/employers/{user}/verify', [EmployerVerificationController::class, 'verify'])->name('employers.verify');
         Route::post('/employers/{user}/revoke', [EmployerVerificationController::class, 'revoke'])->name('employers.revoke');
         Route::get('/verifications', [EmployerVerificationController::class, 'index'])->name('verifications');
+        
+        // Report Management
+        Route::get('/reports', [App\Http\Controllers\Admin\AdminReportController::class, 'index'])->name('reports.index');
 
         // User Management
         Route::get('/users', [UserManagementController::class, 'index'])->name('users.index');
