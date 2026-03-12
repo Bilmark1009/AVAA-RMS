@@ -166,12 +166,8 @@ function getAdminSideNav(): NavItem[] {
         { label: 'Users', href: safeRoute('admin.users.index'), icon: <IcoUsersAdmin /> },
         { label: 'Jobs', href: safeRoute('admin.jobs.index'), icon: <IcoJobsAdmin /> },
         { label: 'Verifications', href: safeRoute('admin.verifications'), icon: <IcoShield /> },
+        { label: 'Report View', href: route('admin.reports.index'), icon: <IcoShield /> },
         { label: 'Settings', href: safeRoute('admin.settings'), icon: <IcoSettings /> },
-        { 
-            label: 'Report View', 
-            href: route('admin.reports.index'), // Must match the name in web.php
-            icon: <IcoShield /> // Use Flag to match your reference image
-        },
     ];
 }
 

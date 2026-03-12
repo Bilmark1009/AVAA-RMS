@@ -37,6 +37,7 @@ interface ConversationSummary {
     unread_count: number;
     is_archived: boolean;
     is_muted: boolean;
+    is_blocked_by_other?: boolean;
     last_message_at?: string | null;
     job_listing?: { id: number; title: string } | null;
 }
@@ -754,6 +755,52 @@ const [showBlockModal, setShowBlockModal] = useState(false);
     useEffect(() => {
         if (messages.length > 0) lastMsgId.current = messages[messages.length - 1].id;
     }, [messages]);
+    
+    // Process initial messages for blocked user notifications
+    useEffect(() => {
+        if (initMsgs.length > 0) {
+            const processedInitialMsgs = initMsgs.map(msg => {
+                if (msg.body.includes('[BLOCKED_USER_MESSAGE]')) {
+                    return {
+                        ...msg,
+                        body: 'You cannot message this person.',
+                        type: 'system' as const,
+                        sender: {
+                            id: 0,
+                            first_name: 'System',
+                            last_name: '',
+                            avatar: null,
+                            role: 'system'
+                        }
+                    };
+                }
+                return msg;
+            });
+            
+            // Add blocked system message if active conversation is blocked by other user
+            let finalMsgs = processedInitialMsgs;
+            if (initActive && (initActive as any).is_blocked_by_other && processedInitialMsgs.length === 0) {
+                const blockedSystemMessage: Message = {
+                    id: Date.now(),
+                    conversation_id: initActive.id,
+                    sender_id: 0, // system message
+                    body: 'You cannot message this person.',
+                    type: 'system',
+                    created_at: new Date().toISOString(),
+                    sender: {
+                        id: 0,
+                        first_name: 'System',
+                        last_name: '',
+                        avatar: null,
+                        role: 'system'
+                    }
+                };
+                finalMsgs = [blockedSystemMessage];
+            }
+            
+            setMessages(finalMsgs);
+        }
+    }, []);
 
     /* ── Polling ── */
     const startPolling = useCallback((convoId: number) => {
@@ -768,7 +815,28 @@ const [showBlockModal, setShowBlockModal] = useState(false);
                     setMessages(prev => {
                         const ids = new Set(prev.map(m => m.id));
                         const fresh = newMsgs.filter(m => !ids.has(m.id));
-                        return fresh.length > 0 ? [...prev, ...fresh] : prev;
+                        
+                        // Check for blocked user messages and add system notification
+                        const processedMessages = fresh.map(msg => {
+                            if (msg.body.includes('[BLOCKED_USER_MESSAGE]')) {
+                                // Replace with user-friendly system message
+                                return {
+                                    ...msg,
+                                    body: 'You cannot message this person.',
+                                    type: 'system' as const,
+                                    sender: {
+                                        id: 0,
+                                        first_name: 'System',
+                                        last_name: '',
+                                        avatar: null,
+                                        role: 'system'
+                                    }
+                                };
+                            }
+                            return msg;
+                        });
+                        
+                        return processedMessages.length > 0 ? [...prev, ...processedMessages] : prev;
                     });
                     const last = newMsgs[newMsgs.length - 1];
                     setConvos(prev => prev.map(c =>
@@ -801,16 +869,80 @@ const [showBlockModal, setShowBlockModal] = useState(false);
             preserveState: true,
             onSuccess: (page: any) => {
                 const p = page.props as any;
-                setMessages(p.initialMessages ?? []);
+                let initialMsgs = p.initialMessages ?? [];
+                
+                // Check for blocked user messages in initial messages
+                initialMsgs = initialMsgs.map((msg: Message) => {
+                    if (msg.body.includes('[BLOCKED_USER_MESSAGE]')) {
+                        return {
+                            ...msg,
+                            body: 'You cannot message this person.',
+                            type: 'system' as const,
+                            sender: {
+                                id: 0,
+                                first_name: 'System',
+                                last_name: '',
+                                avatar: null,
+                                role: 'system'
+                            }
+                        };
+                    }
+                    return msg;
+                });
+                
+                // Check if conversation has blocked status and add system message if needed
+                if ((p.activeConversation as any)?.is_blocked_by_other) {
+                    const blockedSystemMessage: Message = {
+                        id: Date.now() + Math.random(), // unique ID
+                        conversation_id: convo.id,
+                        sender_id: 0, // system message
+                        body: 'You cannot message this person.',
+                        type: 'system',
+                        created_at: new Date().toISOString(),
+                        sender: {
+                            id: 0,
+                            first_name: 'System',
+                            last_name: '',
+                            avatar: null,
+                            role: 'system'
+                        }
+                    };
+                    initialMsgs = [...initialMsgs, blockedSystemMessage];
+                }
+                
+                setMessages(initialMsgs);
                 setActiveConvo(p.activeConversation ?? null);
                 setConvos(p.conversations ?? convos);
-                lastMsgId.current = p.initialMessages?.length > 0
-                    ? p.initialMessages[p.initialMessages.length - 1].id : 0;
+                lastMsgId.current = initialMsgs?.length > 0
+                    ? initialMsgs[initialMsgs.length - 1].id : 0;
                 setConvos(prev => prev.map(c => c.id === convo.id ? { ...c, unread_count: 0 } : c));
                 setMobileView('chat');
                 setLoadingConvo(false);
             },
-            onError: () => setLoadingConvo(false),
+            onError: (error: any) => {
+                // Handle 403 when opening conversation (user is blocked)
+                if (error.response?.status === 403) {
+                    const blockedSystemMessage: Message = {
+                        id: Date.now(),
+                        conversation_id: convo.id,
+                        sender_id: 0, // system message
+                        body: 'You cannot message this person.',
+                        type: 'system',
+                        created_at: new Date().toISOString(),
+                        sender: {
+                            id: 0,
+                            first_name: 'System',
+                            last_name: '',
+                            avatar: null,
+                            role: 'system'
+                        }
+                    };
+                    setMessages([blockedSystemMessage]);
+                    setActiveConvo(convo);
+                    toast.show('You cannot message this person');
+                }
+                setLoadingConvo(false);
+            },
         });
     }, [activeConvo?.id, convos, stopPolling]);
 
@@ -885,7 +1017,30 @@ const [showBlockModal, setShowBlockModal] = useState(false);
                 if (!exists) return [updated, ...prev];
                 return prev.map(c => c.id === activeConvo.id ? updated : c);
             });
-        } catch { /* handle error */ }
+        } catch (error: any) {
+            // Handle 403 Forbidden - user is blocked
+            if (error.response?.status === 403) {
+                const blockedSystemMessage: Message = {
+                    id: Date.now(), // temporary ID
+                    conversation_id: activeConvo.id,
+                    sender_id: 0, // system message
+                    body: 'You cannot message this person.',
+                    type: 'system',
+                    created_at: new Date().toISOString(),
+                    sender: {
+                        id: 0,
+                        first_name: 'System',
+                        last_name: '',
+                        avatar: null,
+                        role: 'system'
+                    }
+                };
+                setMessages(prev => [...prev, blockedSystemMessage]);
+                toast.show('You cannot message this person');
+            } else {
+                toast.show('Failed to send message');
+            }
+        }
         finally { setSending(false); }
     }, [activeConvo, body, me.id]);
 
@@ -935,12 +1090,33 @@ const [showBlockModal, setShowBlockModal] = useState(false);
             await axios.post(route('messages.block', activeConvo.other_user.id));
             toast.show(`${activeConvo.name} has been blocked`);
             
-            // Clean up: Remove the convo from the sidebar and clear chat
+            // Add system message to conversation
+            const blockSystemMessage: Message = {
+                id: Date.now(), // temporary ID
+                conversation_id: activeConvo.id,
+                sender_id: 0, // system message
+                body: `You have blocked ${activeConvo.name}. You will no longer receive messages from them.`,
+                type: 'system',
+                created_at: new Date().toISOString(),
+                sender: {
+                    id: 0,
+                    first_name: 'System',
+                    last_name: '',
+                    avatar: null,
+                    role: 'system'
+                }
+            };
+            
+            setMessages(prev => [...prev, blockSystemMessage]);
+            
+            // Clean up: Remove the convo from the sidebar and clear chat after a delay
             const blockedId = activeConvo.id;
-            setActiveConvo(null);
-            setMessages([]);
-            setConvos(prev => prev.filter(c => c.id !== blockedId));
-            stopPolling();
+            setTimeout(() => {
+                setActiveConvo(null);
+                setMessages([]);
+                setConvos(prev => prev.filter(c => c.id !== blockedId));
+                stopPolling();
+            }, 3000); // Give user time to see the system message
         } catch (err) {
             toast.show('Failed to block user');
         } finally {
