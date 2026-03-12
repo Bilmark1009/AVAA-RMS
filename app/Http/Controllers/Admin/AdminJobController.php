@@ -27,10 +27,13 @@ class AdminJobController extends Controller
                     ->orWhere('location', 'like', "%{$search}%")
                     ->orWhere('industry', 'like', "%{$search}%");
             }))
-            ->when($type === 'full-time', fn($q) => $q->where('employment_type', 'Full Time'))
-            ->when($type === 'part-time', fn($q) => $q->where('employment_type', 'Part Time'))
-            ->when($type === 'contract', fn($q) => $q->where('employment_type', 'Contract'))
-            ->when($type === 'remote', fn($q) => $q->where('is_remote', true))
+            ->when($type === 'full-time', fn($q) => $q->whereRaw("LOWER(REPLACE(REPLACE(employment_type, '-', ' '), '_', ' ')) = ?", ['full time']))
+            ->when($type === 'part-time', fn($q) => $q->whereRaw("LOWER(REPLACE(REPLACE(employment_type, '-', ' '), '_', ' ')) = ?", ['part time']))
+            ->when($type === 'contract', fn($q) => $q->whereRaw("LOWER(REPLACE(REPLACE(employment_type, '-', ' '), '_', ' ')) = ?", ['contract']))
+            ->when($type === 'remote', fn($q) => $q->where(function ($inner) {
+                $inner->where('is_remote', true)
+                    ->orWhereRaw("LOWER(REPLACE(REPLACE(employment_type, '-', ' '), '_', ' ')) = ?", ['remote']);
+            }))
             ->orderByDesc('created_at')
             ->paginate(12)
             ->withQueryString()

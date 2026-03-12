@@ -51,6 +51,12 @@ interface Props {
 const AVATAR_COLORS = ['bg-avaa-dark', 'bg-teal-700', 'bg-emerald-700', 'bg-slate-600', 'bg-cyan-700', 'bg-stone-600'];
 function avatarColor(id: number) { return AVATAR_COLORS[id % AVATAR_COLORS.length]; }
 function getInitials(first: string, last: string) { return `${(first[0] ?? '')}${(last[0] ?? '')}`.toUpperCase(); }
+function resolveResumeUrl(path?: string | null) {
+    if (!path) return null;
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    if (path.startsWith('/')) return path;
+    return `/${path}`;
+}
 function timeAgo(dateStr: string) {
     const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
     if (diff < 3600) return `${Math.max(1, Math.floor(diff / 60))}m ago`;
@@ -389,6 +395,17 @@ function AppStatusBadge({ status, jobId, appId, onReject, onApprove }: {
     );
 }
 
+function AppStatusChip({ status }: { status: string }) {
+    const cfg = STATUS_CFG[status] ?? STATUS_CFG.pending;
+
+    return (
+        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${cfg.bg} ${cfg.text}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+            {cfg.label}
+        </span>
+    );
+}
+
 /* ══════════════════════════════════════════════
    APPLICANT DETAIL MODAL
 ══════════════════════════════════════════════ */
@@ -690,6 +707,7 @@ export default function JobApplications({ job, applications, employerAddress }: 
                                 const initials = getInitials(app.user.first_name, app.user.last_name);
                                 const subTitle = (app.application_data?.current_job_title) ?? (app.user.profile?.professional_title) ?? (app.user.profile?.current_job_title) ?? '';
                                 const resumePath = (app.resume_path) ?? (app.user.profile?.resume_path);
+                                const resumeUrl = resolveResumeUrl(resumePath);
                                 const resumeName = resumePath ? resumePath.split('/').pop() : null;
 
                                 return (
@@ -708,14 +726,19 @@ export default function JobApplications({ job, applications, employerAddress }: 
                                             </div>
                                         </td>
                                         <td className="px-4 py-4">
-                                            {resumePath ? (
-                                                <a href={resumePath} target="_blank" rel="noreferrer" className="text-sm text-avaa-teal hover:underline truncate block max-w-[180px]">{resumeName}</a>
+                                            {resumeUrl ? (
+                                                <div className="max-w-[220px]">
+                                                    <a href={resumeUrl} target="_blank" rel="noreferrer" className="text-sm text-avaa-teal hover:underline truncate block">{resumeName}</a>
+                                                    <div className="mt-1 flex items-center gap-3">
+                                                        <a href={resumeUrl} target="_blank" rel="noreferrer" className="text-xs font-medium text-avaa-dark hover:text-avaa-teal hover:underline">View</a>
+                                                        <a href={resumeUrl} download className="text-xs font-medium text-avaa-dark hover:text-avaa-teal hover:underline">Download</a>
+                                                    </div>
+                                                </div>
                                             ) : <span className="text-sm text-gray-400 italic">—</span>}
                                         </td>
                                         <td className="px-4 py-4"><span className="text-base text-gray-600">{app.created_at}</span></td>
                                         <td className="px-4 py-4">
-                                            <AppStatusBadge status={app.status} jobId={job.id} appId={app.id}
-                                                onReject={() => setRejectApp(app)} onApprove={() => setApproveApp(app)} />
+                                            <AppStatusChip status={app.status} />
                                         </td>
                                         <td className="px-4 py-4 text-right">
                                             <OptionsMenu app={app} jobId={job.id} onView={() => setViewApp(app)}

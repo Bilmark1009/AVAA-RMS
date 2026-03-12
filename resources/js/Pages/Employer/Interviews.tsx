@@ -136,41 +136,16 @@ function StatCard({ label, value, color, sub, icon, badge }: StatCardProps) {
 }
 
 /* ══════════════════════════════════════════════
-   STATUS BADGE
+   STATUS BADGE (display only)
 ══════════════════════════════════════════════ */
-function InterviewStatusBadge({ interviewId, status }: { interviewId: number; status: string }) {
-    const [open, setOpen] = useState(false);
-    const ref = useRef<HTMLDivElement>(null);
-    useEffect(() => {
-        const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
-        document.addEventListener('mousedown', h);
-        return () => document.removeEventListener('mousedown', h);
-    }, []);
-
+function InterviewStatusBadge({ status }: { status: string }) {
     const cfg = STATUS_CFG[status] ?? STATUS_CFG.active;
 
     return (
-        <div ref={ref} className="relative inline-block">
-            <button onClick={() => setOpen(o => !o)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold ${cfg.bg} ${cfg.text} hover:shadow-sm transition-all`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-                {cfg.label}
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="opacity-60"><polyline points="6 9 12 15 18 9" /></svg>
-            </button>
-            {open && (
-                <div className="absolute left-0 top-full mt-1 z-30 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden min-w-[130px]">
-                    {Object.entries(STATUS_CFG).filter(([k]) => k !== status).map(([k, c]) => (
-                        <button key={k} onClick={() => {
-                            router.patch(route('employer.interviews.status', { interview: interviewId }), { status: k }, { preserveScroll: true });
-                            setOpen(false);
-                        }}
-                            className="flex items-center gap-2 w-full px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-                            <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />{c.label}
-                        </button>
-                    ))}
-                </div>
-            )}
-        </div>
+        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold ${cfg.bg} ${cfg.text}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+            {cfg.label}
+        </span>
     );
 }
 
@@ -415,7 +390,7 @@ function JobGroup({
                                             </div>
                                         </td>
                                         <td className="px-4 py-4">
-                                            <InterviewStatusBadge interviewId={i.id} status={i.status} />
+                                            <InterviewStatusBadge status={i.status} />
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center justify-end gap-1.5">
