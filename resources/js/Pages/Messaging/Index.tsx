@@ -1393,7 +1393,7 @@ const [showBlockModal, setShowBlockModal] = useState(false);
             ));
             
             // Resume polling
-            startPolling();
+            if (activeConvo) startPolling(activeConvo.id);
         } catch (err) {
             toast.show('Failed to unblock user');
         } finally {
