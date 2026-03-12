@@ -345,14 +345,6 @@ export default function JobSeekerBlockedUsers({ auth }: PageProps<{ auth: any }>
             <Head title="Blocked Employers - Job Seeker Settings" />
             
             <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-                {/* Header */}
-                <div>
-                    <h2 className="text-xl font-bold text-gray-900">Blocked Employers</h2>
-                    <p className="text-sm text-gray-600 mt-1">
-                        Manage employers you've blocked from contacting you.
-                    </p>
-                </div>
-
                 {/* Block New Employer */}
                 <BlockEmployerForm onBlock={handleBlock} />
 
@@ -364,8 +356,7 @@ export default function JobSeekerBlockedUsers({ auth }: PageProps<{ auth: any }>
                     
                     {blockedUsersList.length === 0 ? (
                         <div className="text-center py-8 bg-white border border-gray-200 rounded-xl">
-                            <IcoBuilding />
-                            <p className="text-sm text-gray-600 mt-2">No blocked employers</p>
+                            <p className="text-sm text-gray-600">No blocked employers</p>
                             <p className="text-xs text-gray-400 mt-1">
                                 Employers you block will appear here
                             </p>

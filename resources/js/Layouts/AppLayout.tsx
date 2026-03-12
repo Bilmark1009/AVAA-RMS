@@ -167,7 +167,6 @@ function getAdminSideNav(): NavItem[] {
         { label: 'Jobs', href: safeRoute('admin.jobs.index'), icon: <IcoJobsAdmin /> },
         { label: 'Verifications', href: safeRoute('admin.verifications'), icon: <IcoShield /> },
         { label: 'Settings', href: safeRoute('admin.settings'), icon: <IcoSettings /> },
-        { label: 'Messages', href: safeRoute('messages.index'), icon: <IcoMsg /> },
     ];
 }
 
