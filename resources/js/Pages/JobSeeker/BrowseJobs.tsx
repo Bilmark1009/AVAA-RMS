@@ -80,7 +80,7 @@ function JobCard({ job, saved, onSave, onApply, onView }: {
                 : 'Apply Now';
 
     return (
-        <div className="bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-md hover:border-gray-300 transition-all flex flex-col gap-4">
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-md hover:border-gray-300 transition-all flex flex-col gap-4 min-w-0 overflow-hidden">
 
             {/* Avatar + title */}
             <div className="flex items-start gap-4">
@@ -126,33 +126,34 @@ function JobCard({ job, saved, onSave, onApply, onView }: {
                 </div>
             )}
 
-            {/* Footer: salary + actions */}
-            <div className="flex items-center justify-between pt-4 border-t border-gray-100 mt-auto">
-                <div className="flex items-center">
+            {/* Footer: salary + actions — stack on small screens, row on md+; actions wrap */}
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pt-4 border-t border-gray-100 mt-auto">
+                <div className="min-w-0 flex-shrink-0">
                     {salary ? (
                         <>
                             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-0.5">Salary Range</p>
-                            <p className="text-base font-extrabold text-avaa-dark ml-3">{salary}</p>
+                            <p className="text-base font-extrabold text-avaa-dark">{salary}</p>
                         </>
                     ) : (
                         <p className="text-sm text-gray-400 italic">Salary not disclosed</p>
                     )}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 min-w-0 flex-1 justify-end">
                     <button onClick={onSave}
-                        className={`p-2.5 rounded-xl border transition-all ${saved
+                        className={`p-2.5 rounded-xl border transition-all flex-shrink-0 ${saved
                             ? 'border-avaa-primary/30 bg-avaa-primary-light text-avaa-teal'
-                            : 'border-gray-200 text-gray-400 hover:border-avaa-primary/30 hover:text-avaa-teal hover:bg-avaa-primary-light'}`}>
+                            : 'border-gray-200 text-gray-400 hover:border-avaa-primary/30 hover:text-avaa-teal hover:bg-avaa-primary-light'}`}
+                        aria-label={saved ? 'Unsave job' : 'Save job'}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill={saved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
                         </svg>
                     </button>
                     <button onClick={onView}
-                        className="px-4 py-2 border border-gray-300 text-gray-700 hover:border-avaa-primary hover:text-avaa-teal text-sm font-semibold rounded-xl transition-colors whitespace-nowrap">
+                        className="px-3 py-2 sm:px-4 border border-gray-300 text-gray-700 hover:border-avaa-primary hover:text-avaa-teal text-sm font-semibold rounded-xl transition-colors min-w-0">
                         View Details
                     </button>
                     <button onClick={onApply} disabled={isApplied}
-                        className="px-4 py-2 bg-avaa-primary hover:bg-avaa-primary-hover text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap">
+                        className="px-3 py-2 sm:px-4 bg-avaa-primary hover:bg-avaa-primary-hover text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-60 disabled:cursor-not-allowed min-w-0">
                         <span className="inline-flex items-center gap-1.5">
                             {applyLabel}
                             {isRejected && (
@@ -170,7 +171,7 @@ function JobCard({ job, saved, onSave, onApply, onView }: {
 function FilterPill({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
     return (
         <button onClick={onClick}
-            className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all whitespace-nowrap self-stretch ${active
+            className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all whitespace-nowrap ${active
                 ? 'bg-avaa-primary text-white border-avaa-primary shadow-sm'
                 : 'bg-white text-gray-600 border-gray-200 hover:border-avaa-primary/40 hover:text-avaa-teal'}`}>
             {label}
@@ -235,15 +236,41 @@ export default function BrowseJobs({ jobs, savedJobIds, filters, availableSkills
                 <Head title="Browse Jobs" />
 
                 {/* Page heading */}
-                <div className="mb-8">
-                    <h1 className="text-3xl font-extrabold text-avaa-dark">Find Your Next Role</h1>
-                    <p className="text-base text-avaa-muted mt-2">Browse open positions from top companies</p>
+                <div className="mb-6 sm:mb-8">
+                    <h1 className="text-2xl sm:text-3xl font-extrabold text-avaa-dark">Find Your Next Role</h1>
+                    <p className="text-sm sm:text-base text-avaa-muted mt-2">Browse open positions from top companies</p>
                 </div>
 
-                <div className="flex gap-8">
+                {/* Mobile search + date filters (visible when sidebar hidden) */}
+                <div className="lg:hidden mb-6 space-y-4">
+                    <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 h-11 shadow-sm focus-within:ring-2 focus-within:ring-avaa-primary/20 focus-within:border-avaa-primary transition-all">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-gray-400 flex-shrink-0">
+                            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                        </svg>
+                        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search Jobs"
+                            className="text-sm border-none focus:ring-0 p-0 bg-transparent text-avaa-dark placeholder-gray-400 focus:outline-none w-full min-w-0" />
+                        {search && (
+                            <button onClick={() => setSearch('')} className="text-gray-300 hover:text-gray-500 flex-shrink-0">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                                </svg>
+                            </button>
+                        )}
+                    </div>
+                    <div>
+                        <p className="text-xs font-bold text-avaa-dark mb-2">Date Posted</p>
+                        <div className="flex flex-wrap gap-2">
+                            {DATE_FILTERS.map(f => (
+                                <FilterPill key={f.value} label={f.label} active={dateFilter === f.value} onClick={() => setDateFilter(f.value)} />
+                            ))}
+                        </div>
+                    </div>
+                </div>
 
-                    {/* ── Sidebar — 288px wide ── */}
-                    <aside className="hidden lg:flex flex-col gap-7 w-72 flex-shrink-0">
+                <div className="flex gap-8 min-w-0 overflow-x-hidden w-full max-w-full">
+
+                    {/* ── Sidebar — 288px wide; hide on smaller screens ── */}
+                    <aside className="hidden lg:flex flex-col gap-7 w-72 flex-shrink-0 min-w-0 overflow-hidden">
 
                         {/* Search — 44px tall standard input */}
                         <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 h-11 shadow-sm focus-within:ring-2 focus-within:ring-avaa-primary/20 focus-within:border-avaa-primary transition-all">
@@ -262,9 +289,9 @@ export default function BrowseJobs({ jobs, savedJobIds, filters, availableSkills
                         </div>
 
                         {/* Date Posted */}
-                        <div>
+                        <div className="min-w-0">
                             <p className="text-sm font-bold text-avaa-dark mb-3">Date Posted</p>
-                            <div className="flex flex-wrap gap-2 items-stretch">
+                            <div className="flex flex-wrap gap-2">
                                 {DATE_FILTERS.map(f => (
                                     <FilterPill key={f.value} label={f.label} active={dateFilter === f.value} onClick={() => setDateFilter(f.value)} />
                                 ))}
@@ -303,7 +330,7 @@ export default function BrowseJobs({ jobs, savedJobIds, filters, availableSkills
                     </aside>
 
                     {/* ── Job Grid ── */}
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 w-full max-w-full overflow-hidden">
                         {jobs.length === 0 ? (
                             <div className="bg-white rounded-2xl border border-gray-200 p-20 text-center">
                                 <div className="w-16 h-16 rounded-2xl bg-avaa-primary-light flex items-center justify-center mx-auto mb-5 text-avaa-teal">
@@ -315,7 +342,7 @@ export default function BrowseJobs({ jobs, savedJobIds, filters, availableSkills
                                 <p className="text-base text-avaa-muted">Try adjusting your search or filters.</p>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                            <div className="grid grid-cols-1 xl:grid-cols-[repeat(2,minmax(0,1fr))] gap-5 w-full max-w-full">
                                 {jobs.map(job => (
                                     <JobCard key={job.id} job={job} saved={saved.has(job.id)}
                                         onSave={() => toggleSave(job.id)}

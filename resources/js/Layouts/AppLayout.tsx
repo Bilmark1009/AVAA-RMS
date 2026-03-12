@@ -337,7 +337,7 @@ function SidebarShell({
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
     return (
-        <div className="min-h-screen bg-[#e8efef] flex">
+        <div className="h-screen bg-[#e8efef] flex overflow-hidden">
 
             {/* ── Sidebar (desktop) ── */}
             <aside
@@ -468,7 +468,7 @@ function SidebarShell({
             </aside>
 
             {/* ── Main area (top bar + content) ── */}
-            <div className="flex-1 flex flex-col min-w-0">
+            <div className="flex-1 flex flex-col min-w-0 h-screen">
 
                 {/* Top Bar */}
                 <header className="bg-white border-b border-gray-200 sticky top-0 z-20">
@@ -510,7 +510,7 @@ function SidebarShell({
                 </header>
 
                 {/* Page Content */}
-                <main className="flex-1 px-4 sm:px-6 lg:px-8 py-8">
+                <main className="flex-1 px-4 sm:px-6 lg:px-8 py-8 overflow-y-auto overflow-x-hidden min-w-0">
                     {children}
                 </main>
             </div>
@@ -632,7 +632,7 @@ export default function AppLayout({ children, activeNav, pageTitle, pageSubtitle
 
     // Fallback for any other roles — minimal top-nav layout
     return (
-        <div className="min-h-screen bg-[#e8efef]">
+        <div className="h-screen bg-[#e8efef] overflow-hidden">
             <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
                 <div className="w-full px-8 lg:px-16 h-20 flex items-center gap-6">
                     <Link href="/" className="flex items-center flex-shrink-0">
@@ -649,7 +649,7 @@ export default function AppLayout({ children, activeNav, pageTitle, pageSubtitle
                     />
                 </div>
             </header>
-            <main className="w-full px-4 sm:px-8 lg:px-16 py-10">
+            <main className="w-full px-4 sm:px-8 lg:px-16 py-10 overflow-y-auto overflow-x-hidden h-[calc(100vh-5rem)]">
                 {children}
             </main>
         </div>

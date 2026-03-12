@@ -1,5 +1,6 @@
 import { Head, router } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
+import Modal from '@/Components/Modal';
 import type { PageProps } from '@/types';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -140,14 +141,16 @@ function SegmentedTabs({ value, onChange, tabs }: {
     );
 }
 
-function ApplicationCard({ app, onView }: { app: ApplicationItem; onView: (app: ApplicationItem) => void }) {
+function ApplicationCard({
+    app,
+    onView,
+    onWithdraw,
+}: {
+    app: ApplicationItem;
+    onView: (app: ApplicationItem) => void;
+    onWithdraw: (app: ApplicationItem) => void;
+}) {
     const canWithdraw = app.can_withdraw && ['pending', 'interviewing', 'approved'].includes((app.stage || '').toString().toLowerCase());
-    const onWithdraw = () => {
-        const confirmed = window.confirm('Are you sure you want to withdraw this application? This action cannot be undone.');
-        if (!confirmed) return;
-
-        router.patch(route('job-seeker.applications.withdraw', app.id), {}, { preserveScroll: true });
-    };
 
     return (
         <div className="bg-white border border-gray-200 rounded-2xl px-5 sm:px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6">
@@ -231,7 +234,7 @@ function ApplicationCard({ app, onView }: { app: ApplicationItem; onView: (app: 
                 {canWithdraw && (
                     <button
                         type="button"
-                        onClick={onWithdraw}
+                        onClick={() => onWithdraw(app)}
                         className="w-full sm:w-auto px-4 py-2 rounded-lg text-xs font-semibold border border-rose-200 text-rose-600 hover:bg-rose-50 transition"
                     >
                         Withdraw Application
@@ -245,17 +248,12 @@ function ApplicationCard({ app, onView }: { app: ApplicationItem; onView: (app: 
 function DemoApplicationCard({
     app,
     onView,
+    onWithdraw,
 }: {
     app: ApplicationItem;
     onView: (app: ApplicationItem) => void;
+    onWithdraw: (app: ApplicationItem) => void;
 }) {
-    const onWithdraw = () => {
-        const confirmed = window.confirm('Are you sure you want to withdraw this application? This action cannot be undone.');
-        if (!confirmed) return;
-
-        router.visit(route('job-seeker.applications.index'));
-    };
-
     const canWithdraw = app.can_withdraw && ['pending', 'interviewing', 'approved'].includes((app.stage || '').toString().toLowerCase());
 
     return (
@@ -340,7 +338,7 @@ function DemoApplicationCard({
                 {canWithdraw && (
                     <button
                         type="button"
-                        onClick={onWithdraw}
+                        onClick={() => onWithdraw(app)}
                         className="w-full sm:w-auto px-4 py-2 rounded-lg text-xs font-semibold border border-rose-200 text-rose-600 hover:bg-rose-50 transition"
                     >
                         Withdraw Application
@@ -680,6 +678,9 @@ export default function ApplicationHistory({ applications }: Props) {
     const [tab, setTab] = useState<'all' | 'pending' | 'interviewing' | 'withdrawn' | 'rejected'>('all');
     const [detailsOpen, setDetailsOpen] = useState(false);
     const [selected, setSelected] = useState<ApplicationItem | null>(null);
+    const [withdrawOpen, setWithdrawOpen] = useState(false);
+    const [withdrawTarget, setWithdrawTarget] = useState<ApplicationItem | null>(null);
+    const [withdrawing, setWithdrawing] = useState(false);
 
     const filtered = useMemo(() => {
         const norm = (s: Stage) => (s || '').toString().toLowerCase();
@@ -697,6 +698,46 @@ export default function ApplicationHistory({ applications }: Props) {
 
     const closeDetails = () => {
         setDetailsOpen(false);
+    };
+
+    const requestWithdraw = (app: ApplicationItem) => {
+        setWithdrawTarget(app);
+        setWithdrawOpen(true);
+    };
+
+    const closeWithdraw = () => {
+        if (withdrawing) return;
+        setWithdrawOpen(false);
+        setWithdrawTarget(null);
+    };
+
+    const confirmWithdraw = () => {
+        if (!withdrawTarget || withdrawing) return;
+        setWithdrawing(true);
+
+        // Demo cards use negative IDs; keep their withdraw action local.
+        if (withdrawTarget.id < 0) {
+            router.visit(route('job-seeker.applications.index'), {
+                preserveScroll: true,
+                onFinish: () => {
+                    setWithdrawing(false);
+                    closeWithdraw();
+                },
+            });
+            return;
+        }
+
+        router.patch(
+            route('job-seeker.applications.withdraw', withdrawTarget.id),
+            {},
+            {
+                preserveScroll: true,
+                onFinish: () => {
+                    setWithdrawing(false);
+                    closeWithdraw();
+                },
+            }
+        );
     };
 
     return (
@@ -730,11 +771,65 @@ export default function ApplicationHistory({ applications }: Props) {
                                 <p className="text-sm text-gray-500">No applications found for this filter.</p>
                             </div>
                         ) : (
-                            filtered.map(app => <ApplicationCard key={app.id} app={app} onView={openDetails} />)
+                            filtered.map(app => (
+                                <ApplicationCard
+                                    key={app.id}
+                                    app={app}
+                                    onView={openDetails}
+                                    onWithdraw={requestWithdraw}
+                                />
+                            ))
                         )}
                     </div>
                 </div>
             </div>
+
+            {/* Withdraw confirmation modal */}
+            <Modal show={withdrawOpen} onClose={closeWithdraw} maxWidth="md" closeable={!withdrawing}>
+                <div className="p-6 sm:p-7">
+                    <div className="flex items-start gap-4">
+                        <div className="w-11 h-11 rounded-2xl bg-rose-50 border border-rose-100 flex items-center justify-center flex-shrink-0 text-rose-600">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                                <line x1="12" y1="9" x2="12" y2="13" />
+                                <line x1="12" y1="17" x2="12.01" y2="17" />
+                            </svg>
+                        </div>
+
+                        <div className="min-w-0">
+                            <h3 className="text-[15px] sm:text-base font-extrabold text-avaa-dark leading-snug">
+                                Withdraw application?
+                            </h3>
+                            <p className="text-sm text-gray-600 mt-1.5 leading-relaxed">
+                                This will immediately mark your application for{' '}
+                                <span className="font-semibold text-avaa-dark">
+                                    {withdrawTarget?.job?.title ?? 'this job'}
+                                </span>{' '}
+                                as withdrawn. This action can’t be undone.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="mt-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5">
+                        <button
+                            type="button"
+                            onClick={closeWithdraw}
+                            disabled={withdrawing}
+                            className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            onClick={confirmWithdraw}
+                            disabled={withdrawing}
+                            className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-sm font-semibold transition-colors shadow-sm shadow-rose-600/15 disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                            {withdrawing ? 'Withdrawing…' : 'Withdraw'}
+                        </button>
+                    </div>
+                </div>
+            </Modal>
 
             <ApplicationDetailsModal open={detailsOpen} app={selected} onClose={closeDetails} />
         </AppLayout>

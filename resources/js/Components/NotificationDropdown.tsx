@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, router, usePage } from '@inertiajs/react';
 import { PageProps, AppNotification } from '@/types';
 
@@ -185,16 +186,27 @@ export default function NotificationDropdown() {
     const [unreadCount, setUnreadCount] = useState(initialUnread);
     const [loading, setLoading] = useState(false);
     const ref = useRef<HTMLDivElement>(null);
+    const panelRef = useRef<HTMLDivElement>(null);
     const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-    /* ── Click-outside closes ── */
+    /* ── Click-outside closes (button or panel = don't close) ── */
     useEffect(() => {
         const handler = (e: MouseEvent) => {
-            if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+            const target = e.target as Node;
+            if (ref.current?.contains(target) || panelRef.current?.contains(target)) return;
+            setOpen(false);
         };
         document.addEventListener('mousedown', handler);
         return () => document.removeEventListener('mousedown', handler);
     }, []);
+
+    /* ── Any scroll closes the dropdown (all devices) ── */
+    useEffect(() => {
+        if (!open) return;
+        const onScroll = () => setOpen(false);
+        window.addEventListener('scroll', onScroll, true);
+        return () => window.removeEventListener('scroll', onScroll, true);
+    }, [open]);
 
     /* ── Fetch notifications from server ── */
     const fetchNotifications = useCallback(async () => {
@@ -315,71 +327,85 @@ export default function NotificationDropdown() {
                 )}
             </button>
 
-            {/* Dropdown */}
-            {open && (
-                <div className="absolute right-0 top-full mt-2 w-[340px] bg-white rounded-2xl border border-gray-200
-                    shadow-lg shadow-black/5 z-50 overflow-hidden">
-
-                    {/* Header */}
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-                        <div className="flex items-center gap-2">
-                            <h3 className="text-sm font-bold text-avaa-dark">Notifications</h3>
+            {/* Dropdown: portal; always opens from top bar (all devices) */}
+            {open && createPortal(
+                <>
+                    {/* Backdrop; tap to close */}
+                    <div
+                        className="fixed inset-0 z-[99] bg-black/30"
+                        onClick={() => setOpen(false)}
+                        aria-hidden
+                    />
+                    {/* Panel: top-aligned dropdown (mobile + desktop) */}
+                    <div
+                        ref={panelRef}
+                        className="fixed z-[100] top-20 left-3 right-3 max-h-[70vh]
+                            sm:left-auto sm:right-4 sm:w-[340px]
+                            bg-white border border-gray-200 shadow-xl
+                            flex flex-col overflow-hidden rounded-2xl"
+                    >
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 flex-shrink-0">
+                            <div className="flex items-center gap-2">
+                                <h3 className="text-sm font-bold text-avaa-dark">Notifications</h3>
+                                {unreadCount > 0 && (
+                                    <span className="bg-avaa-primary text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                                        {unreadCount}
+                                    </span>
+                                )}
+                            </div>
                             {unreadCount > 0 && (
-                                <span className="bg-avaa-primary text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                                    {unreadCount}
-                                </span>
+                                <button
+                                    onClick={markAllRead}
+                                    className="text-[11px] font-semibold text-avaa-teal hover:text-avaa-primary-hover transition-colors"
+                                >
+                                    Mark all read
+                                </button>
                             )}
                         </div>
-                        {unreadCount > 0 && (
-                            <button
-                                onClick={markAllRead}
-                                className="text-[11px] font-semibold text-avaa-teal hover:text-avaa-primary-hover transition-colors"
+
+                        {/* Body */}
+                        <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-gray-50">
+                            {loading ? (
+                                <div className="flex items-center justify-center py-8">
+                                    <svg className="animate-spin w-5 h-5 text-avaa-primary" viewBox="0 0 24 24" fill="none">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                                    </svg>
+                                </div>
+                            ) : notifications.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-10 gap-2 text-center px-4">
+                                    <span className="text-avaa-muted"><IcoBellOff /></span>
+                                    <p className="text-sm font-semibold text-avaa-dark">You're all caught up!</p>
+                                    <p className="text-xs text-avaa-muted">No notifications yet.</p>
+                                </div>
+                            ) : (
+                                notifications.map(notification => (
+                                    <NotificationItem
+                                        key={notification.id}
+                                        notification={notification}
+                                        role={role}
+                                        onMarkRead={markRead}
+                                        onDelete={deleteOne}
+                                        onClose={() => setOpen(false)}
+                                    />
+                                ))
+                            )}
+                        </div>
+
+                        {/* Footer */}
+                        <div className="border-t border-gray-100 px-4 py-2.5 flex-shrink-0 bg-white">
+                            <Link
+                                href={safeRoute('notifications.index')}
+                                onClick={() => setOpen(false)}
+                                className="block text-center text-xs font-semibold text-avaa-teal hover:text-avaa-primary-hover transition-colors py-0.5"
                             >
-                                Mark all read
-                            </button>
-                        )}
+                                View all notifications →
+                            </Link>
+                        </div>
                     </div>
-
-                    {/* Body */}
-                    <div className="max-h-[380px] overflow-y-auto divide-y divide-gray-50">
-                        {loading ? (
-                            <div className="flex items-center justify-center py-8">
-                                <svg className="animate-spin w-5 h-5 text-avaa-primary" viewBox="0 0 24 24" fill="none">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                                </svg>
-                            </div>
-                        ) : notifications.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-10 gap-2 text-center px-4">
-                                <span className="text-avaa-muted"><IcoBellOff /></span>
-                                <p className="text-sm font-semibold text-avaa-dark">You're all caught up!</p>
-                                <p className="text-xs text-avaa-muted">No notifications yet.</p>
-                            </div>
-                        ) : (
-                            notifications.map(notification => (
-                                <NotificationItem
-                                    key={notification.id}
-                                    notification={notification}
-                                    role={role}
-                                    onMarkRead={markRead}
-                                    onDelete={deleteOne}
-                                    onClose={() => setOpen(false)}
-                                />
-                            ))
-                        )}
-                    </div>
-
-                    {/* Footer */}
-                    <div className="border-t border-gray-100 px-4 py-2.5">
-                        <Link
-                            href={safeRoute('notifications.index')}
-                            onClick={() => setOpen(false)}
-                            className="block text-center text-xs font-semibold text-avaa-teal hover:text-avaa-primary-hover transition-colors py-0.5"
-                        >
-                            View all notifications →
-                        </Link>
-                    </div>
-                </div>
+                </>,
+                document.body
             )}
         </div>
     );
