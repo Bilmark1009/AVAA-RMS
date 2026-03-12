@@ -66,12 +66,17 @@ class JobBrowseController extends Controller
 
         // IDs the current user has applied to
         $appliedJobIds = JobApplication::where('user_id', $user->id)
-            ->whereNotIn('status', ['withdrawn', 'accepted', 'hired', 'contract_ended'])
+            ->whereNotIn('status', ['withdrawn', 'accepted', 'hired'])
             ->pluck('job_listing_id')
             ->toArray();
 
+        $applicationStatuses = JobApplication::where('user_id', $user->id)
+            ->whereIn('job_listing_id', $jobs->pluck('id'))
+            ->pluck('status', 'job_listing_id')
+            ->toArray();
+
         // Shape each job for the frontend
-        $shaped = $jobs->map(fn($job) => $this->shapeJob($job, $savedJobIds, $appliedJobIds));
+        $shaped = $jobs->map(fn($job) => $this->shapeJob($job, $savedJobIds, $appliedJobIds, $applicationStatuses));
 
         // Aggregates for the filter sidebar
         $allActive = JobListing::where('status', 'active')->get();
@@ -100,8 +105,12 @@ class JobBrowseController extends Controller
 
         $savedJobIds = SavedJob::where('user_id', $user->id)->pluck('job_listing_id')->toArray();
         $appliedJobIds = JobApplication::where('user_id', $user->id)
-            ->whereNotIn('status', ['withdrawn', 'accepted', 'hired', 'contract_ended'])
+            ->whereNotIn('status', ['withdrawn', 'accepted', 'hired'])
             ->pluck('job_listing_id')
+            ->toArray();
+
+        $applicationStatuses = JobApplication::where('user_id', $user->id)
+            ->pluck('status', 'job_listing_id')
             ->toArray();
 
         $similarJobs = JobListing::where('status', 'active')
@@ -116,10 +125,10 @@ class JobBrowseController extends Controller
             })
             ->limit(3)
             ->get()
-            ->map(fn($j) => $this->shapeJob($j, $savedJobIds, $appliedJobIds));
+            ->map(fn($j) => $this->shapeJob($j, $savedJobIds, $appliedJobIds, $applicationStatuses));
 
         return Inertia::render('JobSeeker/JobDetail', [
-            'job' => $this->shapeJob($job, $savedJobIds, $appliedJobIds),
+            'job' => $this->shapeJob($job, $savedJobIds, $appliedJobIds, $applicationStatuses),
             'isSaved' => in_array($job->id, $savedJobIds),
             'hasApplied' => in_array($job->id, $appliedJobIds),
             'similarJobs' => $similarJobs,
@@ -166,11 +175,16 @@ class JobBrowseController extends Controller
         $jobs = $query->latest()->get();
 
         $appliedJobIds = JobApplication::where('user_id', $user->id)
-            ->whereNotIn('status', ['withdrawn', 'accepted', 'hired', 'contract_ended'])
+            ->whereNotIn('status', ['withdrawn', 'accepted', 'hired'])
             ->pluck('job_listing_id')
             ->toArray();
 
-        $shaped = $jobs->map(fn($job) => $this->shapeJob($job, $savedIds->toArray(), $appliedJobIds));
+        $applicationStatuses = JobApplication::where('user_id', $user->id)
+            ->whereIn('job_listing_id', $jobs->pluck('id'))
+            ->pluck('status', 'job_listing_id')
+            ->toArray();
+
+        $shaped = $jobs->map(fn($job) => $this->shapeJob($job, $savedIds->toArray(), $appliedJobIds, $applicationStatuses));
 
         // Sidebar aggregates from the user's saved pool
         $allSaved = JobListing::whereIn('id', $savedIds)->get();
@@ -332,7 +346,7 @@ class JobBrowseController extends Controller
     /* ─────────────────────────────────────────
        Private helper: shape a JobListing for the frontend
     ───────────────────────────────────────── */
-    private function shapeJob(JobListing $job, array $savedIds, array $appliedIds): array
+    private function shapeJob(JobListing $job, array $savedIds, array $appliedIds, array $applicationStatuses = []): array
     {
         $companyName = $job->company_name
             ?? $job->employer?->employerProfile?->company_name
@@ -362,6 +376,7 @@ class JobBrowseController extends Controller
             'application_limit' => $job->application_limit,
             'logo_path' => $job->logo_path,
             'has_applied' => in_array($job->id, $appliedIds),
+            'application_status' => $applicationStatuses[$job->id] ?? null,
         ];
     }
 }

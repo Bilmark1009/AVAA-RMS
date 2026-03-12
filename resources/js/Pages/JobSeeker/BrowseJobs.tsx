@@ -19,6 +19,7 @@ interface JobListing {
     experience_level?: string | null;
     is_remote?: boolean;
     has_applied?: boolean;
+    application_status?: string | null;
     industry?: string | null;
 }
 
@@ -65,6 +66,19 @@ function JobCard({ job, saved, onSave, onApply, onView }: {
     onSave: () => void; onApply: () => void; onView: () => void;
 }) {
     const salary = formatSalary(job.salary_min, job.salary_max, job.salary_currency);
+    const status = (job.application_status || '').toLowerCase();
+    const isRejected = status === 'rejected';
+    const isEnded = status === 'contract_ended';
+    const isApplied = Boolean(job.has_applied);
+
+    const applyLabel = isRejected
+        ? 'Rejected'
+        : isEnded
+            ? 'Ended'
+            : isApplied
+                ? 'Applied ✓'
+                : 'Apply Now';
+
     return (
         <div className="bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-md hover:border-gray-300 transition-all flex flex-col gap-4">
 
@@ -137,9 +151,14 @@ function JobCard({ job, saved, onSave, onApply, onView }: {
                         className="px-4 py-2 border border-gray-300 text-gray-700 hover:border-avaa-primary hover:text-avaa-teal text-sm font-semibold rounded-xl transition-colors whitespace-nowrap">
                         View Details
                     </button>
-                    <button onClick={onApply} disabled={job.has_applied}
+                    <button onClick={onApply} disabled={isApplied}
                         className="px-4 py-2 bg-avaa-primary hover:bg-avaa-primary-hover text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap">
-                        {job.has_applied ? 'Applied ✓' : 'Apply Now'}
+                        <span className="inline-flex items-center gap-1.5">
+                            {applyLabel}
+                            {isRejected && (
+                                <span aria-hidden="true" className="text-[12px] leading-none">✘</span>
+                            )}
+                        </span>
                     </button>
                 </div>
             </div>

@@ -438,6 +438,7 @@ function ApplicationDetailsModal({
     const skills = app.job?.skills_required ?? [];
     const isPending = stage === 'pending';
     const isWithdrawn = stage === 'withdrawn';
+    const isRejected = stage === 'rejected';
     const isInterviewing = stage === 'interviewing' && !!app.interview;
 
     const statusHeading = isInterviewing
@@ -459,7 +460,7 @@ function ApplicationDetailsModal({
             : stage === 'withdrawn'
                 ? 'This application has been withdrawn.'
                 : stage === 'rejected'
-                    ? (app.rejection_reason || 'This application was not selected.')
+                    ? 'Sorry, you have been rejected.'
                     : stage === 'contract_ended'
                         ? 'Your contract ended.'
                     : 'Status has been updated.';
@@ -470,6 +471,8 @@ function ApplicationDetailsModal({
         ? (app.interview?.notes || 'Interview details have been shared. Please review the schedule and prepare accordingly.')
         : stage === 'withdrawn'
             ? 'Sorry, you have withdrawn your application. If this was a mistake or you wish to reapply, feel free to submit a new application to this job in the future.'
+            : stage === 'rejected'
+                ? 'We appreciate the time you invested in applying and encourage you to apply for future opportunities that match your skills.'
             : stage === 'contract_ended'
                 ? 'Thank you for joining us. Good luck on your future journey!'
             : (app.reviewer_notes || app.rejection_reason || 'Your application is in progress. You will receive updates when the hiring team reviews it.');
@@ -553,7 +556,7 @@ function ApplicationDetailsModal({
                                 </div>
 
                                 <div className="border border-avaa-primary/40 bg-avaa-primary-light rounded-xl p-4 flex items-start gap-3">
-                                    <div className={`w-9 h-9 rounded-lg bg-white border flex items-center justify-center flex-shrink-0 ${isWithdrawn ? 'border-rose-300 text-rose-600' : 'border-avaa-primary/30 text-avaa-primary'}`}>
+                                    <div className={`w-9 h-9 rounded-lg bg-white border flex items-center justify-center flex-shrink-0 ${isWithdrawn || isRejected ? 'border-rose-300 text-rose-600' : 'border-avaa-primary/30 text-avaa-primary'}`}>
                                         {isWithdrawn ? (
                                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                                 <circle cx="12" cy="12" r="9" />
@@ -564,6 +567,12 @@ function ApplicationDetailsModal({
                                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                                 <circle cx="12" cy="12" r="9" />
                                                 <polyline points="12 7 12 12 15 14" />
+                                            </svg>
+                                        ) : isRejected ? (
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <circle cx="12" cy="12" r="9" />
+                                                <line x1="8.5" y1="8.5" x2="15.5" y2="15.5" />
+                                                <line x1="15.5" y1="8.5" x2="8.5" y2="15.5" />
                                             </svg>
                                         ) : (
                                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -668,7 +677,7 @@ function ApplicationDetailsModal({
 }
 
 export default function ApplicationHistory({ applications }: Props) {
-    const [tab, setTab] = useState<'all' | 'pending' | 'interviewing' | 'withdrawn'>('all');
+    const [tab, setTab] = useState<'all' | 'pending' | 'interviewing' | 'withdrawn' | 'rejected'>('all');
     const [detailsOpen, setDetailsOpen] = useState(false);
     const [selected, setSelected] = useState<ApplicationItem | null>(null);
 
@@ -677,6 +686,7 @@ export default function ApplicationHistory({ applications }: Props) {
         if (tab === 'all') return applications;
         if (tab === 'pending') return applications.filter(a => norm(a.stage) === 'pending');
         if (tab === 'interviewing') return applications.filter(a => norm(a.stage) === 'interviewing');
+        if (tab === 'rejected') return applications.filter(a => norm(a.stage) === 'rejected');
         return applications.filter(a => norm(a.stage) === 'withdrawn');
     }, [applications, tab]);
 
@@ -708,6 +718,7 @@ export default function ApplicationHistory({ applications }: Props) {
                             { key: 'pending', label: 'Pending' },
                             { key: 'interviewing', label: 'Interviewing' },
                             { key: 'withdrawn', label: 'Withdrawn' },
+                            { key: 'rejected', label: 'Rejected' },
                         ]}
                     />
                 </div>

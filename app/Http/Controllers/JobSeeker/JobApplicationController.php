@@ -185,6 +185,11 @@ class JobApplicationController extends Controller
             ->where('job_listing_id', $job->id)
             ->first();
 
+        if ($existing && $existing->status === 'contract_ended') {
+            return redirect()->route('job-seeker.jobs.show', $job->id)
+                ->with('info', 'Reapplication is not allowed because your previous contract for this job has ended.');
+        }
+
         if ($existing && ! in_array($existing->status, ['draft', 'withdrawn'], true)) {
             return redirect()->route('job-seeker.jobs.show', $job->id)
                 ->with('info', 'You have already applied to this job.');
@@ -270,6 +275,11 @@ class JobApplicationController extends Controller
         $existing = JobApplication::where('user_id', $user->id)
             ->where('job_listing_id', $job->id)
             ->first();
+
+        if ($existing && $existing->status === 'contract_ended') {
+            return redirect()->route('job-seeker.jobs.show', $job->id)
+                ->with('info', 'Reapplication is not allowed because your previous contract for this job has ended.');
+        }
 
         if ($existing && ! in_array($existing->status, ['draft', 'withdrawn'], true)) {
             return redirect()->route('job-seeker.jobs.show', $job->id)
@@ -371,6 +381,10 @@ class JobApplicationController extends Controller
         $existing = JobApplication::where('user_id', $user->id)
             ->where('job_listing_id', $job->id)
             ->first();
+
+        if ($existing && $existing->status === 'contract_ended') {
+            return back()->with('info', 'Reapplication is not allowed because your previous contract for this job has ended.');
+        }
 
         if ($existing && ! in_array($existing->status, ['draft', 'withdrawn'], true)) {
             return back()->with('info', 'You have already submitted this application.');

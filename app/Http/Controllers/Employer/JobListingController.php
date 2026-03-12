@@ -387,6 +387,10 @@ class JobListingController extends Controller
             'reviewed_at' => in_array($request->status, ['approved', 'rejected']) ? now() : $application->reviewed_at,
         ]);
 
+        if ($request->status === 'rejected') {
+            $application->user->notify(new ApplicationRejectedNotification($application, $job));
+        }
+
         return back()->with('success', 'Application status updated.');
     }
 
