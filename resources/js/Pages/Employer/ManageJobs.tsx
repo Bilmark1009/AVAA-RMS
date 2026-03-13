@@ -783,7 +783,6 @@ export default function ManageJobs({ user, profile, jobs, isVerified }: Props) {
     const [search, setSearch] = useState('');
     const [viewJob, setViewJob] = useState<JobListing | null>(null);
     const [editJob, setEditJob] = useState<JobListing | null>(null);
-    const [showCreate, setShowCreate] = useState(false);
     const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'most_applicants'>('newest');
 
     const companyName = profile?.company_name ?? `${user.first_name} ${user.last_name}`;
@@ -814,7 +813,6 @@ export default function ManageJobs({ user, profile, jobs, isVerified }: Props) {
             <Head title="Manage Jobs"/>
 
             {viewJob && <ViewJobModal job={viewJob} onClose={() => setViewJob(null)} onEdit={() => { setEditJob(viewJob); setViewJob(null); }}/>}
-            {showCreate && <JobFormModal mode="create" companyName={companyName} onClose={() => setShowCreate(false)}/>}
             {editJob && <JobFormModal mode="edit" job={editJob} companyName={companyName} onClose={() => setEditJob(null)}/>}
 
             <div className="space-y-5">
@@ -844,7 +842,7 @@ export default function ManageJobs({ user, profile, jobs, isVerified }: Props) {
                             <option value="most_applicants">Most Applicants</option>
                         </select>
                         {/* Add Job */}
-                        <button onClick={() => isVerified && setShowCreate(true)} disabled={!isVerified}
+                        <button onClick={() => isVerified && router.visit(route('employer.jobs.create'))} disabled={!isVerified}
                             title={!isVerified ? 'Requires verification' : undefined}
                             className="inline-flex items-center gap-1.5 px-4 h-9 bg-[#6D9886] hover:bg-[#5a8371] text-white text-xs font-bold rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm whitespace-nowrap">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -884,7 +882,7 @@ export default function ManageJobs({ user, profile, jobs, isVerified }: Props) {
                                                 <p className="text-avaa-dark font-semibold mb-1">No job listings yet</p>
                                                 <p className="text-sm text-avaa-muted mb-5">Post your first job to start receiving applications.</p>
                                                 {isVerified && (
-                                                    <button onClick={() => setShowCreate(true)}
+                                                    <button onClick={() => router.visit(route('employer.jobs.create'))}
                                                         className="inline-flex items-center gap-2 px-5 py-2.5 bg-avaa-primary text-white text-sm font-semibold rounded-xl hover:bg-avaa-primary-hover transition-colors">
                                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                                                             <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />

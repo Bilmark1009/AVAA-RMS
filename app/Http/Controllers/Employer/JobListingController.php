@@ -67,6 +67,21 @@ class JobListingController extends Controller
     }
 
     /**
+     * Show the create job form page.
+     */
+    public function create(Request $request): Response
+    {
+        $user = $request->user()->load('employerProfile');
+        $companyName = $user->employerProfile?->company_name ?? "{$user->first_name} {$user->last_name}";
+
+        return Inertia::render('Employer/CreateJob', [
+            'user'        => $user,
+            'profile'     => $user->employerProfile,
+            'companyName' => $companyName,
+        ]);
+    }
+
+    /**
      * Store a new job listing.
      */
     public function store(Request $request): RedirectResponse
@@ -137,7 +152,7 @@ class JobListingController extends Controller
             $admin->notify(new AdminNewJobPostedNotification($job, $employer))
         );
 
-        return back()->with('success', 'Job listing created successfully!');
+        return redirect()->route('employer.jobs.index')->with('success', 'Job listing created successfully!');
     }
 
     /**

@@ -180,6 +180,7 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         Route::get('/settings/blocked-users/search', [EmployerBlockedUsersController::class, 'searchUsers'])->name('settings.blocked-users.search');
 
         Route::get('/jobs', [JobListingController::class, 'index'])->name('jobs.index');
+        Route::get('/jobs/create', [JobListingController::class, 'create'])->name('jobs.create');
         Route::post('/jobs', [JobListingController::class, 'store'])->name('jobs.store');
         Route::put('/jobs/{job}', [JobListingController::class, 'update'])->name('jobs.update');
         Route::delete('/jobs/{job}', [JobListingController::class, 'destroy'])->name('jobs.destroy');
