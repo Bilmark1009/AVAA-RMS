@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import axios from 'axios';
+import { router } from '@inertiajs/react';
 
 /* ── Types ── */
 export interface Report {
@@ -24,6 +26,8 @@ export interface Report {
     approved_date?: string;
     declined_by?: string;
     declined_date?: string;
+    evidence?: string[];          // URLs of uploaded screenshots
+    message_content?: string | null;
 }
 
 export type ModalType = 'details' | 'decline' | 'suspend' | 'ban' | null;
@@ -273,9 +277,20 @@ export function MessageDetailsModal({ report, onClose, onDecline, onSuspend, onB
                     {/* Uploaded Evidences */}
                     <div className="mb-6">
                         <h3 className="text-sm font-bold text-gray-700 mb-4">Uploaded Evidences</h3>
-                        <div className="border border-gray-100 rounded-xl p-10 flex items-center justify-center text-gray-300">
-                            <IcoImage />
-                        </div>
+                        {report.evidence && report.evidence.length > 0 ? (
+                            <div className="grid grid-cols-3 gap-3">
+                                {report.evidence.map((url, i) => (
+                                    <a key={i} href={url} target="_blank" rel="noopener noreferrer"
+                                        className="block rounded-xl overflow-hidden border border-gray-100 hover:opacity-90 transition-opacity aspect-square">
+                                        <img src={url} alt={`Evidence ${i + 1}`} className="w-full h-full object-cover" />
+                                    </a>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="border border-gray-100 rounded-xl p-10 flex items-center justify-center text-gray-300">
+                                <IcoImage />
+                            </div>
+                        )}
                     </div>
 
                     {/* Warning */}
@@ -317,7 +332,21 @@ export function DeclineModal({ report, onClose, onConfirm, tab }: {
     tab: string;
 }) {
     const [reason, setReason] = useState('');
+    const [submitting, setSubmitting] = useState(false);
     const isMessage = tab === 'messages';
+
+    const handleConfirm = async () => {
+        setSubmitting(true);
+        try {
+            await axios.patch(route('admin.reports.decline', report.id), { decline_reason: reason });
+            onConfirm();
+        } catch {
+            // fallback: still close
+            onConfirm();
+        } finally {
+            setSubmitting(false);
+        }
+    };
 
     return (
         <ModalOverlay>
@@ -423,8 +452,8 @@ export function DeclineModal({ report, onClose, onConfirm, tab }: {
 
                     <div className="flex gap-3">
                         <button onClick={onClose} className="px-6 py-2.5 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors">Cancel</button>
-                        <button onClick={onConfirm} className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors flex items-center gap-2">
-                            <IcoCircleOff /> Confirm Decline
+                        <button onClick={handleConfirm} disabled={!reason || submitting} className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center gap-2">
+                            <IcoCircleOff /> {submitting ? 'Declining...' : 'Confirm Decline'}
                         </button>
                     </div>
                 </div>
@@ -441,7 +470,20 @@ export function SuspendModal({ report, onClose, onConfirm, tab }: {
     tab: string;
 }) {
     const [duration, setDuration] = useState('7 Days');
+    const [submitting, setSubmitting] = useState(false);
     const isMessage = tab === 'messages';
+
+    const handleConfirm = async () => {
+        setSubmitting(true);
+        try {
+            await axios.patch(route('admin.reports.approve', report.id), { action_note: `Suspended for ${duration}` });
+            onConfirm();
+        } catch {
+            onConfirm();
+        } finally {
+            setSubmitting(false);
+        }
+    };
 
     return (
         <ModalOverlay>
@@ -552,8 +594,8 @@ export function SuspendModal({ report, onClose, onConfirm, tab }: {
 
                     <div className="flex gap-3">
                         <button onClick={onClose} className="px-6 py-2.5 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors">Cancel</button>
-                        <button onClick={onConfirm} className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition-colors flex items-center gap-2">
-                            <IcoWarning /> Confirm Suspension
+                        <button onClick={handleConfirm} disabled={submitting} className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition-colors disabled:opacity-50 flex items-center gap-2">
+                            <IcoWarning /> {submitting ? 'Suspending...' : 'Confirm Suspension'}
                         </button>
                     </div>
                 </div>

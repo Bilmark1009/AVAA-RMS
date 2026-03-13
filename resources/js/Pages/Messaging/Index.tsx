@@ -245,6 +245,219 @@ function BlockUserModal({ isOpen, onClose, onConfirm, userName, isProcessing }: 
 }
 
 /* ══════════════════════════════════════════════════════════
+   REPORT MESSAGE MODAL
+══════════════════════════════════════════════════════════ */
+const REPORT_REASONS = [
+    { value: 'inappropriate_behavior', label: 'Inappropriate Behavior', desc: 'Unprofessional language, harassment, or offensive communication.' },
+    { value: 'spam', label: 'Spam', desc: 'Unsolicited marketing, bots, or repetitive messages.' },
+    { value: 'suspicious_job', label: 'Suspicious Job Offer or Scam', desc: 'Asking for bank details, external payments, or "get rich quick" schemes.' },
+    { value: 'identity_theft', label: 'Identity Theft / Fake Profile', desc: "Fake name, photo, or impersonating a company they don't represent." },
+    { value: 'other', label: 'Other', desc: 'None of the above matches my specific concern.' },
+];
+
+function ReportMessageModal({ messageId, senderName, onClose }: {
+    messageId: number;
+    senderName: string;
+    onClose: () => void;
+}) {
+    const [reason, setReason] = useState('');
+    const [details, setDetails] = useState('');
+    const [images, setImages] = useState<File[]>([]);
+    const [previews, setPreviews] = useState<string[]>([]);
+    const [submitting, setSubmitting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState(false);
+
+    const handleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files) return;
+        const files = Array.from(e.target.files);
+        setImages(prev => [...prev, ...files].slice(0, 5));
+        const newPreviews = files.map(f => URL.createObjectURL(f));
+        setPreviews(prev => [...prev, ...newPreviews].slice(0, 5));
+    };
+
+    const removeImage = (i: number) => {
+        setImages(imgs => imgs.filter((_, idx) => idx !== i));
+        setPreviews(ps => ps.filter((_, idx) => idx !== i));
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!reason) return;
+        setSubmitting(true);
+        setError(null);
+        try {
+            const fd = new FormData();
+            fd.append('reason', reason);
+            if (details.trim()) fd.append('details', details.trim());
+            images.forEach(img => fd.append('evidence[]', img));
+
+            const csrfToken = (document.cookie.match(/XSRF-TOKEN=([^;]+)/))?.[1];
+            const res = await fetch(`/messages/report/message/${messageId}`, {
+                method: 'POST',
+                headers: {
+                    'X-XSRF-TOKEN': csrfToken ? decodeURIComponent(csrfToken) : '',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json',
+                },
+                body: fd,
+                credentials: 'same-origin',
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                setError(data.error ?? 'Something went wrong. Please try again.');
+            } else {
+                setSuccess(true);
+                setTimeout(onClose, 1800);
+            }
+        } catch {
+            setError('Network error. Please try again.');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    // Backdrop click
+    const backdropRef = useRef<HTMLDivElement>(null);
+
+    return (
+        <div
+            ref={backdropRef}
+            onClick={e => { if (e.target === backdropRef.current) onClose(); }}
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+        >
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                {/* Header */}
+                <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+                    <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-orange-50 flex items-center justify-center text-orange-400">
+                            <IcoFlag />
+                        </div>
+                        <div>
+                            <h3 className="text-[15px] font-bold text-avaa-dark">Report Message</h3>
+                            <p className="text-[12px] text-avaa-muted">From: {senderName}</p>
+                        </div>
+                    </div>
+                    <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-avaa-muted transition-colors">
+                        <IcoClose />
+                    </button>
+                </div>
+
+                {success ? (
+                    <div className="px-6 py-14 flex flex-col items-center text-center gap-3">
+                        <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-500 text-2xl">✓</div>
+                        <p className="text-[15px] font-bold text-avaa-dark">Report Submitted</p>
+                        <p className="text-[13px] text-avaa-muted">Our trust & safety team will review it within 24 hours.</p>
+                    </div>
+                ) : (
+                    <form onSubmit={handleSubmit}>
+                        {/* Reason */}
+                        <div className="px-6 py-5">
+                            <p className="text-[13.5px] font-semibold text-avaa-dark mb-3">What's the reason for this report?</p>
+                            <div className="space-y-2">
+                                {REPORT_REASONS.map(r => (
+                                    <label
+                                        key={r.value}
+                                        className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${
+                                            reason === r.value
+                                                ? 'border-avaa-primary bg-avaa-primary/5 shadow-sm'
+                                                : 'border-gray-200 hover:border-avaa-primary/30 hover:bg-gray-50'
+                                        }`}
+                                    >
+                                        <input
+                                            type="radio" name="reason" value={r.value}
+                                            checked={reason === r.value}
+                                            onChange={() => setReason(r.value)}
+                                            className="mt-0.5 w-3.5 h-3.5 accent-avaa-primary"
+                                        />
+                                        <div>
+                                            <p className="text-[13px] font-semibold text-avaa-dark">{r.label}</p>
+                                            <p className="text-[11.5px] text-avaa-muted mt-0.5 leading-relaxed">{r.desc}</p>
+                                        </div>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Evidence Upload */}
+                        <div className="px-6 pb-5">
+                            <p className="text-[13.5px] font-semibold text-avaa-dark mb-1">
+                                Attach Evidence <span className="text-avaa-muted font-normal">(Optional, up to 5 images)</span>
+                            </p>
+                            {previews.length > 0 && (
+                                <div className="flex flex-wrap gap-2 mb-3">
+                                    {previews.map((src, i) => (
+                                        <div key={i} className="relative w-16 h-16 rounded-xl overflow-hidden border border-gray-200 group">
+                                            <img src={src} className="w-full h-full object-cover" alt="preview" />
+                                            <button
+                                                type="button"
+                                                onClick={() => removeImage(i)}
+                                                className="absolute top-0.5 right-0.5 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow text-[10px] font-bold"
+                                            >×</button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            {images.length < 5 && (
+                                <label className="flex items-center gap-2 border border-dashed border-gray-300 rounded-xl px-4 py-3 cursor-pointer hover:border-avaa-primary/50 hover:bg-gray-50 transition-all">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-avaa-primary">
+                                        <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                                    </svg>
+                                    <span className="text-[13px] text-avaa-muted">
+                                        {images.length === 0 ? 'Upload screenshots' : `Add more (${5 - images.length} remaining)`}
+                                    </span>
+                                    <input type="file" multiple accept="image/*" className="hidden" onChange={handleFiles} />
+                                </label>
+                            )}
+                        </div>
+
+                        {/* Details */}
+                        <div className="px-6 pb-5">
+                            <p className="text-[13.5px] font-semibold text-avaa-dark mb-2">
+                                Additional Details <span className="text-avaa-muted font-normal">(Optional)</span>
+                            </p>
+                            <textarea
+                                value={details}
+                                onChange={e => setDetails(e.target.value)}
+                                rows={3}
+                                maxLength={1000}
+                                placeholder="Provide more context to help our team investigate..."
+                                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-[13px] text-avaa-dark placeholder-avaa-muted outline-none resize-none focus:border-avaa-primary/50 focus:bg-white transition-all"
+                            />
+                        </div>
+
+                        {error && (
+                            <div className="mx-6 mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-[12.5px] text-red-600 font-medium">
+                                {error}
+                            </div>
+                        )}
+
+                        {/* Actions */}
+                        <div className="px-6 pb-5 flex justify-end gap-3 border-t border-gray-100 pt-4">
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="px-5 py-2.5 text-[13px] font-semibold text-avaa-muted hover:text-avaa-dark transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={!reason || submitting}
+                                className="px-6 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-[13px] font-semibold rounded-xl transition-colors flex items-center gap-2"
+                            >
+                                <IcoFlag />
+                                {submitting ? 'Submitting...' : 'Submit Report'}
+                            </button>
+                        </div>
+                    </form>
+                )}
+            </div>
+        </div>
+    );
+}
+
+/* ══════════════════════════════════════════════════════════
    NEW MESSAGE MODAL
 ══════════════════════════════════════════════════════════ */
 function NewMessageModal({ onClose, onStart }: {
@@ -485,12 +698,13 @@ function ContextMenu({ onArchive, onMute, onDelete, onDeleteGroup, onReport, onB
 /* ══════════════════════════════════════════════════════════
    MESSAGE BUBBLE
 ══════════════════════════════════════════════════════════ */
-function Bubble({ msg, isOwn, showAvatar, onImageClick, onFileClick }: { 
+function Bubble({ msg, isOwn, showAvatar, onImageClick, onFileClick, onReport }: { 
     msg: Message; 
     isOwn: boolean; 
     showAvatar: boolean;
     onImageClick: (url: string, name: string) => void;
     onFileClick: (url: string, name: string) => void;
+    onReport?: (msg: Message) => void;
 }) {
     if (msg.type === 'system') {
         return (
@@ -502,7 +716,7 @@ function Bubble({ msg, isOwn, showAvatar, onImageClick, onFileClick }: {
         );
     }
     return (
-        <div className={`flex items-end gap-2 ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
+        <div className={`flex items-end gap-2 group/bubble ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
             <div className="w-7 flex-shrink-0 mb-1">
                 {!isOwn && showAvatar && (
                     <Avatar src={msg.sender.avatar} initials={`${msg.sender.first_name[0]}${msg.sender.last_name[0]}`} size="xs" />
@@ -512,27 +726,39 @@ function Bubble({ msg, isOwn, showAvatar, onImageClick, onFileClick }: {
                 {!isOwn && showAvatar && (
                     <span className="text-[11px] text-avaa-muted ml-1">{msg.sender.first_name}</span>
                 )}
-                <div className={`px-4 py-2.5 rounded-2xl text-[13.5px] leading-relaxed break-words
-                    ${isOwn
-                        ? 'bg-avaa-primary text-white rounded-br-sm'
-                        : 'bg-white text-avaa-dark border border-gray-100 shadow-sm rounded-bl-sm'
-                    }`}>
-                    {msg.type === 'image' && msg.attachment_url ? (
-                        <img 
-                            src={msg.attachment_url} 
-                            alt="attachment" 
-                            className="max-w-[220px] rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
-                            onClick={() => onImageClick(msg.attachment_url!, msg.attachment_name || 'Image')}
-                        />
-                    ) : msg.type === 'file' && msg.attachment_url ? (
+                <div className={`relative flex items-end gap-1.5 ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
+                    <div className={`px-4 py-2.5 rounded-2xl text-[13.5px] leading-relaxed break-words
+                        ${isOwn
+                            ? 'bg-avaa-primary text-white rounded-br-sm'
+                            : 'bg-white text-avaa-dark border border-gray-100 shadow-sm rounded-bl-sm'
+                        }`}>
+                        {msg.type === 'image' && msg.attachment_url ? (
+                            <img 
+                                src={msg.attachment_url} 
+                                alt="attachment" 
+                                className="max-w-[220px] rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
+                                onClick={() => onImageClick(msg.attachment_url!, msg.attachment_name || 'Image')}
+                            />
+                        ) : msg.type === 'file' && msg.attachment_url ? (
+                            <button
+                                onClick={() => onFileClick(msg.attachment_url!, msg.attachment_name || 'File')}
+                                className={`flex items-center gap-2 underline underline-offset-2 ${isOwn ? 'text-white/90' : 'text-avaa-primary'} hover:opacity-80 transition-opacity`}
+                            >
+                                <IcoAttach />
+                                {msg.attachment_name ?? 'Download'}
+                            </button>
+                        ) : msg.body}
+                    </div>
+                    {/* Flag button — only on others' messages */}
+                    {!isOwn && onReport && (
                         <button
-                            onClick={() => onFileClick(msg.attachment_url!, msg.attachment_name || 'File')}
-                            className={`flex items-center gap-2 underline underline-offset-2 ${isOwn ? 'text-white/90' : 'text-avaa-primary'} hover:opacity-80 transition-opacity`}
+                            onClick={() => onReport(msg)}
+                            title="Report this message"
+                            className="opacity-0 group-hover/bubble:opacity-100 transition-opacity p-1 rounded-lg text-gray-300 hover:text-orange-400 hover:bg-orange-50 flex-shrink-0 mb-0.5"
                         >
-                            <IcoAttach />
-                            {msg.attachment_name ?? 'Download'}
+                            <IcoFlag />
                         </button>
-                    ) : msg.body}
+                    )}
                 </div>
                 <span className="text-[10.5px] text-avaa-muted">{msgTime(msg.created_at)}</span>
             </div>
@@ -726,6 +952,7 @@ const [showBlockModal, setShowBlockModal] = useState(false);
     const [blocking, setBlocking] = useState(false);
     const [imageModal, setImageModal] = useState<{ url: string; name: string } | null>(null);
     const [fileDownloadModal, setFileDownloadModal] = useState<{ url: string; name: string } | null>(null);
+    const [reportMsgTarget, setReportMsgTarget] = useState<Message | null>(null);
 
     const { auth } = usePage<PageProps>().props;
     const me = auth.user;
@@ -1000,6 +1227,15 @@ const [showBlockModal, setShowBlockModal] = useState(false);
                 userName={activeConvo?.name || 'this person'}
                 isProcessing={blocking}
             />
+
+            {/* Report Message Modal */}
+            {reportMsgTarget && (
+                <ReportMessageModal
+                    messageId={reportMsgTarget.id}
+                    senderName={`${reportMsgTarget.sender.first_name} ${reportMsgTarget.sender.last_name}`}
+                    onClose={() => setReportMsgTarget(null)}
+                />
+            )}
 
             {/* New Message Modal */}
             {showNewMsg && (
@@ -1328,6 +1564,7 @@ const [showBlockModal, setShowBlockModal] = useState(false);
                                                     showAvatar={!group.items[idx - 1] || group.items[idx - 1].sender_id !== msg.sender_id}
                                                     onImageClick={(url, name) => setImageModal({ url, name })}
                                                     onFileClick={(url, name) => setFileDownloadModal({ url, name })}
+                                                    onReport={msg.sender_id !== me.id ? (m) => setReportMsgTarget(m) : undefined}
                                                 />
                                             ))}
                                         </div>
