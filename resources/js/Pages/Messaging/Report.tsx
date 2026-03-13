@@ -94,7 +94,7 @@ export default function ReportPage({ reportedUser, conversationId, unreadNotific
 
     return (
         <AppLayout activeNav="Messages" pageTitle="Report Safety Concern">
-            <div className="max-w-2xl mx-auto">
+            <div className="max-w-3xl mx-auto">
 
                 {/* Back link */}
                 <button

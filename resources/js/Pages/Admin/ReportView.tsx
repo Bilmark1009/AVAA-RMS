@@ -184,34 +184,27 @@ const mockMessageReportsDeclined: Report[] = [
     }
 ];
 
-/* ── Chat Screenshot Component ── */
-function ChatScreenshot() {
+/* ── Evidence Screenshots Component ── */
+function EvidenceScreenshots({ evidence }: { evidence?: string[] }) {
+    if (!evidence || evidence.length === 0) {
+        return (
+            <p className="text-xs text-gray-400 italic">No screenshots uploaded</p>
+        );
+    }
     return (
-        <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
-            <div className="bg-gray-50 px-4 py-2 border-b border-gray-100">
-                <p className="text-xs font-semibold text-gray-500">TechFlow</p>
-            </div>
-            <div className="p-4 space-y-3">
-                <div>
-                    <div className="bg-gray-100 rounded-lg px-3 py-2 max-w-[85%]">
-                        <p className="text-xs text-gray-700">Give me your personal whatsapp number now so we can bypass the platform.</p>
-                    </div>
-                    <p className="text-[10px] text-gray-400 mt-1 ml-1">11:11 AM</p>
-                </div>
-                <div className="flex flex-col items-end">
-                    <p className="text-[10px] text-gray-400 mb-1 mr-1">Alex</p>
-                    <div className="bg-[#76a09a]/15 rounded-lg px-3 py-2 max-w-[85%]">
-                        <p className="text-xs text-gray-700">I prefer to keep communication on AVAA until we have a formal interview.</p>
-                    </div>
-                </div>
-                <div>
-                    <p className="text-[10px] text-gray-400 mb-1 ml-1">11:16 AM · TechFlow</p>
-                    <div className="bg-gray-100 rounded-lg px-3 py-2 max-w-[85%]">
-                        <p className="text-xs text-gray-700">That's now how we do things. Do it or we withdraw your application.</p>
-                    </div>
-                    <p className="text-[10px] text-gray-400 mt-1 ml-1">11:19 AM</p>
-                </div>
-            </div>
+        <div className="flex flex-col gap-1.5">
+            {evidence.map((url, i) => {
+                const filename = url.split('/').pop() || `screenshot_${i + 1}`;
+                return (
+                    <a key={i} href={url} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-xs text-avaa-primary hover:underline truncate">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="flex-shrink-0">
+                            <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />
+                        </svg>
+                        <span className="truncate">{filename}</span>
+                    </a>
+                );
+            })}
         </div>
     );
 }
@@ -308,9 +301,9 @@ function PendingMessageCard({ report, onViewDetails }: { report: Report; onViewD
                             <span className="text-gray-400">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>
                             </span>
-                            <p className="text-xs font-bold text-gray-600">Screenshot</p>
+                            <p className="text-xs font-bold text-gray-600">Screenshot{report.evidence && report.evidence.length > 1 ? 's' : ''}</p>
                         </div>
-                        <ChatScreenshot />
+                        <EvidenceScreenshots evidence={report.evidence} />
                     </div>
                 </div>
             </div>

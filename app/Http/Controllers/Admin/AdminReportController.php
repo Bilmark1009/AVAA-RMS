@@ -39,11 +39,11 @@ class AdminReportController extends Controller
         ->whereIn('status', $dbStatuses)
         ->orderByDesc('created_at');
 
-        // Tab filter: message reports have a message_id; job_posts reports don't
+        // Tab filter: message reports have a conversation_id; job_posts reports have neither
         if ($tab === 'messages') {
-            $query->whereNotNull('message_id');
+            $query->whereNotNull('conversation_id');
         } else {
-            $query->whereNull('message_id');
+            $query->whereNull('conversation_id');
         }
 
         $reports = $query->get()->map(function (Report $r) {
@@ -85,7 +85,7 @@ class AdminReportController extends Controller
                     ->where('id', '<>', $r->id)
                     ->count(),
                 'report_count_total'    => Report::where('reported_user_id', $r->reported_user_id)->count(),
-                'type'                  => $r->message_id ? 'message' : 'job',
+                'type'                  => $r->conversation_id ? 'message' : 'job',
                 'employer_name'         => $employerName,
                 'is_high_priority'      => Report::where('reported_user_id', $r->reported_user_id)
                     ->whereIn('status', ['resolved'])
