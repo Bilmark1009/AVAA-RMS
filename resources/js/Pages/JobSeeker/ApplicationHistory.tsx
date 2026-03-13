@@ -1,5 +1,6 @@
 import { Head, router } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
+import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
 import Modal from '@/Components/Modal';
 import type { PageProps } from '@/types';
 import { useEffect, useMemo, useState } from 'react';
@@ -155,18 +156,13 @@ function ApplicationCard({
     return (
         <div className="bg-white border border-gray-200 rounded-2xl px-5 sm:px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6">
             <div className="flex items-center gap-4 min-w-0">
-                {app.company.logo_url ? (
-                    <img
-                        src={app.company.logo_url}
-                        alt={`${app.company.name} logo`}
-                        className="w-12 h-12 rounded-xl object-cover border border-gray-200 bg-white flex-shrink-0"
-                        loading="lazy"
-                    />
-                ) : (
-                    <div className="w-12 h-12 rounded-xl bg-[#2f5f5f] text-white font-extrabold flex items-center justify-center flex-shrink-0">
-                        {app.company.initials}
-                    </div>
-                )}
+                <ImageInitialsFallback
+                    src={app.company.logo_url}
+                    alt={`${app.company.name} logo`}
+                    initials={app.company.initials}
+                    className={`w-12 h-12 rounded-xl border border-gray-200 flex-shrink-0 overflow-hidden ${app.company.logo_url ? 'bg-white' : 'bg-[#2f5f5f]'}`}
+                    textClassName="text-white font-extrabold flex items-center justify-center"
+                />
 
                 <div className="min-w-0">
                     <div className="flex items-center gap-2 min-w-0">
@@ -259,18 +255,13 @@ function DemoApplicationCard({
     return (
         <div className="bg-white border border-gray-200 rounded-2xl px-5 sm:px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6">
             <div className="flex items-center gap-4 min-w-0">
-                {app.company.logo_url ? (
-                    <img
-                        src={app.company.logo_url}
-                        alt={`${app.company.name} logo`}
-                        className="w-12 h-12 rounded-xl object-cover border border-gray-200 bg-white flex-shrink-0"
-                        loading="lazy"
-                    />
-                ) : (
-                    <div className="w-12 h-12 rounded-xl bg-[#2f5f5f] text-white font-extrabold flex items-center justify-center flex-shrink-0">
-                        {app.company.initials}
-                    </div>
-                )}
+                <ImageInitialsFallback
+                    src={app.company.logo_url}
+                    alt={`${app.company.name} logo`}
+                    initials={app.company.initials}
+                    className={`w-12 h-12 rounded-xl border border-gray-200 flex-shrink-0 overflow-hidden ${app.company.logo_url ? 'bg-white' : 'bg-[#2f5f5f]'}`}
+                    textClassName="text-white font-extrabold flex items-center justify-center"
+                />
 
                 <div className="min-w-0">
                     <div className="flex items-center gap-2 min-w-0">

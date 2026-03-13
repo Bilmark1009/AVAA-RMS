@@ -1,5 +1,6 @@
 import { Head, router } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
+import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
 import { useState } from 'react';
 
 /* ── Types ── */
@@ -95,13 +96,13 @@ function ApplicantModal({ employee, onClose }: { employee: Employee; onClose: ()
                 </div>
 
                 <div className="px-6 -mt-10 flex items-end gap-4 flex-shrink-0 relative z-10 mb-2">
-                    {u.avatar ? (
-                        <img src={u.avatar} alt={fullName} className="w-20 h-20 rounded-2xl ring-4 ring-white object-cover shadow-md" />
-                    ) : (
-                        <div className={`w-20 h-20 rounded-2xl ring-4 ring-white ${avatarColor(u.id)} flex items-center justify-center text-white text-2xl font-bold shadow-md`}>
-                            {initials}
-                        </div>
-                    )}
+                    <ImageInitialsFallback
+                        src={u.avatar}
+                        alt={fullName}
+                        initials={initials}
+                        className={`w-20 h-20 rounded-2xl ring-4 ring-white shadow-md overflow-hidden ${u.avatar ? 'bg-white' : avatarColor(u.id)}`}
+                        textClassName="text-white text-2xl font-bold flex items-center justify-center"
+                    />
                     <div className="pb-1">
                         <h2 className="text-lg font-bold text-avaa-dark">{fullName}</h2>
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide uppercase bg-emerald-50 text-emerald-600 border border-emerald-100 mt-1">
@@ -290,11 +291,13 @@ export default function Users({ employees, activeCount }: Props) {
                                         <tr key={emp.id} className="hover:bg-gray-50/60 transition-colors group">
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
-                                                    {emp.candidate.avatar ? (
-                                                        <img src={emp.candidate.avatar} alt={fullName} className="w-10 h-10 rounded-full object-cover shadow-sm flex-shrink-0" />
-                                                    ) : (
-                                                        <div className={`w-10 h-10 rounded-full shadow-sm ${avatarColor(emp.candidate.id)} flex items-center justify-center text-white text-sm font-bold flex-shrink-0`}>{initials}</div>
-                                                    )}
+                                                        <ImageInitialsFallback
+                                                            src={emp.candidate.avatar}
+                                                            alt={fullName}
+                                                            initials={initials}
+                                                            className={`w-10 h-10 rounded-full shadow-sm flex-shrink-0 overflow-hidden ${emp.candidate.avatar ? 'bg-white' : avatarColor(emp.candidate.id)}`}
+                                                            textClassName="text-white text-sm font-bold flex items-center justify-center"
+                                                        />
                                                     <div className="min-w-0">
                                                         <p className="text-base font-bold text-gray-900 truncate">{fullName}</p>
                                                         <p className="text-xs font-medium text-gray-500 truncate mt-0.5">{emp.candidate.email}</p>

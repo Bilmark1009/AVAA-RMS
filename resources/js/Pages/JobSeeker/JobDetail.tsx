@@ -1,5 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
+import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
 import { useState } from 'react';
 
 /* ── Types ── */
@@ -8,6 +9,7 @@ interface JobListing {
     title: string;
     location: string;
     company: string;
+    logo_url?: string | null;
     employment_type?: string | null;
     salary_min?: number | null;
     salary_max?: number | null;
@@ -30,6 +32,7 @@ interface Recruiter { name: string; title: string; avatar?: string }
 
 interface SimilarJob {
     id: number; title: string; company: string; location: string;
+    logo_url?: string | null;
     salary_min?: number | null; salary_max?: number | null; salary_currency?: string; is_remote?: boolean;
 }
 
@@ -105,9 +108,13 @@ export default function JobDetail({ job, recruiter, similarJobs = [], isSaved: i
                         {/* Job header */}
                         <div className="p-8 border-b border-gray-100">
                             <div className="flex items-start gap-5">
-                                <div className={`w-16 h-16 rounded-full ${avatarColor(job.id)} flex items-center justify-center text-white text-xl font-bold flex-shrink-0`}>
-                                    {getInitials(job.company)}
-                                </div>
+                                <ImageInitialsFallback
+                                    src={job.logo_url}
+                                    alt={`${job.company} logo`}
+                                    initials={getInitials(job.company)}
+                                    className={`w-16 h-16 rounded-full border border-gray-200 flex-shrink-0 overflow-hidden ${job.logo_url ? 'bg-white' : avatarColor(job.id)}`}
+                                    textClassName="text-white text-xl font-bold flex items-center justify-center"
+                                />
                                 <div className="flex-1 min-w-0">
                                     <h1 className="text-2xl font-extrabold text-avaa-dark leading-tight">{job.title}</h1>
                                     <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-gray-500">
@@ -273,13 +280,13 @@ export default function JobDetail({ job, recruiter, similarJobs = [], isSaved: i
                         <div className="bg-white border border-gray-200 rounded-2xl p-6">
                             <h3 className="text-base font-bold text-avaa-dark mb-5">Meet the Recruiter</h3>
                             <div className="flex items-center gap-4 mb-5">
-                                {recruiter.avatar ? (
-                                    <img src={recruiter.avatar} alt={recruiter.name} className="w-12 h-12 rounded-full object-cover flex-shrink-0" />
-                                ) : (
-                                    <div className="w-12 h-12 rounded-full bg-avaa-dark flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-                                        {getInitials(recruiter.name)}
-                                    </div>
-                                )}
+                                <ImageInitialsFallback
+                                    src={recruiter.avatar}
+                                    alt={recruiter.name}
+                                    initials={getInitials(recruiter.name)}
+                                    className="w-12 h-12 rounded-full flex-shrink-0 overflow-hidden bg-avaa-dark"
+                                    textClassName="text-white text-sm font-bold flex items-center justify-center"
+                                />
                                 <div className="min-w-0">
                                     <p className="text-[15px] font-semibold text-avaa-dark">{recruiter.name}</p>
                                     <p className="text-sm text-gray-500 truncate">{recruiter.title}</p>
@@ -303,14 +310,25 @@ export default function JobDetail({ job, recruiter, similarJobs = [], isSaved: i
                                     const sjSalary = formatSalary(sj.salary_min, sj.salary_max, sj.salary_currency);
                                     return (
                                         <div key={sj.id} className="pb-5 border-b border-gray-100 last:border-0 last:pb-0">
-                                            <button onClick={() => router.visit(route('job-seeker.jobs.show', sj.id))}
-                                                className="text-[15px] font-semibold text-avaa-dark hover:text-avaa-teal transition-colors text-left block leading-snug">
-                                                {sj.title}
-                                            </button>
-                                            <p className="text-sm text-gray-500 mt-1">
-                                                {sj.company} · {sj.is_remote ? 'Remote' : sj.location}
-                                            </p>
-                                            {sjSalary && <p className="text-sm font-semibold text-avaa-teal mt-1">{sjSalary}</p>}
+                                            <div className="flex items-start gap-3">
+                                                <ImageInitialsFallback
+                                                    src={sj.logo_url}
+                                                    alt={`${sj.company} logo`}
+                                                    initials={getInitials(sj.company)}
+                                                    className={`w-10 h-10 rounded-lg border border-gray-200 flex-shrink-0 overflow-hidden ${sj.logo_url ? 'bg-white' : avatarColor(sj.id)}`}
+                                                    textClassName="text-white text-xs font-bold flex items-center justify-center"
+                                                />
+                                                <div className="min-w-0">
+                                                    <button onClick={() => router.visit(route('job-seeker.jobs.show', sj.id))}
+                                                        className="text-[15px] font-semibold text-avaa-dark hover:text-avaa-teal transition-colors text-left block leading-snug">
+                                                        {sj.title}
+                                                    </button>
+                                                    <p className="text-sm text-gray-500 mt-1">
+                                                        {sj.company} · {sj.is_remote ? 'Remote' : sj.location}
+                                                    </p>
+                                                    {sjSalary && <p className="text-sm font-semibold text-avaa-teal mt-1">{sjSalary}</p>}
+                                                </div>
+                                            </div>
                                         </div>
                                     );
                                 })}

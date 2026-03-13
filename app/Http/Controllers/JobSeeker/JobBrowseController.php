@@ -22,7 +22,7 @@ class JobBrowseController extends Controller
         $user = Auth::user();
 
         $query = JobListing::where('status', 'active')
-            ->with('employer:id,first_name,last_name');
+            ->with(['employer:id,first_name,last_name', 'employer.employerProfile:id,user_id,company_name,logo_path']);
 
         // Search
         if ($search = $request->input('search')) {
@@ -145,7 +145,8 @@ class JobBrowseController extends Controller
 
         $savedIds = SavedJob::where('user_id', $user->id)->pluck('job_listing_id');
 
-        $query = JobListing::whereIn('id', $savedIds)->with('employer:id,first_name,last_name');
+        $query = JobListing::whereIn('id', $savedIds)
+            ->with(['employer:id,first_name,last_name', 'employer.employerProfile:id,user_id,company_name,logo_path']);
 
         if ($search = $request->input('search')) {
             $query->where(function ($q) use ($search) {
@@ -251,23 +252,7 @@ class JobBrowseController extends Controller
                 ->join('');
             $initials = mb_strtoupper(mb_substr($initials, 0, 2)) ?: '??';
 
-            $logoPath = $employer?->employerProfile?->logo_path;
-            $logoUrl = null;
-            if ($logoPath) {
-                $relative = ltrim($logoPath, '/');
-                if (str_starts_with($relative, 'http://') || str_starts_with($relative, 'https://')) {
-                    $logoUrl = $relative;
-                } else {
-                    $publicRelative = str_starts_with($relative, 'logos/')
-                        ? $relative
-                        : 'logos/'.$relative;
-                    if (file_exists(public_path($publicRelative))) {
-                        $logoUrl = '/'.$publicRelative;
-                    } else {
-                        $logoUrl = Storage::url($logoPath);
-                    }
-                }
-            }
+            $logoUrl = $this->resolveImageUrl($employer?->employerProfile?->logo_path);
 
             $start = $app->hired_at ?: $app->created_at;
             $end = $app->contract_ended_at;
@@ -375,8 +360,37 @@ class JobBrowseController extends Controller
             'deadline' => $job->deadline?->toDateString(),
             'application_limit' => $job->application_limit,
             'logo_path' => $job->logo_path,
+            'logo_url' => $this->resolveImageUrl($job->logo_path)
+                ?? $this->resolveImageUrl($job->employer?->employerProfile?->logo_path),
             'has_applied' => in_array($job->id, $appliedIds),
             'application_status' => $applicationStatuses[$job->id] ?? null,
         ];
+    }
+
+    private function resolveImageUrl(?string $path): ?string
+    {
+        if (!is_string($path) || trim($path) === '') {
+            return null;
+        }
+
+        $trimmed = trim($path);
+
+        if (str_starts_with($trimmed, 'http://') || str_starts_with($trimmed, 'https://')) {
+            return $trimmed;
+        }
+
+        if (str_starts_with($trimmed, '/storage/') || str_starts_with($trimmed, '/logos/')) {
+            return $trimmed;
+        }
+
+        if (str_starts_with($trimmed, 'storage/') || str_starts_with($trimmed, 'logos/')) {
+            return '/'.$trimmed;
+        }
+
+        if (Storage::disk('public')->exists($trimmed)) {
+            return Storage::url($trimmed);
+        }
+
+        return '/'.ltrim($trimmed, '/');
     }
 }

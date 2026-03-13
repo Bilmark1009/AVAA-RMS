@@ -1,5 +1,6 @@
 import { Head, router } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
+import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
 import { useState, useEffect, useRef } from 'react';
 
 /* ── Types ── */
@@ -191,13 +192,13 @@ function EditModal({ interview, onClose }: { interview: InterviewData; onClose: 
                 </div>
 
                 <div className="px-6 -mt-8 flex items-end gap-3 flex-shrink-0 relative z-10 mb-3">
-                    {interview.candidate.avatar ? (
-                        <img src={interview.candidate.avatar} alt={fullName} className="w-16 h-16 rounded-2xl ring-4 ring-white object-cover shadow-md" />
-                    ) : (
-                        <div className={`w-16 h-16 rounded-2xl ring-4 ring-white ${avatarColor(interview.candidate.id)} flex items-center justify-center text-white text-xl font-bold shadow-md`}>
-                            {getInitials(interview.candidate.first_name, interview.candidate.last_name)}
-                        </div>
-                    )}
+                    <ImageInitialsFallback
+                        src={interview.candidate.avatar}
+                        alt={fullName}
+                        initials={getInitials(interview.candidate.first_name, interview.candidate.last_name)}
+                        className={`w-16 h-16 rounded-2xl ring-4 ring-white shadow-md overflow-hidden ${interview.candidate.avatar ? 'bg-white' : avatarColor(interview.candidate.id)}`}
+                        textClassName="text-white text-xl font-bold flex items-center justify-center"
+                    />
                     <div className="pb-1">
                         <h2 className="text-base font-bold text-avaa-dark">{fullName}</h2>
                         <p className="text-sm text-gray-500">{interview.job.title}</p>
@@ -366,11 +367,13 @@ function JobGroup({
                                     <tr key={i.id} className="hover:bg-gray-50/60 transition-colors">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
-                                                {i.candidate.avatar ? (
-                                                    <img src={i.candidate.avatar} alt={fullName} className="w-10 h-10 rounded-full object-cover shadow-sm flex-shrink-0" />
-                                                ) : (
-                                                    <div className={`w-10 h-10 rounded-full shadow-sm ${avatarColor(i.candidate.id)} flex items-center justify-center text-white text-sm font-bold flex-shrink-0`}>{initials}</div>
-                                                )}
+                                                <ImageInitialsFallback
+                                                    src={i.candidate.avatar}
+                                                    alt={fullName}
+                                                    initials={initials}
+                                                    className={`w-10 h-10 rounded-full shadow-sm flex-shrink-0 overflow-hidden ${i.candidate.avatar ? 'bg-white' : avatarColor(i.candidate.id)}`}
+                                                    textClassName="text-white text-sm font-bold flex items-center justify-center"
+                                                />
                                                 <div className="min-w-0">
                                                     <p className="text-base font-bold text-gray-900 truncate">{fullName}</p>
                                                     {i.candidate.title && <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider truncate mt-0.5">{i.candidate.title}</p>}

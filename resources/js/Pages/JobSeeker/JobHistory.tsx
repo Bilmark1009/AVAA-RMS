@@ -1,5 +1,6 @@
 import { Head } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
+import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
 import type { PageProps } from '@/types';
 
 interface Placement {
@@ -32,21 +33,14 @@ function Meta({ icon, children }: { icon: React.ReactNode; children: React.React
 }
 
 function CompanyAvatar({ company }: { company: Placement['company'] }) {
-    if (company.logo_url) {
-        return (
-            <img
-                src={company.logo_url}
-                alt={`${company.name} logo`}
-                className="w-12 h-12 rounded-xl object-cover border border-gray-200 bg-white flex-shrink-0"
-                loading="lazy"
-            />
-        );
-    }
-
     return (
-        <div className="w-12 h-12 rounded-xl bg-[#2f5f5f] text-white font-extrabold flex items-center justify-center flex-shrink-0">
-            {company.initials}
-        </div>
+        <ImageInitialsFallback
+            src={company.logo_url}
+            alt={`${company.name} logo`}
+            initials={company.initials}
+            className={`w-12 h-12 rounded-xl border border-gray-200 flex-shrink-0 overflow-hidden ${company.logo_url ? 'bg-white' : 'bg-[#2f5f5f]'}`}
+            textClassName="text-white font-extrabold flex items-center justify-center"
+        />
     );
 }
 

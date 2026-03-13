@@ -1,5 +1,6 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
+import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
 
 /* ── Types ── */
 interface JobSeekerProfile {
@@ -137,17 +138,13 @@ export default function JobSeekerProfilePage({ user, profile, experiences }: Pro
                             {/* Avatar row */}
                             <div className="flex items-end justify-between -mt-12 mb-4">
                                 <div className="relative">
-                                    {user.avatar ? (
-                                        <img
-                                            src={user.avatar}
-                                            alt={fullName}
-                                            className="w-24 h-24 rounded-2xl ring-4 ring-white object-cover shadow-md"
-                                        />
-                                    ) : (
-                                        <div className="w-24 h-24 rounded-2xl ring-4 ring-white bg-avaa-dark flex items-center justify-center text-white text-3xl font-bold shadow-md">
-                                            {initials}
-                                        </div>
-                                    )}
+                                    <ImageInitialsFallback
+                                        src={user.avatar}
+                                        alt={fullName}
+                                        initials={initials}
+                                        className="w-24 h-24 rounded-2xl ring-4 ring-white overflow-hidden shadow-md bg-avaa-dark"
+                                        textClassName="text-white text-3xl font-bold flex items-center justify-center"
+                                    />
                                 </div>
                                 <Link
                                     href={route('job-seeker.profile.edit')}

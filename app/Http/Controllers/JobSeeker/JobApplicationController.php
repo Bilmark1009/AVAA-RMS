@@ -11,6 +11,7 @@ use App\Notifications\ApplicationWithdrawnByApplicantNotification;
 use App\Notifications\ApplicantWithdrewApplicationNotification;
 use App\Notifications\NewApplicationNotification;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -45,28 +46,7 @@ class JobApplicationController extends Controller
                 $company = $employer?->employerProfile?->company_name
                     ?? trim(($employer?->first_name ?? '').' '.($employer?->last_name ?? ''))
                     ?: 'Unknown Company';
-                $logoPath = $employer?->employerProfile?->logo_path;
-                $logoUrl = null;
-                if ($logoPath) {
-                    $relative = ltrim($logoPath, '/');
-
-                    // If it's already an absolute URL, keep it.
-                    if (str_starts_with($relative, 'http://') || str_starts_with($relative, 'https://')) {
-                        $logoUrl = $relative;
-                    } else {
-                        // Prefer public/ logos folder if present (your setup).
-                        $publicRelative = str_starts_with($relative, 'logos/')
-                            ? $relative
-                            : 'logos/'.$relative;
-
-                        if (file_exists(public_path($publicRelative))) {
-                            $logoUrl = '/'.$publicRelative;
-                        } else {
-                            // Fallback to storage disk (default Laravel behavior).
-                            $logoUrl = Storage::url($logoPath);
-                        }
-                    }
-                }
+                    $logoUrl = $this->resolveImageUrl($employer?->employerProfile?->logo_path);
 
                 $initials = collect(preg_split('/\s+/', trim($company)))
                     ->filter()
@@ -143,6 +123,32 @@ class JobApplicationController extends Controller
         ]);
     }
 
+        private function resolveImageUrl(?string $path): ?string
+        {
+            if (!is_string($path) || trim($path) === '') {
+                return null;
+            }
+
+            $trimmed = trim($path);
+
+            if (str_starts_with($trimmed, 'http://') || str_starts_with($trimmed, 'https://')) {
+                return $trimmed;
+            }
+
+            if (str_starts_with($trimmed, '/storage/') || str_starts_with($trimmed, '/logos/')) {
+                return $trimmed;
+            }
+
+            if (str_starts_with($trimmed, 'storage/') || str_starts_with($trimmed, 'logos/')) {
+                return '/'.$trimmed;
+            }
+
+            if (Storage::disk('public')->exists($trimmed)) {
+                return Storage::url($trimmed);
+            }
+
+            return '/'.ltrim($trimmed, '/');
+        }
     /**
      * Job Seeker: Withdraw a submitted application.
      */
@@ -311,7 +317,7 @@ class JobApplicationController extends Controller
         // Handle resume
         $resumePath = $validated['existing_resume'] ?? null;
         if ($request->hasFile('resume')) {
-            $resumePath = $request->file('resume')->store("resumes/{$user->id}", 'public');
+            $resumePath = $this->storeWithOriginalName($request->file('resume'), "resumes/{$user->id}", 'public', 'resume');
             $resumePath = '/storage/' . $resumePath;
         }
 
@@ -407,7 +413,7 @@ class JobApplicationController extends Controller
         // Handle resume upload for draft too
         $resumePath = $request->input('existing_resume');
         if ($request->hasFile('resume')) {
-            $resumePath = $request->file('resume')->store("resumes/{$user->id}", 'public');
+            $resumePath = $this->storeWithOriginalName($request->file('resume'), "resumes/{$user->id}", 'public', 'resume');
             $resumePath = '/storage/' . $resumePath;
         }
 
@@ -427,5 +433,25 @@ class JobApplicationController extends Controller
         }
 
         return back()->with('status', 'draft-saved');
+    }
+
+    private function storeWithOriginalName(UploadedFile $file, string $directory, string $disk, string $fallbackBase): string
+    {
+        $originalBase = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+        $safeBase = preg_replace('/[^A-Za-z0-9_\- ]+/', '', $originalBase) ?: $fallbackBase;
+        $safeBase = trim(preg_replace('/\s+/', '_', $safeBase), '_') ?: $fallbackBase;
+
+        $extension = strtolower($file->getClientOriginalExtension());
+        $candidate = $extension !== '' ? "{$safeBase}.{$extension}" : $safeBase;
+        $counter = 1;
+
+        while (Storage::disk($disk)->exists("{$directory}/{$candidate}")) {
+            $candidate = $extension !== ''
+                ? "{$safeBase}_{$counter}.{$extension}"
+                : "{$safeBase}_{$counter}";
+            $counter++;
+        }
+
+        return $file->storeAs($directory, $candidate, $disk);
     }
 }

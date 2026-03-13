@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Settings;
 use App\Http\Controllers\Controller;
 use App\Models\UserDocument;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -31,7 +32,7 @@ class DocumentsController extends Controller
 
         $file = $request->file('document');
         // Use 'local' disk — always available in Laravel by default
-        $path = $file->store("documents/{$request->user()->id}", 'local');
+        $path = $this->storeWithOriginalName($file, "documents/{$request->user()->id}", 'local', 'document');
 
         $request->user()->documents()->create([
             'file_name' => $file->getClientOriginalName(),
@@ -102,5 +103,25 @@ class DocumentsController extends Controller
             return 'CV / Resume';
 
         return 'Supporting Document';
+    }
+
+    private function storeWithOriginalName(UploadedFile $file, string $directory, string $disk, string $fallbackBase): string
+    {
+        $originalBase = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+        $safeBase = preg_replace('/[^A-Za-z0-9_\- ]+/', '', $originalBase) ?: $fallbackBase;
+        $safeBase = trim(preg_replace('/\s+/', '_', $safeBase), '_') ?: $fallbackBase;
+
+        $extension = strtolower($file->getClientOriginalExtension());
+        $candidate = $extension !== '' ? "{$safeBase}.{$extension}" : $safeBase;
+        $counter = 1;
+
+        while (Storage::disk($disk)->exists("{$directory}/{$candidate}")) {
+            $candidate = $extension !== ''
+                ? "{$safeBase}_{$counter}.{$extension}"
+                : "{$safeBase}_{$counter}";
+            $counter++;
+        }
+
+        return $file->storeAs($directory, $candidate, $disk);
     }
 }

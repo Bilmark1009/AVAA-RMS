@@ -1,6 +1,7 @@
 import { useState, FormEvent } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
+import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
 import type { PageProps } from '@/types';
 
 interface ReportedUser {
@@ -124,12 +125,13 @@ export default function ReportPage({ reportedUser, conversationId, unreadNotific
 
                     {/* Reported user card */}
                     <div className="mx-6 mb-5 flex items-center gap-3 bg-gray-50 border border-gray-100 rounded-xl px-4 py-3">
-                        <div className="w-10 h-10 rounded-full bg-avaa-dark flex items-center justify-center text-white font-bold text-sm overflow-hidden flex-shrink-0">
-                            {reportedUser.avatar
-                                ? <img src={reportedUser.avatar} alt="" className="w-full h-full object-cover" />
-                                : initials
-                            }
-                        </div>
+                        <ImageInitialsFallback
+                            src={reportedUser.avatar}
+                            alt={`${reportedUser.first_name} ${reportedUser.last_name}`}
+                            initials={initials}
+                            className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-avaa-dark"
+                            textClassName="text-white font-bold text-sm flex items-center justify-center"
+                        />
                         <div>
                             <p className="text-[14px] font-semibold text-avaa-dark">
                                 Reporting: {reportedUser.first_name} {reportedUser.last_name}

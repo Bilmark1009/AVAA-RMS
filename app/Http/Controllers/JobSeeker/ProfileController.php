@@ -5,7 +5,9 @@ namespace App\Http\Controllers\JobSeeker;
 use App\Http\Controllers\Controller;
 use App\Models\UserDocument;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -59,7 +61,7 @@ class ProfileController extends Controller
         $resumePath = null;
         if ($request->hasFile('resume')) {
             $file = $request->file('resume');
-            $resumePath = $file->store("resumes/{$user->id}", 'local');
+            $resumePath = $this->storeWithOriginalName($file, "resumes/{$user->id}", 'local', 'resume');
 
             // Also create a user_documents entry so it shows in Settings > Documents
             $user->documents()->create([
@@ -133,7 +135,7 @@ class ProfileController extends Controller
         // Keep existing resume unless a new one is uploaded
         $resumePath = $profile->resume_path;
         if ($request->hasFile('resume')) {
-            $resumePath = $request->file('resume')->store("resumes/{$user->id}", 'local');
+            $resumePath = $this->storeWithOriginalName($request->file('resume'), "resumes/{$user->id}", 'local', 'resume');
         }
 
         $completeness = $this->calculateCompleteness($request, $resumePath);
@@ -191,5 +193,25 @@ class ProfileController extends Controller
 
         $filled = collect($checks)->filter(fn($v) => $v)->count();
         return (int) round(40 + ($filled / count($checks)) * 60);
+    }
+
+    private function storeWithOriginalName(UploadedFile $file, string $directory, string $disk, string $fallbackBase): string
+    {
+        $originalBase = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+        $safeBase = preg_replace('/[^A-Za-z0-9_\- ]+/', '', $originalBase) ?: $fallbackBase;
+        $safeBase = trim(preg_replace('/\s+/', '_', $safeBase), '_') ?: $fallbackBase;
+
+        $extension = strtolower($file->getClientOriginalExtension());
+        $candidate = $extension !== '' ? "{$safeBase}.{$extension}" : $safeBase;
+        $counter = 1;
+
+        while (Storage::disk($disk)->exists("{$directory}/{$candidate}")) {
+            $candidate = $extension !== ''
+                ? "{$safeBase}_{$counter}.{$extension}"
+                : "{$safeBase}_{$counter}";
+            $counter++;
+        }
+
+        return $file->storeAs($directory, $candidate, $disk);
     }
 }

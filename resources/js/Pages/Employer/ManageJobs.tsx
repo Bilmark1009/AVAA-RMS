@@ -1,15 +1,27 @@
 import { Head, router } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
+import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
 import { useState, useRef, useEffect } from 'react';
 
 /* ── Types ── */
 interface JobListing {
-    id: number; title: string; location: string; company: string;
-    status: 'active' | 'inactive' | 'draft'; applications_count: number;
-    posted_date: string; description?: string; employment_type?: string;
-    salary_min?: number | null; salary_max?: number | null; salary_currency?: string;
-    skills_required?: string[]; experience_level?: string; is_remote?: boolean;
-    deadline?: string | null; industry?: string;
+    id: number;
+    title: string;
+    location: string;
+    company: string;
+    status: 'active' | 'inactive' | 'draft';
+    applications_count: number;
+    posted_date: string;
+    description?: string;
+    employment_type?: string;
+    salary_min?: number | null;
+    salary_max?: number | null;
+    salary_currency?: string;
+    skills_required?: string[];
+    experience_level?: string;
+    is_remote?: boolean;
+    deadline?: string | null;
+    industry?: string;
 }
 interface Props {
     user: { first_name: string; last_name: string; email: string; role: string };
@@ -28,10 +40,15 @@ interface JobFormData {
 }
 
 /* ── Helpers ── */
-const getInitials = (t: string) => t.trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
-const AVATAR_COLORS = ['bg-[#6D9886]','bg-teal-600','bg-emerald-600','bg-slate-500','bg-cyan-700','bg-stone-500'];
-const avatarColor = (id: number) => AVATAR_COLORS[id % AVATAR_COLORS.length];
-const formatDate = (d: string) => new Date(d).toISOString().slice(0, 10);
+function getInitials(title: string) {
+    return title.trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+}
+const AVATAR_COLORS = [
+    'bg-avaa-dark', 'bg-teal-700', 'bg-emerald-700',
+    'bg-slate-600', 'bg-cyan-700', 'bg-stone-600',
+];
+function avatarColor(id: number) { return AVATAR_COLORS[id % AVATAR_COLORS.length]; }
+function formatDate(dateStr: string) { return new Date(dateStr).toISOString().slice(0, 10); }
 function timeAgo(dateStr: string) {
     const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
     if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
@@ -83,16 +100,19 @@ function ViewJobModal({ job, onClose, onEdit }: { job: JobListing; onClose: () =
                         <XIcon/>
                     </button>
                 </div>
-                <div className="px-6 -mt-10 flex items-end justify-between flex-shrink-0 relative z-10">
-                    <div className={`w-16 h-16 rounded-2xl ${avatarColor(job.id)} flex items-center justify-center text-white text-xl font-bold ring-4 ring-white shadow-md`}>
+
+                {/*
+                    FIX: avatar row sits OUTSIDE the scrollable area so it's never
+                    cut off. The -mt-14 pulls it up over the gradient header.
+                */}
+                <div className="px-6 -mt-14 flex items-end justify-between flex-shrink-0 relative z-10">
+                    <div className={`w-20 h-20 rounded-2xl ${avatarColor(job.id)} flex items-center justify-center text-white text-2xl font-bold ring-4 ring-white shadow-md`}>
                         {getInitials(job.company || job.title)}
                     </div>
-                    <div className="mb-1 flex gap-2">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusCfg.bg}`}>{statusCfg.label}</span>
-                        <button onClick={onEdit} className="px-4 py-1.5 bg-[#6D9886] hover:bg-[#5a8371] text-white text-sm font-semibold rounded-xl transition-colors shadow-sm">
-                            Edit Job
-                        </button>
-                    </div>
+                    <button onClick={onEdit}
+                        className="mb-1 px-4 py-1.5 bg-avaa-primary hover:bg-avaa-primary-hover text-white text-sm font-semibold rounded-xl transition-colors shadow-sm">
+                        Edit
+                    </button>
                 </div>
 
                 <div className="flex flex-1 overflow-hidden">
@@ -833,34 +853,110 @@ export default function ManageJobs({ user, profile, jobs, isVerified }: Props) {
                     </div>
                 </div>
 
-                {/* Card Grid */}
-                {filtered.length === 0 ? (
-                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm flex flex-col items-center justify-center py-24 text-center">
-                        <div className="w-16 h-16 rounded-2xl bg-[#6D9886]/10 flex items-center justify-center text-[#6D9886] mb-4">
-                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
-                        </div>
-                        <p className="text-gray-800 font-semibold mb-1">No job listings found</p>
-                        <p className="text-sm text-gray-400 mb-5">{search ? 'Try adjusting your search.' : 'Post your first job to start receiving applications.'}</p>
-                        {isVerified && !search && (
-                            <button onClick={() => setShowCreate(true)}
-                                className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#6D9886] text-white text-sm font-semibold rounded-xl hover:bg-[#5a8371] transition-colors">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                                Post New Job
-                            </button>
-                        )}
+                {/* Table
+                    FIX: removed overflow-x-auto from this wrapper and moved it to
+                    an inner div so the fixed-position dropdown can escape the container.
+                */}
+                <div className="bg-white rounded-2xl border border-gray-200">
+                    <div className="overflow-x-auto">
+                        <table className="w-full">
+                            <thead>
+                                <tr className="border-b border-gray-100 bg-gray-50/50">
+                                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase tracking-widest w-[35%]">User</th>
+                                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-widest">Company</th>
+                                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-widest">Status</th>
+                                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-widest">Applications</th>
+                                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-widest">Posted Date</th>
+                                    <th className="px-4 py-3 w-12" />
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                                {filtered.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={6}>
+                                            <div className="flex flex-col items-center justify-center py-20 text-center">
+                                                <div className="w-16 h-16 rounded-2xl bg-avaa-primary-light flex items-center justify-center text-avaa-teal mb-4">
+                                                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                                                        <rect x="2" y="7" width="20" height="14" rx="2" />
+                                                        <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" />
+                                                    </svg>
+                                                </div>
+                                                <p className="text-avaa-dark font-semibold mb-1">No job listings yet</p>
+                                                <p className="text-sm text-avaa-muted mb-5">Post your first job to start receiving applications.</p>
+                                                {isVerified && (
+                                                    <button onClick={() => setShowCreate(true)}
+                                                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-avaa-primary text-white text-sm font-semibold rounded-xl hover:bg-avaa-primary-hover transition-colors">
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                                                            <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                                                        </svg>
+                                                        Post New Job
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ) : filtered.map(job => (
+                                    <tr key={job.id} className="hover:bg-gray-50/60 transition-colors">
+                                        <td className="px-5 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-white text-xs font-bold flex-shrink-0 ${avatarColor(job.id)}`}>
+                                                    {getInitials(job.title)}
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <button onClick={() => setViewJob(job)}
+                                                        className="text-sm font-semibold text-avaa-dark hover:text-avaa-teal transition-colors truncate block text-left">
+                                                        {job.title}
+                                                    </button>
+                                                    <p className="text-xs text-avaa-muted truncate">{job.location}</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-4">
+                                            <span className="text-sm text-gray-700">{job.company}</span>
+                                        </td>
+                                        <td className="px-4 py-4">
+                                            <StatusBadge status={job.status} jobId={job.id} />
+                                        </td>
+                                        <td className="px-4 py-4">
+                                            <button onClick={() => router.visit(route('employer.jobs.applications', job.id))}
+                                                className="inline-flex items-center gap-1.5 text-sm font-semibold text-avaa-dark hover:text-avaa-teal transition-colors">
+                                                {job.applications_count}
+                                                {job.applications_count > 0 && (
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-avaa-muted">
+                                                        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" />
+                                                    </svg>
+                                                )}
+                                            </button>
+                                        </td>
+                                        <td className="px-4 py-4">
+                                            <div className="flex items-center gap-1.5 text-sm text-gray-500">
+                                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-avaa-muted flex-shrink-0">
+                                                    <rect x="3" y="4" width="18" height="18" rx="2" />
+                                                    <line x1="16" y1="2" x2="16" y2="6" />
+                                                    <line x1="8" y1="2" x2="8" y2="6" />
+                                                    <line x1="3" y1="10" x2="21" y2="10" />
+                                                </svg>
+                                                {formatDate(job.posted_date)}
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-4">
+                                            <OptionsMenu job={job} onView={() => setViewJob(job)} onEdit={() => setEditJob(job)} />
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
-                ) : (
-                    <>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                            {filtered.map(job => (
-                                <JobCard key={job.id} job={job} onView={() => setViewJob(job)} onEdit={() => setEditJob(job)}/>
-                            ))}
+
+                    {filtered.length > 0 && (
+                        <div className="px-5 py-3 border-t border-gray-100">
+                            <p className="text-xs text-avaa-muted">
+                                Showing <span className="font-semibold text-avaa-dark">{filtered.length}</span> of{' '}
+                                <span className="font-semibold text-avaa-dark">{jobs.length}</span> jobs
+                            </p>
                         </div>
-                        <p className="text-xs text-gray-400 text-right">
-                            Showing <span className="font-semibold text-gray-700">{filtered.length}</span> of <span className="font-semibold text-gray-700">{jobs.length}</span> jobs
-                        </p>
-                    </>
-                )}
+                    )}
+                </div>
             </div>
         </AppLayout>
     );

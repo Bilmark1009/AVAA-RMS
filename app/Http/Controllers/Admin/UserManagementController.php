@@ -16,7 +16,7 @@ class UserManagementController extends Controller
     public function index(Request $request): Response
     {
         $search = $request->input('search', '');
-        $role = $request->input('role', 'job_seeker'); // default to job seekers
+        $role = $request->input('role', 'all'); // default to all users
         $status = $request->input('status', 'all');      // all | active | inactive
 
         $query = User::withTrashed()  // ← include soft-deleted so admin can see & restore them

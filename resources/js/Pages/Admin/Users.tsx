@@ -1,6 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import { useState, useCallback } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
+import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
 
 /* ── Types ── */
 interface JobSeekerProfile { skills?: string | null }
@@ -154,14 +155,96 @@ function DeleteModal({ user, onConfirm, onCancel }: {
     );
 }
 
+function UserDetailsModal({ user, onClose }: { user: User; onClose: () => void }) {
+    const initials = `${(user.first_name ?? '').charAt(0)}${(user.last_name ?? '').charAt(0)}`.toUpperCase();
+    const skills = parseSkills(user.jobSeekerProfile?.skills);
+    const isActive = effectiveStatus(user) === 'active';
+    const roleLabel = user.role === 'job_seeker' ? 'Job Seeker' : user.role === 'employer' ? 'Employer' : user.role;
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+            <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-xl p-6">
+                <div className="flex items-start justify-between gap-4 mb-5">
+                    <div className="flex items-center gap-3 min-w-0">
+                        <ImageInitialsFallback
+                            src={user.avatar}
+                            alt={initials}
+                            initials={initials}
+                            className={`w-12 h-12 rounded-full flex-shrink-0 overflow-hidden ${user.avatar ? 'bg-white border border-gray-200' : 'bg-[#3d9e9e]'}`}
+                            textClassName="text-white text-sm font-bold flex items-center justify-center"
+                        />
+                        <div className="min-w-0">
+                            <p className="font-bold text-gray-900 text-base truncate">{user.first_name} {user.last_name}</p>
+                            <p className="text-sm text-gray-500 truncate">{user.email}</p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                    >
+                        Close
+                    </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">User ID</p>
+                        <p className="text-gray-800 font-medium">#{user.id}</p>
+                    </div>
+                    <div>
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Role</p>
+                        <p className="text-gray-800 font-medium">{roleLabel}</p>
+                    </div>
+                    <div>
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Status</p>
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${isActive ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-gray-100 text-gray-500 border border-gray-200'}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-gray-400'}`} />
+                            {isActive ? 'Active' : 'Inactive'}
+                        </span>
+                    </div>
+                    <div>
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Joined Date</p>
+                        <p className="text-gray-800 font-medium">{new Date(user.created_at).toISOString().slice(0, 10)}</p>
+                    </div>
+                </div>
+
+                <div className="mt-5 pt-4 border-t border-gray-100">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Profile Details</p>
+                    {user.role === 'job_seeker' ? (
+                        skills.length > 0 ? (
+                            <div className="flex flex-wrap gap-1.5">
+                                {skills.map(skill => (
+                                    <span key={skill} className="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 text-xs font-medium">{skill}</span>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-sm text-gray-500">No skills provided.</p>
+                        )
+                    ) : (
+                        <p className="text-sm text-gray-700 font-medium">{user.employerProfile?.company_name || 'No company set.'}</p>
+                    )}
+                </div>
+
+                {user.deleted_at && (
+                    <div className="mt-4 px-3 py-2 rounded-lg bg-red-50 border border-red-100 text-xs text-red-700 font-medium">
+                        This account is currently deactivated.
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
 /* ── Main Page ── */
 export default function AdminUsers({ users, filters }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
-    const [role, setRole] = useState(filters.role ?? 'job_seeker');
+    const [role, setRole] = useState(filters.role ?? 'all');
     const [status, setStatus] = useState(filters.status ?? 'all');
     const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
     const [roleDropOpen, setRoleDropOpen] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
+    const [detailTarget, setDetailTarget] = useState<User | null>(null);
     const [processingId, setProcessingId] = useState<number | null>(null);
 
     /* ── Filter navigation ── */
@@ -323,12 +406,13 @@ export default function AdminUsers({ users, filters }: Props) {
                                                 {/* User */}
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-3">
-                                                        <div className={`w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-white text-xs font-bold overflow-hidden
-                                                            ${user.avatar ? '' : AVATAR_BG[i % AVATAR_BG.length]}`}>
-                                                            {user.avatar
-                                                                ? <img src={user.avatar} alt={initials} className="w-full h-full object-cover" />
-                                                                : initials}
-                                                        </div>
+                                                        <ImageInitialsFallback
+                                                            src={user.avatar}
+                                                            alt={initials}
+                                                            initials={initials}
+                                                            className={`w-9 h-9 rounded-full flex-shrink-0 overflow-hidden ${user.avatar ? 'bg-white' : AVATAR_BG[i % AVATAR_BG.length]}`}
+                                                            textClassName="text-white text-xs font-bold flex items-center justify-center"
+                                                        />
 
                                                         <div className="min-w-0">
                                                             <p className="font-semibold text-gray-800 leading-tight truncate">
@@ -382,6 +466,14 @@ export default function AdminUsers({ users, filters }: Props) {
                                                 {/* Actions */}
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-1.5 justify-end">
+                                                        <button
+                                                            onClick={() => setDetailTarget(user)}
+                                                            title="View user"
+                                                            className="p-2 rounded-lg text-gray-400 hover:text-[#3d9e9e] hover:bg-[#e8f4f4] transition-colors"
+                                                        >
+                                                            <IcoEye />
+                                                        </button>
+
                                                         {isDeleted ? (
                                                             <button
                                                                 onClick={() => doRestore(user)}
@@ -393,13 +485,6 @@ export default function AdminUsers({ users, filters }: Props) {
                                                             </button>
                                                         ) : (
                                                             <>
-                                                                <button
-                                                                    title="Edit user"
-                                                                    className="p-2 rounded-lg text-gray-400 hover:text-[#3d9e9e] hover:bg-[#e8f4f4] transition-colors"
-                                                                >
-                                                                    <IcoEye />
-                                                                </button>
-
                                                                 <button
                                                                     onClick={() => confirmDelete(user)}
                                                                     disabled={isBusy}
@@ -432,12 +517,13 @@ export default function AdminUsers({ users, filters }: Props) {
                                     <div key={user.id} className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition">
 
                                         <div className="flex items-center gap-3 mb-3">
-                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold
-                                                ${user.avatar ? '' : AVATAR_BG[i % AVATAR_BG.length]}`}>
-                                                {user.avatar
-                                                    ? <img src={user.avatar} className="w-full h-full object-cover rounded-full" />
-                                                    : initials}
-                                            </div>
+                                            <ImageInitialsFallback
+                                                src={user.avatar}
+                                                alt={initials}
+                                                initials={initials}
+                                                className={`w-10 h-10 rounded-full overflow-hidden ${user.avatar ? 'bg-white' : AVATAR_BG[i % AVATAR_BG.length]}`}
+                                                textClassName="text-white text-sm font-bold flex items-center justify-center"
+                                            />
 
                                             <div>
                                                 <p className="font-semibold text-gray-800 text-sm">
@@ -456,7 +542,10 @@ export default function AdminUsers({ users, filters }: Props) {
                                             </span>
 
                                             <div className="flex gap-1">
-                                                <button className="p-1.5 text-gray-400 hover:text-[#3d9e9e]">
+                                                <button
+                                                    onClick={() => setDetailTarget(user)}
+                                                    className="p-1.5 text-gray-400 hover:text-[#3d9e9e]"
+                                                >
                                                     <IcoEye />
                                                 </button>
 
@@ -509,6 +598,13 @@ export default function AdminUsers({ users, filters }: Props) {
                         user={deleteTarget}
                         onConfirm={doDelete}
                         onCancel={() => setDeleteTarget(null)}
+                    />
+                )}
+
+                {detailTarget && (
+                    <UserDetailsModal
+                        user={detailTarget}
+                        onClose={() => setDetailTarget(null)}
                     />
                 )}
             </AppLayout>

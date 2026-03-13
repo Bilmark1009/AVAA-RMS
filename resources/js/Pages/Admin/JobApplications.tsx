@@ -1,6 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
+import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
 
 /* ── Types ── */
 interface WorkExp {
@@ -172,10 +173,13 @@ function ApplicantProfile({ app, onClose }: { app: Application; onClose: () => v
 
                 {/* Avatar + name */}
                 <div className="px-6 -mt-12 flex items-end gap-4 mb-4 flex-shrink-0 relative z-10">
-                    {u.avatar
-                        ? <img src={u.avatar} alt={fullName} className="w-24 h-24 rounded-2xl ring-4 ring-white object-cover shadow-lg" />
-                        : <div className={`w-24 h-24 rounded-2xl ring-4 ring-white ${avatarColor(u.id)} flex items-center justify-center text-white text-3xl font-bold shadow-lg`}>{getInitials(u.first_name, u.last_name)}</div>
-                    }
+                    <ImageInitialsFallback
+                        src={u.avatar}
+                        alt={fullName}
+                        initials={getInitials(u.first_name, u.last_name)}
+                        className={`w-24 h-24 rounded-2xl ring-4 ring-white shadow-lg overflow-hidden ${u.avatar ? 'bg-white' : avatarColor(u.id)}`}
+                        textClassName="text-white text-3xl font-bold flex items-center justify-center"
+                    />
                     <div className="pb-1 flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
                             <div>
@@ -442,10 +446,13 @@ export default function AdminJobApplications({ job, applications }: Props) {
                                     <button key={app.id} onClick={() => setViewApp(app)}
                                         className="w-full flex items-center gap-4 px-5 py-4 hover:bg-gray-50/60 transition-colors text-left">
                                         {/* Avatar */}
-                                        {app.user.avatar
-                                            ? <img src={app.user.avatar} alt={fullName} className="w-11 h-11 rounded-full object-cover flex-shrink-0" />
-                                            : <div className={`w-11 h-11 rounded-full ${avatarColor(app.user.id)} flex items-center justify-center text-white text-sm font-bold flex-shrink-0`}>{initials}</div>
-                                        }
+                                        <ImageInitialsFallback
+                                            src={app.user.avatar}
+                                            alt={fullName}
+                                            initials={initials}
+                                            className={`w-11 h-11 rounded-full flex-shrink-0 overflow-hidden ${app.user.avatar ? 'bg-white' : avatarColor(app.user.id)}`}
+                                            textClassName="text-white text-sm font-bold flex items-center justify-center"
+                                        />
                                         {/* Name + sub */}
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm font-bold text-gray-800 leading-tight">{fullName}</p>

@@ -1,6 +1,7 @@
 import { Link, usePage, router } from '@inertiajs/react';
 import { useState, ReactNode, useRef, useEffect } from 'react';
 import NotificationDropdown from '@/Components/NotificationDropdown';
+import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
 import { PageProps } from '@/types';
 import { usePreventAuthBack } from '@/hooks/usePreventAuthBack';
 
@@ -219,20 +220,26 @@ function AvatarDropdown({ initials, avatar, name, email, role }: AvatarDropdownP
                            ring-2 ring-avaa-primary/30 hover:ring-avaa-primary/60
                            overflow-hidden flex-shrink-0"
             >
-                {avatar
-                    ? <img src={avatar} alt={name} className="w-full h-full object-cover" />
-                    : initials
-                }
+                <ImageInitialsFallback
+                    src={avatar}
+                    alt={name}
+                    initials={initials}
+                    className="w-full h-full"
+                    textClassName="text-white text-sm font-bold"
+                />
             </button>
 
             {open && (
                 <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl border border-gray-200 shadow-lg shadow-black/5 z-50 overflow-hidden">
                     <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full bg-avaa-dark flex items-center justify-center text-white text-xs font-bold flex-shrink-0 overflow-hidden">
-                            {avatar
-                                ? <img src={avatar} alt={name} className="w-full h-full object-cover" />
-                                : initials
-                            }
+                            <ImageInitialsFallback
+                                src={avatar}
+                                alt={name}
+                                initials={initials}
+                                className="w-full h-full"
+                                textClassName="text-white text-xs font-bold"
+                            />
                         </div>
                         <div className="min-w-0">
                             <p className="text-sm font-semibold text-avaa-dark truncate">{name}</p>

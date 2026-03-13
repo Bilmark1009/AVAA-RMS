@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Head, router, usePage } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
+import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
 import { PageProps, User } from '@/types';
 import axios from 'axios';
 
@@ -183,9 +184,13 @@ function Avatar({ src, initials, size = 'md', online }: {
     const sz = { xs: 'w-6 h-6 text-[10px]', sm: 'w-8 h-8 text-xs', md: 'w-10 h-10 text-sm', lg: 'w-12 h-12 text-base' }[size];
     return (
         <div className="relative flex-shrink-0">
-            <div className={`${sz} rounded-full bg-avaa-dark flex items-center justify-center text-white font-bold overflow-hidden`}>
-                {src ? <img src={src} alt="" className="w-full h-full object-cover" /> : initials}
-            </div>
+            <ImageInitialsFallback
+                src={src}
+                alt="Avatar"
+                initials={initials}
+                className={`${sz} rounded-full bg-avaa-dark overflow-hidden`}
+                textClassName="text-white font-bold flex items-center justify-center"
+            />
             {online && <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-white" />}
         </div>
     );

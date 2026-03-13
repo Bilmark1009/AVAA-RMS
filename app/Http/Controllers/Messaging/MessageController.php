@@ -75,10 +75,18 @@ class MessageController extends Controller
             ], 403);
         }
 
-        $request->validate([
-            'body'       => 'required_without:attachment|nullable|string|max:5000',
-            'attachment' => 'nullable|file|max:10240', // 10 MB
-        ]);
+
+        try {
+            $request->validate([
+                'body'       => 'required_without:attachment|nullable|string|max:5000',
+                'attachment' => 'nullable|file|max:10240', // 10 MB
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'error' => 'Validation failed',
+                'messages' => $e->errors(),
+            ], 422);
+        }
 
         $attachmentPath = null;
         $attachmentName = null;
@@ -164,7 +172,7 @@ class MessageController extends Controller
      *
      * GET /messages/{conversation}/messages/{message}/download
      */
-    public function downloadAttachment(Request $request, Conversation $conversation, Message $message): \Illuminate\Http\Response
+    public function downloadAttachment(Request $request, Conversation $conversation, Message $message): \Symfony\Component\HttpFoundation\BinaryFileResponse
     {
         $this->authorizeParticipant($conversation, $request->user()->id);
 
