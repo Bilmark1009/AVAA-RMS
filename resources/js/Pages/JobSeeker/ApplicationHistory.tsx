@@ -65,7 +65,7 @@ const statusPill = (stage: Stage) => {
 
 const statusLabel = (stage: Stage) => {
     const s = (stage || '').toString().toLowerCase();
-    if (s === 'interviewing') return 'Interviewing';
+    if (s === 'interviewing') return 'For Interview';
     if (s === 'pending') return 'Pending';
     if (s === 'withdrawn') return 'Withdrawn';
     if (s === 'rejected') return 'Rejected';
@@ -757,7 +757,7 @@ export default function ApplicationHistory({ applications }: Props) {
                         tabs={[
                             { key: 'all', label: 'All' },
                             { key: 'pending', label: 'Pending' },
-                            { key: 'interviewing', label: 'Interviewing' },
+                            { key: 'interviewing', label: 'For Interview' },
                             { key: 'withdrawn', label: 'Withdrawn' },
                             { key: 'rejected', label: 'Rejected' },
                         ]}
