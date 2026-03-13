@@ -77,7 +77,9 @@ class JobListingController extends Controller
             'location' => 'required|string|max:255',
             'description' => 'required|string|min:10',
             'responsibilities' => 'nullable|string|max:10000',
-            'qualifications' => 'nullable|string|max:10000',
+            'qualifications' => 'nullable',
+            'requirements' => 'nullable',
+            'screener_questions' => 'nullable',
             'project_timeline' => 'nullable|string|max:10000',
             'onboarding_process' => 'nullable|string|max:10000',
             'logo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
@@ -95,6 +97,9 @@ class JobListingController extends Controller
             'application_limit' => 'nullable|integer|min:1',
         ]);
 
+        // Normalize qualifications/requirements — accept both array and string
+        $normalizeList = fn($val) => is_array($val) ? implode("\n", array_filter($val)) : ($val ?? '');
+
         $logoPath = null;
         if ($request->hasFile('logo')) {
             $storedPath = $request->file('logo')->store("job-logos/{$request->user()->id}", 'public');
@@ -108,7 +113,7 @@ class JobListingController extends Controller
             'location' => $request->location,
             'description' => $request->description,
             'responsibilities' => $request->input('responsibilities'),
-            'qualifications' => $request->input('qualifications'),
+            'qualifications' => $normalizeList($request->input('qualifications')),
             'project_timeline' => $request->input('project_timeline'),
             'onboarding_process' => $request->input('onboarding_process'),
             'logo_path' => $logoPath,
@@ -148,7 +153,9 @@ class JobListingController extends Controller
             'location' => 'required|string|max:255',
             'description' => 'required|string|min:10',
             'responsibilities' => 'nullable|string|max:10000',
-            'qualifications' => 'nullable|string|max:10000',
+            'qualifications' => 'nullable',
+            'requirements' => 'nullable',
+            'screener_questions' => 'nullable',
             'project_timeline' => 'nullable|string|max:10000',
             'onboarding_process' => 'nullable|string|max:10000',
             'logo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
@@ -166,6 +173,8 @@ class JobListingController extends Controller
             'application_limit' => 'nullable|integer|min:1',
         ]);
 
+        $normalizeList = fn($val) => is_array($val) ? implode("\n", array_filter($val)) : ($val ?? '');
+
         $logoPath = $job->logo_path;
         if ($request->hasFile('logo')) {
             if (is_string($job->logo_path) && str_starts_with($job->logo_path, '/storage/')) {
@@ -176,26 +185,16 @@ class JobListingController extends Controller
             $logoPath = '/storage/' . $storedPath;
         }
 
-        $job->update($request->only([
-            'title',
-            'location',
-            'description',
-            'responsibilities',
-            'qualifications',
-            'project_timeline',
-            'onboarding_process',
-            'employment_type',
-            'salary_min',
-            'salary_max',
-            'salary_currency',
-            'skills_required',
-            'experience_level',
-            'industry',
-            'is_remote',
-            'deadline',
-            'status',
-            'application_limit',
-        ]));
+        $job->update(array_merge(
+            $request->only([
+                'title', 'location', 'description', 'responsibilities',
+                'project_timeline', 'onboarding_process', 'employment_type',
+                'salary_min', 'salary_max', 'salary_currency', 'skills_required',
+                'experience_level', 'industry', 'is_remote', 'deadline',
+                'status', 'application_limit',
+            ]),
+            ['qualifications' => $normalizeList($request->input('qualifications'))]
+        ));
 
         $job->update([
             'company_name' => $request->input('company'),

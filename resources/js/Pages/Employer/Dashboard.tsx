@@ -2,6 +2,9 @@ import { Head, Link } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import EmployerOnboarding from '@/Components/Modals/EmployerOnboarding';
 
+
+
+
 /* ── Types ─────────────────────────────────────────────────── */
 interface RecentJob {
     id: number;
