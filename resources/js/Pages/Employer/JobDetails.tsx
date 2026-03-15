@@ -55,10 +55,10 @@ function timeAgo(dateStr: string) {
 /* ── Section Card ── */
 function SectionCard({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
     return (
-        <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+        <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-6 shadow-sm">
             <h3 className="flex items-center gap-2 text-base font-bold text-gray-900 mb-4">
-                <span className="text-[#6D9886]">{icon}</span>
-                {title}
+                <span className="text-[#6D9886] flex-shrink-0">{icon}</span>
+                <span className="min-w-0 break-words">{title}</span>
             </h3>
             {children}
         </div>
@@ -136,32 +136,32 @@ export default function JobDetails({ user, profile, job, isVerified }: Props) {
             <Head title={`${job.title} — Job Details`} />
 
             {/* Breadcrumb */}
-            <div className="flex items-center gap-2 text-sm text-gray-400 mb-5">
-                <button onClick={() => router.visit(route('employer.jobs.index'))} className="hover:text-[#6D9886] transition-colors font-medium">Job</button>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-                <span className="text-gray-700 font-semibold">Job Details</span>
+            <div className="flex items-center gap-2 text-sm text-gray-400 mb-5 overflow-x-auto min-w-0">
+                <button onClick={() => router.visit(route('employer.jobs.index'))} className="hover:text-[#6D9886] transition-colors font-medium flex-shrink-0">Job</button>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="flex-shrink-0"><polyline points="9 18 15 12 9 6"/></svg>
+                <span className="text-gray-700 font-semibold truncate">Job Details</span>
             </div>
 
-            <div className="flex gap-5 items-start">
+            <div className="flex flex-col lg:flex-row gap-5 items-stretch lg:items-start">
                 {/* ── Left: Main content ── */}
                 <div className="flex-1 min-w-0 space-y-4">
 
                     {/* Header card */}
-                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-                        <div className="flex items-start justify-between gap-4 mb-4">
-                            <div className="flex items-center gap-4">
-                                <div className={`w-16 h-16 rounded-2xl ${avatarColor(job.id)} flex items-center justify-center text-white text-xl font-bold flex-shrink-0 shadow-sm`}>
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6">
+                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
+                            <div className="flex items-start gap-3 sm:gap-4 min-w-0">
+                                <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl ${avatarColor(job.id)} flex items-center justify-center text-white text-lg sm:text-xl font-bold flex-shrink-0 shadow-sm`}>
                                     {getInitials(job.company || job.title)}
                                 </div>
-                                <div>
-                                    <h1 className="text-2xl font-extrabold text-gray-900 leading-tight">{job.title}</h1>
-                                    <div className="flex items-center gap-3 mt-1 text-sm text-gray-400">
+                                <div className="min-w-0 flex-1">
+                                    <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 leading-tight break-words">{job.title}</h1>
+                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-sm text-gray-400">
                                         <span className="font-medium text-gray-600">{job.company}</span>
-                                        <span className="flex items-center gap-1">
+                                        <span className="flex items-center gap-1 flex-shrink-0">
                                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 00-8 8c0 5.25 8 14 8 14s8-8.75 8-14a8 8 0 00-8-8z"/></svg>
-                                            {job.location}
+                                            <span className="truncate">{job.location}</span>
                                         </span>
-                                        <span className="flex items-center gap-1">
+                                        <span className="flex items-center gap-1 flex-shrink-0">
                                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                                             {timeAgo(job.posted_date)}
                                         </span>
@@ -169,14 +169,14 @@ export default function JobDetails({ user, profile, job, isVerified }: Props) {
                                 </div>
                             </div>
                             <button onClick={() => router.visit(route('employer.jobs.edit', job.id))}
-                                className="inline-flex items-center gap-2 px-4 py-2 border border-gray-200 text-sm font-semibold text-gray-700 rounded-xl hover:bg-gray-50 transition-colors flex-shrink-0">
+                                className="inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 text-sm font-semibold text-gray-700 rounded-xl hover:bg-gray-50 transition-colors flex-shrink-0 w-full sm:w-auto">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                                 Edit Job
                             </button>
                         </div>
 
                         {/* Tag row */}
-                        <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2 gap-y-1.5">
                             {job.employment_type && (
                                 <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 border border-gray-200">
                                     {job.employment_type}
@@ -291,12 +291,12 @@ export default function JobDetails({ user, profile, job, isVerified }: Props) {
                     )}
 
                     {/* Footer actions */}
-                    <div className="flex items-center justify-between py-2 px-1">
-                        <button className="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-600 transition-colors">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 py-2 px-1">
+                        <button className="flex items-center justify-center sm:justify-start gap-2 text-sm text-gray-400 hover:text-gray-600 transition-colors">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="flex-shrink-0"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
                             Report this job posting
                         </button>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center justify-center sm:justify-end gap-2">
                             <button className="p-2 rounded-xl border border-gray-200 text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors">
                                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
                             </button>
@@ -308,11 +308,11 @@ export default function JobDetails({ user, profile, job, isVerified }: Props) {
                 </div>
 
                 {/* ── Right: Sidebar ── */}
-                <div className="w-64 flex-shrink-0 space-y-4">
+                <div className="w-full lg:w-64 flex-shrink-0 space-y-4 lg:max-w-[16rem]">
 
                     {/* Meet the Hiring Team */}
                     {job.hiring_team && job.hiring_team.length > 0 && (
-                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5">
                             <h3 className="text-sm font-bold text-gray-900 mb-4">Meet the Hiring Team</h3>
                             <div className="space-y-3">
                                 {job.hiring_team.map((member, i) => (
@@ -335,7 +335,7 @@ export default function JobDetails({ user, profile, job, isVerified }: Props) {
                     )}
 
                     {/* Job Insights */}
-                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5">
                         <h3 className="text-sm font-bold text-gray-900 mb-4">Job Insights</h3>
                         <div className="space-y-3">
                             {[
@@ -361,7 +361,7 @@ export default function JobDetails({ user, profile, job, isVerified }: Props) {
 
                     {/* Application Limit */}
                     {appLimit > 0 && (
-                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5">
                             <h3 className="text-sm font-bold text-gray-900 mb-3">Application Limit</h3>
                             <div className="flex items-center justify-between text-xs text-gray-500 mb-1.5">
                                 <span>Applications</span>
@@ -380,8 +380,8 @@ export default function JobDetails({ user, profile, job, isVerified }: Props) {
                     )}
 
                     {/* Actions */}
-                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                        <div className="grid grid-cols-2 gap-2">
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             <button
                                 onClick={() => router.post(route('employer.jobs.duplicate', job.id))}
                                 className="py-2.5 text-sm font-semibold text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors text-center"

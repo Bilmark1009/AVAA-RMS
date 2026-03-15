@@ -149,9 +149,9 @@ export default function CreateJob({ user, profile, companyName }: Props) {
         <AppLayout pageTitle="Post New Job" pageSubtitle="Fill in the details to create a new job listing." activeNav="Manage Jobs">
             <Head title="Post New Job" />
 
-            <div>
+            <div className="min-h-0">
                 {/* Page header */}
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center justify-between mb-4 sm:mb-6">
                     <button
                         onClick={() => router.visit(route('employer.jobs.index'))}
                         className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-800 transition-colors"
@@ -159,26 +159,40 @@ export default function CreateJob({ user, profile, companyName }: Props) {
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                             <polyline points="15 18 9 12 15 6"/>
                         </svg>
-                        Back to Manage Jobs
+                        <span className="hidden sm:inline">Back to Manage Jobs</span>
+                        <span className="sm:hidden">Back</span>
                     </button>
                 </div>
 
-                {/* Form card — sticky header+footer, scroll only in content area */}
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 flex flex-col" style={{ height: 'calc(100vh - 160px)' }}>
+                {/* Form card — scrollable on mobile, fixed height on desktop */}
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 flex flex-col min-h-0 max-h-[85vh] sm:max-h-[calc(100vh-160px)] sm:min-h-[calc(100vh-160px)]">
                     {/* Card header */}
-                    <div className="h-14 bg-gradient-to-r from-[#6D9886] to-[#4a7360] flex items-center px-6 justify-between flex-shrink-0">
-                        <h2 className="text-white font-bold text-base flex items-center gap-2">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <div className="h-12 sm:h-14 bg-gradient-to-r from-[#6D9886] to-[#4a7360] flex items-center px-4 sm:px-6 justify-between flex-shrink-0">
+                        <h2 className="text-white font-bold text-sm sm:text-base flex items-center gap-2 truncate">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="flex-shrink-0">
                                 <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
                             </svg>
                             Post New Job
                         </h2>
-                        <span className="text-white/70 text-xs font-medium">Step {tab + 1} of {TABS.length}</span>
+                        <span className="text-white/70 text-xs font-medium flex-shrink-0 ml-2">Step {tab + 1} of {TABS.length}</span>
                     </div>
 
-                    <div className="flex flex-1 min-h-0">
-                        {/* Vertical Tab Nav */}
-                        <div className="w-44 flex-shrink-0 bg-gray-50 border-r border-gray-100 py-4 px-2 flex flex-col gap-1 overflow-hidden">
+                    {/* Mobile: horizontal tab bar */}
+                    <div className="sm:hidden flex-shrink-0 overflow-x-auto border-b border-gray-100 bg-gray-50/80">
+                        <div className="flex gap-0.5 p-2 min-w-max">
+                            {TABS.map((t, i) => (
+                                <button key={i} onClick={() => setTab(i)}
+                                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${tab === i ? 'bg-[#6D9886] text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'}`}>
+                                    <span className="flex-shrink-0">{t.icon}</span>
+                                    {t.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="flex flex-1 min-h-0 flex-col sm:flex-row">
+                        {/* Desktop: Vertical Tab Nav */}
+                        <div className="hidden sm:flex w-44 flex-shrink-0 bg-gray-50 border-r border-gray-100 py-4 px-2 flex-col gap-1 overflow-hidden">
                             {TABS.map((t, i) => (
                                 <button key={i} onClick={() => setTab(i)}
                                     className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-left transition-all w-full ${tab === i ? 'bg-[#6D9886] text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'}`}>
@@ -189,7 +203,7 @@ export default function CreateJob({ user, profile, companyName }: Props) {
                         </div>
 
                         {/* Tab Content — scrollbar is inside this div */}
-                        <div className="flex-1 overflow-y-auto p-6 min-w-0">
+                        <div className="flex-1 overflow-y-auto p-4 sm:p-6 min-w-0 min-h-0">
                             {/* Tab 0: Job Details */}
                             {tab === 0 && (
                                 <div className="space-y-4">
@@ -213,7 +227,7 @@ export default function CreateJob({ user, profile, companyName }: Props) {
                                         <input value={form.title} onChange={e => set('title', e.target.value)} className={inp} placeholder="e.g. Senior Frontend Developer"/>
                                         {errors.title && <p className="text-xs text-red-500 mt-1">{errors.title}</p>}
                                     </div>
-                                    <div className="grid grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         <div>
                                             <label className={lbl}>Company</label>
                                             <input value={form.company} onChange={e => set('company', e.target.value)} className={inp} placeholder="Company name"/>
@@ -226,16 +240,18 @@ export default function CreateJob({ user, profile, companyName }: Props) {
                                     </div>
                                     <div>
                                         <label className={lbl}>Salary Range</label>
-                                        <div className="flex gap-2">
+                                        <div className="flex flex-col sm:flex-row gap-2">
                                             <select value={form.salary_currency} onChange={e => set('salary_currency', e.target.value)}
-                                                className="rounded-xl border border-gray-200 bg-gray-50 text-gray-700 text-xs px-2 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#6D9886] w-16">
+                                                className="rounded-xl border border-gray-200 bg-gray-50 text-gray-700 text-xs px-2 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#6D9886] w-full sm:w-16">
                                                 {CURRENCIES.map(c => <option key={c}>{c}</option>)}
                                             </select>
-                                            <input value={form.salary_min} onChange={e => set('salary_min', e.target.value)} type="number" className={`${inp} flex-1`} placeholder="Min" min="0"/>
-                                            <input value={form.salary_max} onChange={e => set('salary_max', e.target.value)} type="number" className={`${inp} flex-1`} placeholder="Max" min="0"/>
+                                            <div className="flex gap-2">
+                                                <input value={form.salary_min} onChange={e => set('salary_min', e.target.value)} type="number" className={`${inp} flex-1 min-w-0`} placeholder="Min" min="0"/>
+                                                <input value={form.salary_max} onChange={e => set('salary_max', e.target.value)} type="number" className={`${inp} flex-1 min-w-0`} placeholder="Max" min="0"/>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         <div>
                                             <label className={lbl}>Employment Type *</label>
                                             <select value={form.employment_type} onChange={e => set('employment_type', e.target.value)} className={inp}>
@@ -263,13 +279,13 @@ export default function CreateJob({ user, profile, companyName }: Props) {
                                     <div ref={skillRef}>
                                         <label className={lbl}>Skills / Tags</label>
                                         <div className="relative">
-                                            <div className="flex gap-2">
+                                            <div className="flex flex-col sm:flex-row gap-2">
                                                 <input value={skillInput} onChange={e => setSkillInput(e.target.value)}
                                                     onFocus={() => setSkillDropOpen(true)}
                                                     onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSkill(skillInput); } }}
-                                                    placeholder="Search or type a skill..." className={`${inp} flex-1`}/>
+                                                    placeholder="Search or type a skill..." className={`${inp} flex-1 min-w-0`}/>
                                                 <button type="button" onClick={() => addSkill(skillInput)}
-                                                    className="px-3 py-2 bg-[#6D9886] hover:bg-[#5a8371] text-white text-xs font-semibold rounded-xl transition-colors">Add</button>
+                                                    className="px-3 py-2 bg-[#6D9886] hover:bg-[#5a8371] text-white text-xs font-semibold rounded-xl transition-colors flex-shrink-0">Add</button>
                                             </div>
                                             {skillDropOpen && filteredSkills.length > 0 && (
                                                 <div className="absolute top-full left-0 right-0 mt-1 z-30 bg-white border border-gray-200 rounded-xl shadow-lg max-h-32 overflow-y-auto">
@@ -311,12 +327,12 @@ export default function CreateJob({ user, profile, companyName }: Props) {
                                     {/* Qualifications list */}
                                     <div>
                                         <label className={lbl}>Qualifications</label>
-                                        <div className="flex gap-2 mb-2">
+                                        <div className="flex flex-col sm:flex-row gap-2 mb-2">
                                             <input value={qualInput} onChange={e => setQualInput(e.target.value)}
                                                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addToList('qualifications', qualInput, () => setQualInput('')); } }}
-                                                placeholder="Add qualification..." className={`${inp} flex-1`}/>
+                                                placeholder="Add qualification..." className={`${inp} flex-1 min-w-0`}/>
                                             <button type="button" onClick={() => addToList('qualifications', qualInput, () => setQualInput(''))}
-                                                className="px-3 py-2 bg-[#6D9886] hover:bg-[#5a8371] text-white text-xs font-semibold rounded-xl transition-colors">+ Add</button>
+                                                className="px-3 py-2 bg-[#6D9886] hover:bg-[#5a8371] text-white text-xs font-semibold rounded-xl transition-colors flex-shrink-0">+ Add</button>
                                         </div>
                                         {form.qualifications.length > 0 && (
                                             <ul className="space-y-1.5">
@@ -333,12 +349,12 @@ export default function CreateJob({ user, profile, companyName }: Props) {
                                     {/* Requirements list */}
                                     <div>
                                         <label className={lbl}>Requirements</label>
-                                        <div className="flex gap-2 mb-2">
+                                        <div className="flex flex-col sm:flex-row gap-2 mb-2">
                                             <input value={reqInput} onChange={e => setReqInput(e.target.value)}
                                                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addToList('requirements', reqInput, () => setReqInput('')); } }}
-                                                placeholder="Add requirement..." className={`${inp} flex-1`}/>
+                                                placeholder="Add requirement..." className={`${inp} flex-1 min-w-0`}/>
                                             <button type="button" onClick={() => addToList('requirements', reqInput, () => setReqInput(''))}
-                                                className="px-3 py-2 bg-[#6D9886] hover:bg-[#5a8371] text-white text-xs font-semibold rounded-xl transition-colors">+ Add</button>
+                                                className="px-3 py-2 bg-[#6D9886] hover:bg-[#5a8371] text-white text-xs font-semibold rounded-xl transition-colors flex-shrink-0">+ Add</button>
                                         </div>
                                         {form.requirements.length > 0 && (
                                             <ul className="space-y-1.5">
@@ -372,12 +388,12 @@ export default function CreateJob({ user, profile, companyName }: Props) {
                                     <div>
                                         <label className={lbl}>Screener Questions</label>
                                         <p className="text-xs text-gray-400 mb-3">Add custom questions for applicants to answer.</p>
-                                        <div className="flex gap-2 mb-3">
+                                        <div className="flex flex-col sm:flex-row gap-2 mb-3">
                                             <input value={qInput} onChange={e => setQInput(e.target.value)}
                                                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addToList('screener_questions', qInput, () => setQInput('')); } }}
-                                                placeholder="e.g. Do you have experience with Figma?" className={`${inp} flex-1`}/>
+                                                placeholder="e.g. Do you have experience with Figma?" className={`${inp} flex-1 min-w-0`}/>
                                             <button type="button" onClick={() => addToList('screener_questions', qInput, () => setQInput(''))}
-                                                className="px-3 py-2 bg-[#6D9886] hover:bg-[#5a8371] text-white text-xs font-semibold rounded-xl transition-colors">+ Add</button>
+                                                className="px-3 py-2 bg-[#6D9886] hover:bg-[#5a8371] text-white text-xs font-semibold rounded-xl transition-colors flex-shrink-0">+ Add</button>
                                         </div>
                                         {form.screener_questions.length > 0 ? (
                                             <ul className="space-y-2">
@@ -401,7 +417,7 @@ export default function CreateJob({ user, profile, companyName }: Props) {
                             {/* Tab 4: Settings */}
                             {tab === 4 && (
                                 <div className="space-y-4">
-                                    <div className="grid grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         <div>
                                             <label className={lbl}>Application Limit</label>
                                             <input value={form.application_limit} onChange={e => set('application_limit', e.target.value)}
@@ -434,14 +450,15 @@ export default function CreateJob({ user, profile, companyName }: Props) {
                     </div>
 
                     {/* Footer */}
-                    <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between flex-shrink-0 bg-gray-50/50">
-                        <div className="flex gap-1.5">
+                    <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 flex-shrink-0 bg-gray-50/50">
+                        <div className="flex gap-1.5 justify-center sm:justify-start order-2 sm:order-1">
                             {TABS.map((_, i) => (
                                 <button key={i} onClick={() => setTab(i)}
-                                    className={`w-2 h-2 rounded-full transition-all ${tab === i ? 'bg-[#6D9886] w-5' : 'bg-gray-200 hover:bg-gray-300'}`}/>
+                                    className={`w-2 h-2 rounded-full transition-all ${tab === i ? 'bg-[#6D9886] w-5' : 'bg-gray-200 hover:bg-gray-300'}`}
+                                    aria-label={`Step ${i + 1}`}/>
                             ))}
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center justify-end gap-2 order-1 sm:order-2">
                             <button
                                 onClick={() => router.visit(route('employer.jobs.index'))}
                                 className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
@@ -455,7 +472,7 @@ export default function CreateJob({ user, profile, companyName }: Props) {
                                 <button onClick={() => setTab(t => t + 1)} className="px-5 py-2 bg-[#6D9886] hover:bg-[#5a8371] text-white text-sm font-semibold rounded-xl transition-colors">Next</button>
                             ) : (
                                 <button onClick={handleSubmit} disabled={saving}
-                                    className="px-5 py-2 bg-[#6D9886] hover:bg-[#5a8371] text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2">
+                                    className="px-5 py-2 bg-[#6D9886] hover:bg-[#5a8371] text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2 min-w-[120px]">
                                     {saving && <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>}
                                     Create Job
                                 </button>
