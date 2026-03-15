@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Employer\DashboardController as EmployerDashboardController;
 use App\Http\Controllers\Employer\JobListingController;
+use App\Http\Controllers\Employer\JobCollaboratorController;
 use App\Http\Controllers\Employer\InterviewController;
 use App\Http\Controllers\Employer\EmployeeController;
 use App\Http\Controllers\Employer\BlockedUsersController as EmployerBlockedUsersController;
@@ -184,6 +185,11 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         Route::get('/jobs/create', [JobListingController::class, 'create'])->name('jobs.create');
         Route::post('/jobs', [JobListingController::class, 'store'])->name('jobs.store');
 
+        // ⚠️  Invitations — static sub-paths must come BEFORE /{job} wildcard
+        Route::get('/jobs/invitations', [JobCollaboratorController::class, 'myInvitations'])->name('jobs.invitations');
+        Route::post('/jobs/invitations/{collaborator}/accept', [JobCollaboratorController::class, 'accept'])->name('jobs.invitations.accept');
+        Route::post('/jobs/invitations/{collaborator}/decline', [JobCollaboratorController::class, 'decline'])->name('jobs.invitations.decline');
+
         // ⚠️  Static sub-paths (create, etc.) must come BEFORE /{job} wildcard
         Route::get('/jobs/{job}', [JobListingController::class, 'show'])->name('jobs.show');
         Route::get('/jobs/{job}/edit', [JobListingController::class, 'edit'])->name('jobs.edit');
@@ -194,6 +200,11 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         // Duplicate & Repost
         Route::post('/jobs/{job}/duplicate', [JobListingController::class, 'duplicate'])->name('jobs.duplicate');
         Route::post('/jobs/{job}/repost', [JobListingController::class, 'repost'])->name('jobs.repost');
+
+        // Collaborators
+        Route::get('/jobs/{job}/collaborators/search', [JobCollaboratorController::class, 'search'])->name('jobs.collaborators.search');
+        Route::post('/jobs/{job}/collaborators', [JobCollaboratorController::class, 'invite'])->name('jobs.collaborators.invite');
+        Route::delete('/jobs/{job}/collaborators/{collaborator}', [JobCollaboratorController::class, 'remove'])->name('jobs.collaborators.remove');
 
         // Applications
         Route::get('/jobs/{job}/applications', [JobListingController::class, 'applications'])->name('jobs.applications');

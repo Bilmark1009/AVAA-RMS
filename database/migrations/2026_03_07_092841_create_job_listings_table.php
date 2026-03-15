@@ -16,8 +16,17 @@ return new class extends Migration
                 ->onDelete('cascade');
 
             $table->string('title');
+            $table->string('company_name')->nullable();
             $table->string('location');
             $table->text('description');
+            $table->json('responsibilities')->nullable();
+            $table->json('qualifications')->nullable();
+            $table->json('requirements')->nullable();
+            $table->json('screener_questions')->nullable();
+            $table->string('work_arrangement')->nullable();
+            $table->text('project_timeline')->nullable();
+            $table->text('onboarding_process')->nullable();
+            $table->string('logo_path')->nullable();
             $table->string('employment_type');       // Full-time, Part-time, Contract …
             $table->string('industry')->nullable();
             $table->string('experience_level')->nullable();

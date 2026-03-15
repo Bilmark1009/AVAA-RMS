@@ -61,7 +61,8 @@ class ProfileController extends Controller
         $resumePath = null;
         if ($request->hasFile('resume')) {
             $file = $request->file('resume');
-            $resumePath = $this->storeWithOriginalName($file, "resumes/{$user->id}", 'local', 'resume');
+            $resumePath = $this->storeWithOriginalName($file, "resumes/{$user->id}", 'public', 'resume');
+            $resumePath = '/storage/' . $resumePath;
 
             // Also create a user_documents entry so it shows in Settings > Documents
             $user->documents()->create([
@@ -135,7 +136,8 @@ class ProfileController extends Controller
         // Keep existing resume unless a new one is uploaded
         $resumePath = $profile->resume_path;
         if ($request->hasFile('resume')) {
-            $resumePath = $this->storeWithOriginalName($request->file('resume'), "resumes/{$user->id}", 'local', 'resume');
+            $resumePath = $this->storeWithOriginalName($request->file('resume'), "resumes/{$user->id}", 'public', 'resume');
+            $resumePath = '/storage/' . $resumePath;
         }
 
         $completeness = $this->calculateCompleteness($request, $resumePath);

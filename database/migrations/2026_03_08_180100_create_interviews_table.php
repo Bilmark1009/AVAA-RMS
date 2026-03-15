@@ -20,6 +20,7 @@ return new class extends Migration {
             $table->string('location_or_link')->nullable();
             $table->text('notes')->nullable();
             $table->string('status')->default('active'); // active, completed, cancelled
+            $table->string('interview_result')->nullable(); // passed | failed
             $table->timestamps();
         });
     }

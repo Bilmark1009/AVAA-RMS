@@ -28,6 +28,7 @@ interface JobListing {
     requirements?: string[];
     screener_questions?: string[];
     work_arrangement?: string;
+    is_owner?: boolean;
 }
 
 interface Props {
@@ -35,6 +36,7 @@ interface Props {
     profile: any;
     jobs: JobListing[];
     isVerified: boolean;
+    pendingInvitationsCount?: number;
 }
 
 /* ── Helpers ── */
@@ -103,6 +105,7 @@ function OptionsMenu({ job, onEdit }: { job: JobListing; onEdit: () => void }) {
     const [open, setOpen] = useState(false);
     const btnRef = useRef<HTMLButtonElement>(null);
     const menuPosRef = useRef({ top: 0, right: 0 });
+    const isOwner = job.is_owner !== false;
 
     useEffect(() => {
         if (!open) return;
@@ -142,22 +145,28 @@ function OptionsMenu({ job, onEdit }: { job: JobListing; onEdit: () => void }) {
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                 View Details
             </button>
-            <button onClick={e => { e.stopPropagation(); onEdit(); setOpen(false); }}
-                className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                Edit Job
-            </button>
+            {isOwner && (
+                <button onClick={e => { e.stopPropagation(); onEdit(); setOpen(false); }}
+                    className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    Edit Job
+                </button>
+            )}
             <button onClick={e => { e.stopPropagation(); router.visit(route('employer.jobs.applications', job.id)); setOpen(false); }}
                 className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
                 Applicants
             </button>
-            <div className="border-t border-gray-100" />
-            <button onClick={e => { e.stopPropagation(); setOpen(false); if (confirm('Delete this job listing?')) router.delete(route('employer.jobs.destroy', job.id), { preserveScroll: true }); }}
-                className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors text-left">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
-                Delete
-            </button>
+            {isOwner && (
+                <>
+                    <div className="border-t border-gray-100" />
+                    <button onClick={e => { e.stopPropagation(); setOpen(false); if (confirm('Delete this job listing?')) router.delete(route('employer.jobs.destroy', job.id), { preserveScroll: true }); }}
+                        className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors text-left">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+                        Delete
+                    </button>
+                </>
+            )}
         </div>
     ) : null;
 
@@ -208,6 +217,12 @@ function JobCard({ job, onEdit }: { job: JobListing; onEdit: () => void }) {
                         <span className={`w-1.5 h-1.5 rounded-full ${statusCfg.dot}`} />
                         {statusCfg.label}
                     </span>
+                    {job.is_owner === false && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                            Collaborator
+                        </span>
+                    )}
                     {job.employment_type && (
                         <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 border border-gray-200">{job.employment_type}</span>
                     )}
@@ -636,7 +651,7 @@ function JobFormModal({ mode, job, companyName, onClose }: {
 /* ══════════════════════════════════════════════
    MAIN PAGE
 ══════════════════════════════════════════════ */
-export default function ManageJobs({ user, profile, jobs, isVerified }: Props) {
+export default function ManageJobs({ user, profile, jobs, isVerified, pendingInvitationsCount = 0 }: Props) {
     const [filter, setFilter] = useState<'all' | 'active' | 'inactive' | 'draft'>('all');
     const [search, setSearch] = useState('');
     const [editJob, setEditJob] = useState<JobListing | null>(null);
@@ -689,6 +704,17 @@ export default function ManageJobs({ user, profile, jobs, isVerified }: Props) {
                     </div>
 
                     <div className="flex items-center gap-2">
+                        {/* Invitations link */}
+                        {pendingInvitationsCount > 0 && (
+                            <button
+                                onClick={() => router.visit(route('employer.jobs.invitations'))}
+                                className="inline-flex items-center gap-1.5 px-3 h-9 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-xs font-bold rounded-xl transition-colors border border-indigo-100 whitespace-nowrap"
+                            >
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                                Invitations
+                                <span className="bg-indigo-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{pendingInvitationsCount}</span>
+                            </button>
+                        )}
                         {/* Search */}
                         <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 h-9 w-56 shadow-sm">
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="text-gray-400 flex-shrink-0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>

@@ -42,6 +42,7 @@ return new class extends Migration
 
             // Soft-delete per user (user "deletes" their copy of the conversation)
             $table->timestamp('left_at')->nullable();
+            $table->timestamp('cleared_at')->nullable();
 
             $table->unique(['conversation_id', 'user_id']);
             $table->timestamps();

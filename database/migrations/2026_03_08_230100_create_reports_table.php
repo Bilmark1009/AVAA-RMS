@@ -12,6 +12,7 @@ return new class extends Migration {
             $table->foreignId('reporter_id')->constrained('users')->cascadeOnDelete();
             $table->foreignId('reported_user_id')->constrained('users')->cascadeOnDelete();
             $table->foreignId('conversation_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('message_id')->nullable()->constrained('messages')->nullOnDelete();
             $table->enum('reason', [
                 'inappropriate_behavior',
                 'spam',
@@ -20,6 +21,7 @@ return new class extends Migration {
                 'other',
             ]);
             $table->text('details')->nullable();
+            $table->json('evidence')->nullable();
             $table->enum('status', ['pending', 'reviewed', 'resolved', 'dismissed'])->default('pending');
             $table->timestamps();
         });
