@@ -146,7 +146,7 @@ function RecruiterProfileModal({
                 {/* Gradient hero — mirrors Employer Profile.tsx */}
                 <div className="h-28 bg-gradient-to-r from-avaa-primary/80 via-avaa-teal to-emerald-400 relative flex-shrink-0">
                     <div
-                        className="absolute inset-0 opacity-20"
+                        className="absolute inset-0 opacity-20 z-0"
                         style={{
                             backgroundImage:
                                 'radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 20%, white 1px, transparent 1px)',
@@ -156,7 +156,7 @@ function RecruiterProfileModal({
                     {/* Close button */}
                     <button
                         onClick={onClose}
-                        className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-white transition-colors"
+                        className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-white transition-colors z-10"
                         aria-label="Close"
                     >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -167,7 +167,7 @@ function RecruiterProfileModal({
 
                 <div className="px-6 pb-6">
                     {/* Avatar row */}
-                    <div className="flex items-end justify-between -mt-10 mb-4">
+                    <div className="flex items-end justify-between -mt-10 mb-4 relative z-10">
                         <ImageInitialsFallback
                             src={member.avatar}
                             alt={member.name}
@@ -348,7 +348,8 @@ export default function JobDetail({
                 <span className="text-avaa-teal font-semibold">Job Details</span>
             </nav>
 
-            <div className="flex gap-7 items-start">
+            {/* Main layout: stack on mobile/tablet, side-by-side on large screens */}
+            <div className="flex flex-col lg:flex-row gap-7 lg:items-start">
 
                 {/* ══ Main content ══ */}
                 <div className="flex-1 min-w-0">
@@ -576,8 +577,8 @@ export default function JobDetail({
                     </div>
                 </div>
 
-                {/* ══ Right sidebar ══ */}
-                <div className="hidden lg:flex flex-col gap-5 w-72 flex-shrink-0">
+                {/* ══ Right sidebar: below content on small screens, right column on large ══ */}
+                <div className="w-full lg:w-72 flex flex-col gap-5 flex-shrink-0 mt-6 lg:mt-0">
 
                     {/* Job Overview card */}
                     <div className="bg-white border border-gray-200 rounded-2xl p-6">

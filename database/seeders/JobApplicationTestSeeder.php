@@ -6,18 +6,18 @@ use App\Models\JobApplication;
 use App\Models\JobListing;
 use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 
 class JobApplicationTestSeeder extends Seeder
 {
     public function run(): void
     {
-        $jobSeeker = User::firstOrCreate(
+        // Note: User model already hashes the password via casts, so we store the plain string here.
+        $jobSeeker = User::updateOrCreate(
             ['email' => 'jobseeker@test.com'],
             [
                 'first_name' => 'Test',
                 'last_name' => 'Jobseeker',
-                'password' => Hash::make('password'),
+                'password' => 'password',
                 'role' => 'job_seeker',
                 'status' => 'active',
                 'profile_completed' => true,
