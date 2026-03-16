@@ -1,8 +1,7 @@
-import { Head, router, usePage } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
 import { useState, useEffect } from 'react';
-import { PageProps } from '@/types';
 
 /* ── Icons ── */
 const IcoBlock = () => (
@@ -313,9 +312,8 @@ function BlockJobSeekerForm({ onBlock }: { onBlock: (user: SearchResult & { reas
 }
 
 /* ── Main Component ── */
-export default function EmployerBlockedUsers({ auth }: PageProps<{ auth: any }>) {
-    const { blockedUsers } = usePage().props;
-    const [blockedUsersList, setBlockedUsersList] = useState<BlockedUser[]>(blockedUsers as BlockedUser[] || []);
+export default function EmployerBlockedUsers({ auth, blockedUsers }: { auth: any; blockedUsers?: BlockedUser[] }) {
+    const [blockedUsersList, setBlockedUsersList] = useState<BlockedUser[]>(blockedUsers || []);
 
     const handleUnblock = (userId: number) => {
         setBlockedUsersList(prev => prev.filter(user => user.id !== userId));
