@@ -89,6 +89,12 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasOne(UserNotificationSettings::class);
     }
 
+    /** Jobs this user has been invited to collaborate on. */
+    public function collaboratingJobs(): HasMany
+    {
+        return $this->hasMany(JobCollaborator::class);
+    }
+
     public function blockedUsers(): HasMany
     {
         return $this->hasMany(BlockedUser::class, 'blocker_id');

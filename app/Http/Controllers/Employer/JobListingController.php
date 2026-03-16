@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Employer;
 
 use App\Http\Controllers\Controller;
+use App\Models\JobCollaborator;
 use App\Models\JobListing;
 use App\Models\JobApplication;
 use App\Models\Interview;
@@ -29,11 +30,9 @@ class JobListingController extends Controller
     {
         $user = $request->user()->load('employerProfile');
 
-        $jobs = JobListing::where('employer_id', $user->id)
-            ->withCount('applications')
-            ->orderByDesc('created_at')
-            ->get()
-            ->map(fn($job) => [
+        // Helper closure to format a job
+        $formatJob = function (JobListing $job, bool $isOwner) use ($user) {
+            return [
                 'id'                 => $job->id,
                 'title'              => $job->title,
                 'location'           => $job->location,
@@ -42,11 +41,13 @@ class JobListingController extends Controller
                 'applications_count' => $job->applications_count,
                 'posted_date'        => $job->created_at->toDateString(),
                 'description'        => $job->description,
-                'responsibilities'   => $job->responsibilities,
-                'qualifications'     => $job->qualifications,
+                'responsibilities'   => $this->splitList($job->responsibilities),
+                'qualifications'     => $this->splitList($job->qualifications),
+                'requirements'       => $this->splitList($job->requirements),
+                'screener_questions' => $this->splitList($job->screener_questions),
                 'project_timeline'   => $job->project_timeline,
                 'onboarding_process' => $job->onboarding_process,
-                'logo_path'          => $job->logo_path,
+                'logo_path'          => $this->resolveLogoUrl($job->logo_path),
                 'employment_type'    => $job->employment_type,
                 'salary_min'         => $job->salary_min,
                 'salary_max'         => $job->salary_max,
@@ -58,13 +59,39 @@ class JobListingController extends Controller
                 'industry'           => $job->industry,
                 'application_limit'  => $job->application_limit,
                 'work_arrangement'   => $job->work_arrangement,
-            ]);
+                'is_owner'           => $isOwner,
+            ];
+        };
+
+        // Jobs owned by this employer
+        $ownedJobs = JobListing::where('employer_id', $user->id)
+            ->withCount('applications')
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(fn($job) => $formatJob($job, true));
+
+        // Jobs where this employer is an accepted collaborator
+        $collaboratedJobIds = JobCollaborator::where('user_id', $user->id)
+            ->where('status', 'accepted')
+            ->pluck('job_listing_id');
+
+        $collaboratedJobs = JobListing::whereIn('id', $collaboratedJobIds)
+            ->withCount('applications')
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(fn($job) => $formatJob($job, false));
+
+        // Pending invitation count
+        $pendingInvitationsCount = JobCollaborator::where('user_id', $user->id)
+            ->where('status', 'pending')
+            ->count();
 
         return Inertia::render('Employer/ManageJobs', [
-            'user'       => $user,
-            'profile'    => $user->employerProfile,
-            'jobs'       => $jobs,
-            'isVerified' => $user->employerProfile?->is_verified ?? false,
+            'user'                     => $user,
+            'profile'                  => $user->employerProfile,
+            'jobs'                     => $ownedJobs->concat($collaboratedJobs)->values(),
+            'isVerified'               => $user->employerProfile?->is_verified ?? false,
+            'pendingInvitationsCount'  => $pendingInvitationsCount,
         ]);
     }
 
@@ -73,7 +100,7 @@ class JobListingController extends Controller
      */
     public function create(Request $request): Response
     {
-        $user = $request->user()->load('employerProfile');
+        $user        = $request->user()->load('employerProfile');
         $companyName = $user->employerProfile?->company_name ?? "{$user->first_name} {$user->last_name}";
 
         return Inertia::render('Employer/CreateJob', [
@@ -93,10 +120,14 @@ class JobListingController extends Controller
             'company'             => 'nullable|string|max:255',
             'location'            => 'required|string|max:255',
             'description'         => 'required|string|min:10',
-            'responsibilities'    => 'nullable|string|max:10000',
-            'qualifications'      => 'nullable',
-            'requirements'        => 'nullable',
-            'screener_questions'  => 'nullable',
+            'responsibilities'    => 'nullable|array',
+            'responsibilities.*'  => 'string|max:500',
+            'qualifications'      => 'nullable|array',
+            'qualifications.*'    => 'string|max:500',
+            'requirements'        => 'nullable|array',
+            'requirements.*'      => 'string|max:500',
+            'screener_questions'  => 'nullable|array',
+            'screener_questions.*'=> 'string|max:500',
             'project_timeline'    => 'nullable|string|max:10000',
             'onboarding_process'  => 'nullable|string|max:10000',
             'logo'                => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
@@ -115,46 +146,47 @@ class JobListingController extends Controller
             'work_arrangement'    => 'nullable|string|max:100',
         ]);
 
-        $normalizeList = fn($val) => is_array($val) ? implode("\n", array_filter($val)) : ($val ?? '');
-
         $logoPath = null;
         if ($request->hasFile('logo')) {
             $storedPath = $request->file('logo')->store("job-logos/{$request->user()->id}", 'public');
-            $logoPath = '/storage/' . $storedPath;
+            $logoPath   = '/storage/' . $storedPath;
         }
 
         $job = JobListing::create([
-            'employer_id'       => $request->user()->id,
-            'title'             => $request->title,
-            'company_name'      => $request->input('company'),
-            'location'          => $request->location,
-            'description'       => $request->description,
-            'responsibilities'  => $request->input('responsibilities'),
-            'qualifications'    => $normalizeList($request->input('qualifications')),
-            'project_timeline'  => $request->input('project_timeline'),
-            'onboarding_process'=> $request->input('onboarding_process'),
-            'logo_path'         => $logoPath,
-            'employment_type'   => $request->employment_type,
-            'salary_min'        => $request->salary_min,
-            'salary_max'        => $request->salary_max,
-            'salary_currency'   => $request->salary_currency ?? 'USD',
-            'skills_required'   => $request->skills_required ?? [],
-            'experience_level'  => $request->experience_level,
-            'industry'          => $request->industry,
-            'is_remote'         => $request->boolean('is_remote'),
-            'deadline'          => $request->deadline,
-            'status'            => $request->status ?? 'active',
-            'application_limit' => $request->application_limit,
-            'work_arrangement'  => $request->input('work_arrangement'),
+            'employer_id'        => $request->user()->id,
+            'title'              => $request->title,
+            'company_name'       => $request->input('company'),
+            'location'           => $request->location,
+            'description'        => $request->description,
+            'responsibilities'   => $this->normalizeJsonList($request->input('responsibilities')),
+            'qualifications'     => $this->normalizeJsonList($request->input('qualifications')),
+            'requirements'       => $this->normalizeJsonList($request->input('requirements')),
+            'screener_questions' => $this->normalizeJsonList($request->input('screener_questions')),
+            'project_timeline'   => $request->input('project_timeline'),
+            'onboarding_process' => $request->input('onboarding_process'),
+            'logo_path'          => $logoPath,
+            'employment_type'    => $request->employment_type,
+            'salary_min'         => $request->salary_min,
+            'salary_max'         => $request->salary_max,
+            'salary_currency'    => $request->salary_currency ?? 'USD',
+            'skills_required'    => $request->skills_required ?? [],
+            'experience_level'   => $request->experience_level,
+            'industry'           => $request->industry,
+            'is_remote'          => $request->boolean('is_remote'),
+            'deadline'           => $request->deadline,
+            'status'             => $request->status ?? 'active',
+            'application_limit'  => $request->application_limit,
+            'work_arrangement'   => $request->input('work_arrangement'),
         ]);
 
-        // Notify all admins about new job posting
+        // Notify all admins about the new job posting
         $employer = $request->user();
         User::where('role', 'admin')->each(
             fn($admin) => $admin->notify(new AdminNewJobPostedNotification($job, $employer))
         );
 
-        return redirect()->route('employer.jobs.index')->with('success', 'Job listing created successfully!');
+        return redirect()->route('employer.jobs.index')
+            ->with('success', 'Job listing created successfully!');
     }
 
     /**
@@ -166,11 +198,37 @@ class JobListingController extends Controller
 
         $user    = $request->user()->load('employerProfile');
         $profile = $user->employerProfile;
+        $isOwner = $job->employer_id === $user->id;
+
+        // Build hiring team from collaborators
+        $hiringTeam = $job->collaborators()
+            ->with('user')
+            ->get()
+            ->map(fn(JobCollaborator $c) => [
+                'id'     => $c->id,
+                'name'   => "{$c->user->first_name} {$c->user->last_name}",
+                'role'   => $c->role,
+                'status' => $c->status,
+                'avatar' => $c->user->avatar,
+                'email'  => $c->user->email,
+            ]);
+
+        // Add the owner at the top
+        $owner = $job->employer;
+        $hiringTeam->prepend([
+            'id'     => null,
+            'name'   => "{$owner->first_name} {$owner->last_name}",
+            'role'   => 'Creator',
+            'status' => 'owner',
+            'avatar' => $owner->avatar,
+            'email'  => $owner->email,
+        ]);
 
         return Inertia::render('Employer/JobDetails', [
             'user'       => $user,
             'profile'    => $profile,
             'isVerified' => $profile?->is_verified ?? false,
+            'isOwner'    => $isOwner,
             'job'        => [
                 'id'                 => $job->id,
                 'title'              => $job->title,
@@ -180,10 +238,10 @@ class JobListingController extends Controller
                 'applications_count' => $job->applications()->count(),
                 'posted_date'        => $job->created_at->toDateTimeString(),
                 'description'        => $job->description,
-                'responsibilities'   => $job->responsibilities,
-                'qualifications'     => $this->splitLines($job->qualifications),
-                'requirements'       => $this->splitLines($job->requirements ?? ''),
-                'screener_questions' => $job->screener_questions ?? [],
+                'responsibilities'   => $this->splitList($job->responsibilities),
+                'qualifications'     => $this->splitList($job->qualifications),
+                'requirements'       => $this->splitList($job->requirements),
+                'screener_questions' => $this->splitList($job->screener_questions),
                 'employment_type'    => $job->employment_type,
                 'salary_min'         => $job->salary_min,
                 'salary_max'         => $job->salary_max,
@@ -195,11 +253,10 @@ class JobListingController extends Controller
                 'industry'           => $job->industry,
                 'application_limit'  => $job->application_limit,
                 'work_arrangement'   => $job->work_arrangement,
-                'logo_path'          => $job->logo_path,
+                'logo_path'          => $this->resolveLogoUrl($job->logo_path),
                 'views_count'        => $job->views_count ?? 0,
                 'clicks_count'       => $job->clicks_count ?? 0,
-                // Extend this array when you add a hiring_team relation
-                'hiring_team'        => [],
+                'hiring_team'        => $hiringTeam->values()->toArray(),
             ],
         ]);
     }
@@ -209,27 +266,43 @@ class JobListingController extends Controller
      */
     public function edit(Request $request, JobListing $job): Response
     {
-        $this->authorizeJob($request, $job);
+        // Only the owner can edit the job settings (not collaborators)
+        abort_if($job->employer_id !== $request->user()->id, 403, 'Only the job owner can edit this listing.');
 
         $user        = $request->user()->load('employerProfile');
         $companyName = $user->employerProfile?->company_name ?? "{$user->first_name} {$user->last_name}";
 
+        // Collaborators for the Hiring Team tab
+        $collaborators = $job->collaborators()
+            ->with('user')
+            ->get()
+            ->map(fn(JobCollaborator $c) => [
+                'id'         => $c->id,
+                'user_id'    => $c->user->id,
+                'first_name' => $c->user->first_name,
+                'last_name'  => $c->user->last_name,
+                'email'      => $c->user->email,
+                'avatar'     => $c->user->avatar,
+                'role'       => $c->role,
+                'status'     => $c->status,
+            ]);
+
         return Inertia::render('Employer/CreateJob', [
-            'user'        => $user,
-            'profile'     => $user->employerProfile,
-            'companyName' => $companyName,
-            'mode'        => 'edit',
-            // Pass the full job so CreateJob.tsx can pre-fill the form
-            'job'         => [
+            'user'          => $user,
+            'profile'       => $user->employerProfile,
+            'companyName'   => $companyName,
+            'mode'          => 'edit',
+            'collaborators' => $collaborators,
+            'job'           => [
                 'id'                 => $job->id,
                 'title'              => $job->title,
                 'company'            => $job->company_name,
                 'location'           => $job->location,
                 'description'        => $job->description,
-                'responsibilities'   => $job->responsibilities,
-                'qualifications'     => $this->splitLines($job->qualifications),
-                'requirements'       => $this->splitLines($job->requirements ?? ''),
-                'screener_questions' => $job->screener_questions ?? [],
+                'responsibilities'   => $this->splitList($job->responsibilities),
+                'qualifications'     => $this->splitList($job->qualifications),
+                'requirements'       => $this->splitList($job->requirements),
+                'screener_questions' => $this->splitList($job->screener_questions),
                 'employment_type'    => $job->employment_type,
                 'salary_min'         => $job->salary_min,
                 'salary_max'         => $job->salary_max,
@@ -242,7 +315,8 @@ class JobListingController extends Controller
                 'industry'           => $job->industry,
                 'application_limit'  => $job->application_limit,
                 'work_arrangement'   => $job->work_arrangement,
-                'logo_path'          => $job->logo_path,
+                // Fully-resolved absolute URL so the <img> renders correctly
+                'logo_path'          => $this->resolveLogoUrl($job->logo_path),
             ],
         ]);
     }
@@ -259,10 +333,14 @@ class JobListingController extends Controller
             'company'             => 'nullable|string|max:255',
             'location'            => 'required|string|max:255',
             'description'         => 'required|string|min:10',
-            'responsibilities'    => 'nullable|string|max:10000',
-            'qualifications'      => 'nullable',
-            'requirements'        => 'nullable',
-            'screener_questions'  => 'nullable',
+            'responsibilities'    => 'nullable|array',
+            'responsibilities.*'  => 'string|max:500',
+            'qualifications'      => 'nullable|array',
+            'qualifications.*'    => 'string|max:500',
+            'requirements'        => 'nullable|array',
+            'requirements.*'      => 'string|max:500',
+            'screener_questions'  => 'nullable|array',
+            'screener_questions.*'=> 'string|max:500',
             'project_timeline'    => 'nullable|string|max:10000',
             'onboarding_process'  => 'nullable|string|max:10000',
             'logo'                => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
@@ -281,38 +359,45 @@ class JobListingController extends Controller
             'work_arrangement'    => 'nullable|string|max:100',
         ]);
 
-        $normalizeList = fn($val) => is_array($val) ? implode("\n", array_filter($val)) : ($val ?? '');
-
+        // Keep existing logo unless a new one is uploaded
         $logoPath = $job->logo_path;
         if ($request->hasFile('logo')) {
+            // Delete old file from disk
             if (is_string($job->logo_path) && str_starts_with($job->logo_path, '/storage/')) {
                 Storage::disk('public')->delete(str_replace('/storage/', '', $job->logo_path));
             }
             $storedPath = $request->file('logo')->store("job-logos/{$request->user()->id}", 'public');
-            $logoPath = '/storage/' . $storedPath;
+            $logoPath   = '/storage/' . $storedPath;
         }
 
-        $job->update(array_merge(
-            $request->only([
-                'title', 'location', 'description', 'responsibilities',
-                'project_timeline', 'onboarding_process', 'employment_type',
-                'salary_min', 'salary_max', 'salary_currency', 'skills_required',
-                'experience_level', 'industry', 'is_remote', 'deadline',
-                'status', 'application_limit', 'work_arrangement',
-            ]),
-            [
-                'qualifications' => $normalizeList($request->input('qualifications')),
-                'company_name'   => $request->input('company'),
-                'logo_path'      => $logoPath,
-            ]
-        ));
+        $job->update([
+            'title'              => $request->title,
+            'company_name'       => $request->input('company'),
+            'location'           => $request->location,
+            'description'        => $request->description,
+            'responsibilities'   => $this->normalizeJsonList($request->input('responsibilities')),
+            'qualifications'     => $this->normalizeJsonList($request->input('qualifications')),
+            'requirements'       => $this->normalizeJsonList($request->input('requirements')),
+            'screener_questions' => $this->normalizeJsonList($request->input('screener_questions')),
+            'project_timeline'   => $request->input('project_timeline'),
+            'onboarding_process' => $request->input('onboarding_process'),
+            'logo_path'          => $logoPath,
+            'employment_type'    => $request->employment_type,
+            'salary_min'         => $request->salary_min,
+            'salary_max'         => $request->salary_max,
+            'salary_currency'    => $request->salary_currency ?? 'USD',
+            'skills_required'    => $request->skills_required ?? [],
+            'experience_level'   => $request->experience_level,
+            'industry'           => $request->industry,
+            'is_remote'          => $request->boolean('is_remote'),
+            'deadline'           => $request->deadline,
+            'status'             => $request->status ?? $job->status,
+            'application_limit'  => $request->application_limit,
+            'work_arrangement'   => $request->input('work_arrangement'),
+        ]);
 
-        // If submitted from the show page (edit modal), go back; otherwise redirect to details
-        if ($request->has('_from_show')) {
-            return redirect()->route('employer.jobs.show', $job->id)->with('success', 'Job listing updated successfully!');
-        }
-
-        return redirect()->route('employer.jobs.index')->with('success', 'Job listing updated successfully!');
+        return redirect()->route('employer.jobs.show', $job->id)
+            ->with('success', 'Job listing updated successfully!');
     }
 
     /**
@@ -321,8 +406,10 @@ class JobListingController extends Controller
     public function updateStatus(Request $request, JobListing $job): RedirectResponse
     {
         $this->authorizeJob($request, $job);
+
         $request->validate(['status' => 'required|in:active,inactive,draft']);
         $job->update(['status' => $request->status]);
+
         return back()->with('success', 'Job status updated.');
     }
 
@@ -332,8 +419,15 @@ class JobListingController extends Controller
     public function destroy(Request $request, JobListing $job): RedirectResponse
     {
         $this->authorizeJob($request, $job);
+
+        if (is_string($job->logo_path) && str_starts_with($job->logo_path, '/storage/')) {
+            Storage::disk('public')->delete(str_replace('/storage/', '', $job->logo_path));
+        }
+
         $job->delete();
-        return redirect()->route('employer.jobs.index')->with('success', 'Job listing deleted.');
+
+        return redirect()->route('employer.jobs.index')
+            ->with('success', 'Job listing deleted.');
     }
 
     /**
@@ -350,8 +444,7 @@ class JobListingController extends Controller
         $clone->updated_at = now();
         $clone->save();
 
-        return redirect()
-            ->route('employer.jobs.show', $clone->id)
+        return redirect()->route('employer.jobs.show', $clone->id)
             ->with('success', 'Job duplicated as a draft.');
     }
 
@@ -368,8 +461,7 @@ class JobListingController extends Controller
             'created_at' => now(),
         ]);
 
-        return redirect()
-            ->route('employer.jobs.show', $job->id)
+        return redirect()->route('employer.jobs.show', $job->id)
             ->with('success', 'Job reposted successfully.');
     }
 
@@ -380,8 +472,8 @@ class JobListingController extends Controller
     {
         $this->authorizeJob($request, $job);
 
-        $user    = $request->user()->load('employerProfile');
-        $profile = $user->employerProfile;
+        $user        = $request->user()->load('employerProfile');
+        $profile     = $user->employerProfile;
         $companyName = $profile?->company_name ?? "{$user->first_name} {$user->last_name}";
 
         $employerAddress = collect([
@@ -541,23 +633,81 @@ class JobListingController extends Controller
      */
     private function authorizeJob(Request $request, JobListing $job): void
     {
-        abort_if($job->employer_id !== $request->user()->id, 403, 'Unauthorized.');
+        abort_if(
+            !$job->isAccessibleBy($request->user()),
+            403,
+            'Unauthorized.'
+        );
     }
 
     /**
-     * Convert a newline-delimited string (how qualifications/requirements are
-     * stored) back into a clean array for the frontend.
+     * Resolve a stored logo_path into a fully-qualified absolute URL.
+     *
+     * The DB stores paths as '/storage/job-logos/...' (relative). This helper
+     * always returns an absolute http(s):// URL so the frontend <img> renders
+     * correctly regardless of the app's base URL or local dev domain.
      */
-    private function splitLines(?string $value): array
+    private function resolveLogoUrl(?string $path): ?string
+    {
+        if (blank($path)) {
+            return null;
+        }
+
+        // Already absolute — return as-is
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
+        // Strip any leading /storage/ prefix then re-build via asset()
+        $relative = ltrim(str_replace('/storage/', '', $path), '/');
+
+        return asset('storage/' . $relative);
+    }
+
+    /**
+     * Convert a JSON-cast field (array|null) or plain array back to a clean
+     * array for the frontend.
+     */
+    private function splitList(mixed $value): array
     {
         if (blank($value)) {
             return [];
         }
 
-        return array_values(
-            array_filter(
-                array_map('trim', explode("\n", $value))
-            )
-        );
+        if (is_array($value)) {
+            return array_values(array_filter(array_map('trim', $value)));
+        }
+
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+            if (is_array($decoded)) {
+                return array_values(array_filter(array_map('trim', $decoded)));
+            }
+            // Fallback: treat as newline-delimited plain text (legacy data)
+            return array_values(array_filter(array_map('trim', explode("\n", $value))));
+        }
+
+        return [];
+    }
+
+    /**
+     * Normalise incoming list data into a clean array for JSON columns.
+     * Used for responsibilities, qualifications, requirements, screener_questions.
+     */
+    private function normalizeJsonList(mixed $value): array
+    {
+        if (is_array($value)) {
+            return array_values(array_filter(array_map('trim', $value)));
+        }
+
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+            if (is_array($decoded)) {
+                return array_values(array_filter(array_map('trim', $decoded)));
+            }
+            return array_values(array_filter(array_map('trim', explode("\n", $value))));
+        }
+
+        return [];
     }
 }

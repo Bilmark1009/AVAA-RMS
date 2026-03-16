@@ -81,6 +81,14 @@ const IcoShield = () => (
         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
     </svg>
 );
+const IcoFlag = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        {/* The Flagpole */}
+        <line x1="4" y1="22" x2="4" y2="4" />
+        {/* The Flag Banner */}
+        <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V5s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+    </svg>
+);
 const IcoJobsAdmin = () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" />
@@ -170,8 +178,8 @@ function getAdminSideNav(): NavItem[] {
         { label: 'Settings', href: safeRoute('admin.settings'), icon: <IcoSettings /> },
         { 
             label: 'Report View', 
-            href: route('admin.reports.index'), // Must match the name in web.php
-            icon: <IcoShield /> // Use Flag to match your reference image
+            href: route('admin.reports.index'), 
+            icon: <IcoFlag /> 
         },
     ];
 }

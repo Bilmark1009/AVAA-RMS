@@ -372,12 +372,12 @@ export default function AdminDashboard({
                             <p className="font-bold text-gray-900 text-base">Job Seeker Summary</p>
                             <p className="text-xs text-gray-400 mt-0.5">Recent job seeker registrations</p>
                         </div>
-                        <a
-                            href="#"
-                            className="flex items-center gap-1.5 text-sm font-semibold text-[#3d9e9e] hover:text-[#2d7e7e] transition-colors"
-                        >
-                            View all Job Seekers →
-                        </a>
+                <Link
+                    href={route('admin.jobs.index')} // Ensure this matches your Admin Job route
+                    className="flex items-center gap-1.5 text-xs font-semibold text-[#3d9e9e] hover:text-[#2d7e7e] transition-colors"
+                >
+                    View All Jobs <IcoArrow />
+                </Link>
                     </div>
 
                     {/* Table */}

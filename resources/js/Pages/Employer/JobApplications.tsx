@@ -55,8 +55,10 @@ function getInitials(first: string, last: string) { return `${(first[0] ?? '')}$
 function resolveResumeUrl(path?: string | null) {
     if (!path) return null;
     if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    if (path.startsWith('/storage/')) return path;
     if (path.startsWith('/')) return path;
-    return `/${path}`;
+    // Bare path like 'resumes/1/MyCV.pdf' — assumed to be in public storage
+    return `/storage/${path}`;
 }
 function timeAgo(dateStr: string) {
     const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
@@ -66,9 +68,10 @@ function timeAgo(dateStr: string) {
 }
 
 const STATUS_CFG: Record<string, { dot: string; text: string; bg: string; label: string }> = {
-    pending: { dot: 'bg-amber-400', text: 'text-amber-700', bg: 'bg-amber-50', label: 'Pending' },
-    approved: { dot: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50', label: 'Approved' },
-    rejected: { dot: 'bg-red-400', text: 'text-red-700', bg: 'bg-red-50', label: 'Rejected' },
+    pending:   { dot: 'bg-amber-400',  text: 'text-amber-700',  bg: 'bg-amber-50',  label: 'Pending' },
+    approved:  { dot: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50', label: 'Approved' },
+    rejected:  { dot: 'bg-red-400',    text: 'text-red-700',    bg: 'bg-red-50',    label: 'Rejected' },
+    withdrawn: { dot: 'bg-slate-400',  text: 'text-slate-600',  bg: 'bg-slate-50',  label: 'Withdrawn' },
 };
 
 const INTERVIEW_TYPES = ['Online Interview', 'In-Person', 'Phone'];
@@ -560,6 +563,8 @@ function OptionsMenu({ app, jobId, onView, onReject, onApprove }: {
         setOpen(o => !o);
     };
 
+    const isWithdrawn = app.status === 'withdrawn';
+
     return (
         <>
             <button ref={btnRef} onClick={handleOpen} className="p-1.5 rounded-lg text-gray-400 hover:text-avaa-dark hover:bg-gray-100 transition-colors"><IcoDots /></button>
@@ -567,13 +572,13 @@ function OptionsMenu({ app, jobId, onView, onReject, onApprove }: {
                 <div id={`app-menu-${app.id}`} style={{ position: 'fixed', top: menuPos.top, right: menuPos.right }}
                     className="z-[9999] bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden min-w-[150px]">
                     <button onClick={() => { onView(); setOpen(false); }} className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"><IcoEye /> View</button>
-                    <div className="border-t border-gray-100" />
-                    {app.status !== 'approved' && (
+                    {!isWithdrawn && <div className="border-t border-gray-100" />}
+                    {!isWithdrawn && app.status !== 'approved' && (
                         <button onClick={() => { onApprove(); setOpen(false); }} className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-emerald-700 hover:bg-emerald-50 transition-colors">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />Approve
                         </button>
                     )}
-                    {app.status !== 'rejected' && (
+                    {!isWithdrawn && app.status !== 'rejected' && (
                         <button onClick={() => { onReject(); setOpen(false); }} className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors">
                             <span className="w-1.5 h-1.5 rounded-full bg-red-400" />Reject
                         </button>
@@ -591,7 +596,7 @@ export default function JobApplications({ job, applications, employerAddress }: 
     const [viewApp, setViewApp] = useState<Application | null>(null);
     const [rejectApp, setRejectApp] = useState<Application | null>(null);
     const [approveApp, setApproveApp] = useState<Application | null>(null);
-    const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+    const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'withdrawn'>('all');
     const [search, setSearch] = useState('');
 
     const filtered = applications.filter(a => {
@@ -601,16 +606,20 @@ export default function JobApplications({ job, applications, employerAddress }: 
         return matchFilter && matchSearch;
     });
 
+    // Active applications (exclude withdrawn) for the main count display
+    const activeCount = applications.filter(a => a.status !== 'withdrawn').length;
+
     const counts = {
         all: applications.length,
         pending: applications.filter(a => a.status === 'pending').length,
         approved: applications.filter(a => a.status === 'approved').length,
         rejected: applications.filter(a => a.status === 'rejected').length,
+        withdrawn: applications.filter(a => a.status === 'withdrawn').length,
     };
 
     return (
         <AppLayout pageTitle="Applicants"
-            pageSubtitle={`${applications.length} Applicant${applications.length !== 1 ? 's' : ''}`}
+            pageSubtitle={`${activeCount} Applicant${activeCount !== 1 ? 's' : ''}`}
             activeNav="Manage Jobs">
             <Head title={`Applicants - ${job.title}`} />
 
@@ -665,9 +674,13 @@ export default function JobApplications({ job, applications, employerAddress }: 
             {/* Toolbar */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
                 <div className="inline-flex items-center bg-white border border-gray-200 rounded-xl p-1 gap-0.5 shadow-sm flex-wrap">
-                    {(['all', 'pending', 'approved', 'rejected'] as const).map(tab => (
+                    {(['all', 'pending', 'approved', 'rejected', 'withdrawn'] as const).map(tab => (
                         <button key={tab} onClick={() => setFilter(tab)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all ${filter === tab ? 'bg-avaa-dark text-white shadow-sm' : 'text-gray-500 hover:text-avaa-dark hover:bg-gray-50'}`}>
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all ${
+                                filter === tab
+                                    ? tab === 'withdrawn' ? 'bg-slate-500 text-white shadow-sm' : 'bg-avaa-dark text-white shadow-sm'
+                                    : 'text-gray-500 hover:text-avaa-dark hover:bg-gray-50'
+                            }`}>
                             {tab}
                             <span className={`ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${filter === tab ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'}`}>{counts[tab]}</span>
                         </button>
@@ -744,8 +757,15 @@ export default function JobApplications({ job, applications, employerAddress }: 
                                             <AppStatusChip status={app.status} />
                                         </td>
                                         <td className="px-4 py-4 text-right">
-                                            <OptionsMenu app={app} jobId={job.id} onView={() => setViewApp(app)}
-                                                onReject={() => setRejectApp(app)} onApprove={() => setApproveApp(app)} />
+                                            {app.status === 'withdrawn' ? (
+                                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-50 text-slate-500 border border-slate-200">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                                                    Withdrawn by applicant
+                                                </span>
+                                            ) : (
+                                                <OptionsMenu app={app} jobId={job.id} onView={() => setViewApp(app)}
+                                                    onReject={() => setRejectApp(app)} onApprove={() => setApproveApp(app)} />
+                                            )}
                                         </td>
                                     </tr>
                                 );
