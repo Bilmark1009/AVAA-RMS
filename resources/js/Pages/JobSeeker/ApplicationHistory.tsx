@@ -732,12 +732,11 @@ export default function ApplicationHistory({ applications }: Props) {
     };
 
     return (
-        <AppLayout>
+        <AppLayout activeNav="Application History" pageTitle="Application History">
             <Head title="Application History" />
 
             <div className="w-full max-w-none">
                 <div className="mb-5">
-                    <h1 className="text-xl font-extrabold text-avaa-dark">Application History</h1>
                     <p className="text-sm text-gray-500 mt-1">Track your active applications and manage your recruitment pipeline</p>
                 </div>
 

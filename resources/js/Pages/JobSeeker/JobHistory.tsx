@@ -120,12 +120,11 @@ function PlacementCard({ placement, variant }: { placement: Placement; variant: 
 
 export default function JobHistory({ currentPosition, pastPlacements }: Props) {
     return (
-        <AppLayout>
+        <AppLayout activeNav="Job History" pageTitle="Job History">
             <Head title="Job History" />
 
             <div className="w-full max-w-none">
                 <div className="mb-5">
-                    <h1 className="text-xl font-extrabold text-avaa-dark">Job History</h1>
                     <p className="text-sm text-gray-500 mt-1">Your digital record of successful placements and past work through AVAA</p>
                 </div>
 

@@ -80,7 +80,7 @@ function SavedJobCard({ job, onApply, onView }: {
                 </div>
                 <div className="min-w-0 flex-1 pt-0.5">
                     <button onClick={onView}
-                        className="text-[15px] font-bold text-avaa-dark hover:text-avaa-teal transition-colors text-left leading-snug block w-full truncate">
+                        className="text-[15px] font-bold text-avaa-dark hover:text-avaa-teal transition-colors text-left leading-snug block w-full whitespace-normal break-words">
                         {job.title}
                     </button>
                     <p className="text-sm text-gray-500 mt-0.5">{job.company}</p>
@@ -217,14 +217,89 @@ export default function SavedJobs({ user, savedJobs, filters, availableSkills, a
             <Head title="Saved Jobs" />
 
             {/* Page heading */}
-            <div className="mb-8">
-                <h1 className="text-3xl font-extrabold text-avaa-dark">Saved Jobs</h1>
-                <p className="text-base text-avaa-muted mt-2">Browse the jobs you've saved.</p>
+            <div className="mb-6 sm:mb-8">
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-avaa-dark">Saved Jobs</h1>
+                <p className="text-sm sm:text-base text-avaa-muted mt-2">Browse the jobs you've saved.</p>
             </div>
 
-            <div className="flex gap-8">
+            {/* Mobile search + date filters (visible when sidebar hidden) */}
+            <div className="lg:hidden mb-6 space-y-4">
+                <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 h-11 shadow-sm focus-within:ring-2 focus-within:ring-avaa-primary/20 focus-within:border-avaa-primary transition-all">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-gray-400 flex-shrink-0">
+                        <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
+                    <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search Jobs"
+                        className="text-sm border-none focus:ring-0 p-0 bg-transparent text-avaa-dark placeholder-gray-400 focus:outline-none w-full min-w-0" />
+                    {search && (
+                        <button onClick={() => setSearch('')} className="text-gray-300 hover:text-gray-500 flex-shrink-0">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                            </svg>
+                        </button>
+                    )}
+                </div>
+                <div>
+                    <p className="text-xs font-bold text-avaa-dark mb-2">Date Posted</p>
+                    <div className="flex flex-wrap gap-2">
+                        {DATE_FILTERS.map(f => (
+                            <FilterPill key={f.value} label={f.label} active={dateFilter === f.value} onClick={() => setDateFilter(f.value)} />
+                        ))}
+                    </div>
+                </div>
 
-                {/* ── Sidebar ── */}
+                {/* Skills + Company filters on mobile (so they don't disappear) */}
+                {(availableSkills.length > 0 || availableCompanies.length > 0) && (
+                    <details className="bg-white border border-gray-200 rounded-2xl p-4">
+                        <summary className="cursor-pointer select-none text-sm font-bold text-avaa-dark flex items-center justify-between">
+                            Filters
+                            <span className="text-gray-400 text-xs font-semibold">Skills / Company</span>
+                        </summary>
+
+                        <div className="pt-4 space-y-5">
+                            {availableSkills.length > 0 && (
+                                <div>
+                                    <p className="text-xs font-bold text-avaa-dark mb-2">Skills</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {availableSkills.map(s => (
+                                            <FilterPill
+                                                key={s}
+                                                label={s}
+                                                active={selectedSkills.includes(s)}
+                                                onClick={() => setSelectedSkills(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {availableCompanies.length > 0 && (
+                                <div>
+                                    <p className="text-xs font-bold text-avaa-dark mb-2">Company</p>
+                                    <div className="space-y-3">
+                                        {availableCompanies.map(c => (
+                                            <label key={c} className="flex items-center gap-3 cursor-pointer group">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedCompanies.includes(c)}
+                                                    onChange={() => setSelectedCompanies(prev => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c])}
+                                                    className="w-4 h-4 rounded border-gray-300 accent-avaa-primary cursor-pointer"
+                                                />
+                                                <span className="text-sm text-gray-600 group-hover:text-avaa-dark transition-colors">
+                                                    {c}
+                                                </span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </details>
+                )}
+            </div>
+
+            <div className="flex gap-8 min-w-0 overflow-x-hidden">
+
+                {/* ── Sidebar (desktop) ── */}
                 <aside className="hidden lg:flex flex-col gap-7 w-72 flex-shrink-0">
 
                     {/* Search */}
@@ -301,7 +376,7 @@ export default function SavedJobs({ user, savedJobs, filters, availableSkills, a
                             </button>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                             {jobs.map(job => (
                                 <SavedJobCard key={job.id} job={job}
                                     onApply={() => handleApply(job.id)}

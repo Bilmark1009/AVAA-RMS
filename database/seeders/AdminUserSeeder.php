@@ -4,18 +4,18 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 
 class AdminUserSeeder extends Seeder
 {
     public function run(): void
     {
-        User::firstOrCreate(
+        // Note: User model already hashes the password via casts, so we store the plain string here.
+        User::updateOrCreate(
             ['email' => 'admin@jobplatform.com'],
             [
                 'first_name' => 'Platform',
                 'last_name' => 'Admin',
-                'password' => Hash::make('password'),
+                'password' => 'password',
                 'role' => 'admin',
                 'status' => 'active',
                 'profile_completed' => true,
