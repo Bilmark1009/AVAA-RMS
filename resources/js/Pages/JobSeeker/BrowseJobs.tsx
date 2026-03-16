@@ -60,8 +60,6 @@ function formatSalary(min?: number | null, max?: number | null, currency = 'USD'
 
 /* ─────────────────────────────────────────
    JOB CARD
-   Card padding: 24px | Avatar: 56px | Title: 16px bold
-   Meta text: 14px | Skill pills: 12px | Buttons: 14px/36px tall
 ───────────────────────────────────────── */
 function JobCard({ job, saved, onSave, onApply, onView }: {
     job: JobListing; saved: boolean;
@@ -132,7 +130,7 @@ function JobCard({ job, saved, onSave, onApply, onView }: {
                 </div>
             )}
 
-            {/* Footer: salary + actions — stack on small screens, row on md+; actions wrap */}
+            {/* Footer: salary + actions */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pt-4 border-t border-gray-100 mt-auto">
                 <div className="min-w-0 flex-shrink-0">
                     {salary ? (
@@ -173,7 +171,7 @@ function JobCard({ job, saved, onSave, onApply, onView }: {
     );
 }
 
-/* ── Filter Pill — 14px text, 36px tall ── */
+/* ── Filter Pill ── */
 function FilterPill({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
     return (
         <button onClick={onClick}
@@ -182,6 +180,30 @@ function FilterPill({ label, active, onClick }: { label: string; active: boolean
                 : 'bg-white text-gray-600 border-gray-200 hover:border-avaa-primary/40 hover:text-avaa-teal'}`}>
             {label}
         </button>
+    );
+}
+
+/* ── Collapsible Section for Mobile Filters ── */
+function MobileFilterSection({ title, children }: { title: string; children: React.ReactNode }) {
+    const [open, setOpen] = useState(true);
+    return (
+        <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
+            <button
+                type="button"
+                onClick={() => setOpen(o => !o)}
+                className="w-full flex items-center justify-between px-4 py-3 text-sm font-bold text-avaa-dark"
+            >
+                {title}
+                <svg
+                    width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                    className={`transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+                >
+                    <polyline points="6 9 12 15 18 9" />
+                </svg>
+            </button>
+            {open && <div className="px-4 pb-4">{children}</div>}
+        </div>
     );
 }
 
@@ -247,8 +269,9 @@ export default function BrowseJobs({ jobs, savedJobIds, filters, availableSkills
                     <p className="text-sm sm:text-base text-avaa-muted mt-2">Browse open positions from top companies</p>
                 </div>
 
-                {/* Mobile search + date filters (visible when sidebar hidden) */}
-                <div className="lg:hidden mb-6 space-y-4">
+                {/* ── Mobile filters (hidden on lg+) ── */}
+                <div className="lg:hidden mb-6 space-y-3">
+                    {/* Search */}
                     <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 h-11 shadow-sm focus-within:ring-2 focus-within:ring-avaa-primary/20 focus-within:border-avaa-primary transition-all">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-gray-400 flex-shrink-0">
                             <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -263,22 +286,51 @@ export default function BrowseJobs({ jobs, savedJobIds, filters, availableSkills
                             </button>
                         )}
                     </div>
-                    <div>
-                        <p className="text-xs font-bold text-avaa-dark mb-2">Date Posted</p>
+
+                    {/* Date Posted */}
+                    <MobileFilterSection title="Date Posted">
                         <div className="flex flex-wrap gap-2">
                             {DATE_FILTERS.map(f => (
                                 <FilterPill key={f.value} label={f.label} active={dateFilter === f.value} onClick={() => setDateFilter(f.value)} />
                             ))}
                         </div>
-                    </div>
+                    </MobileFilterSection>
+
+                    {/* Skills */}
+                    {availableSkills.length > 0 && (
+                        <MobileFilterSection title="Skills">
+                            <div className="flex flex-wrap gap-2">
+                                {availableSkills.map(s => (
+                                    <FilterPill key={s} label={s} active={selectedSkills.includes(s)}
+                                        onClick={() => setSelectedSkills(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])} />
+                                ))}
+                            </div>
+                        </MobileFilterSection>
+                    )}
+
+                    {/* Company */}
+                    {availableCompanies.length > 0 && (
+                        <MobileFilterSection title="Company">
+                            <div className="space-y-3">
+                                {availableCompanies.map(c => (
+                                    <label key={c} className="flex items-center gap-3 cursor-pointer group">
+                                        <input type="checkbox" checked={selectedCompanies.includes(c)}
+                                            onChange={() => setSelectedCompanies(prev => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c])}
+                                            className="w-4 h-4 rounded border-gray-300 accent-avaa-primary cursor-pointer" />
+                                        <span className="text-sm text-gray-600 group-hover:text-avaa-dark transition-colors">{c}</span>
+                                    </label>
+                                ))}
+                            </div>
+                        </MobileFilterSection>
+                    )}
                 </div>
 
                 <div className="flex gap-8 min-w-0 overflow-x-hidden w-full max-w-full">
 
-                    {/* ── Sidebar — 288px wide; hide on smaller screens ── */}
+                    {/* ── Sidebar (desktop only) ── */}
                     <aside className="hidden lg:flex flex-col gap-7 w-72 flex-shrink-0 min-w-0 overflow-hidden">
 
-                        {/* Search — 44px tall standard input */}
+                        {/* Search */}
                         <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 h-11 shadow-sm focus-within:ring-2 focus-within:ring-avaa-primary/20 focus-within:border-avaa-primary transition-all">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-gray-400 flex-shrink-0">
                                 <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />

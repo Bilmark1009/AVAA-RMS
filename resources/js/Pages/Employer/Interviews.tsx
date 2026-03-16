@@ -46,6 +46,67 @@ interface Props {
     stats: Stats;
 }
 
+/* ══════════════════════════════════════════════
+   CONFIRM MODAL
+══════════════════════════════════════════════ */
+function ConfirmModal({
+    title,
+    message,
+    confirmLabel,
+    loading,
+    onCancel,
+    onConfirm,
+}: {
+    title: string;
+    message: string;
+    confirmLabel: string;
+    loading?: boolean;
+    onCancel: () => void;
+    onConfirm: () => void;
+}) {
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onCancel} />
+            <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
+                    <h2 className="text-sm font-bold text-avaa-dark">{title}</h2>
+                    <button
+                        onClick={onCancel}
+                        className="w-7 h-7 rounded-full bg-white text-gray-400 hover:text-gray-700 hover:bg-gray-100 flex items-center justify-center transition-colors"
+                    >
+                        <IcoX />
+                    </button>
+                </div>
+                <div className="px-5 py-4">
+                    <p className="text-sm text-gray-600">{message}</p>
+                </div>
+                <div className="px-5 py-3 border-t border-gray-100 bg-gray-50 flex items-center justify-end gap-3">
+                    <button
+                        onClick={onCancel}
+                        className="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors"
+                        disabled={loading}
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        disabled={loading}
+                        className="px-5 py-2 text-sm font-semibold text-white bg-avaa-primary hover:bg-avaa-primary-hover rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2"
+                    >
+                        {loading && (
+                            <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                            </svg>
+                        )}
+                        {confirmLabel}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 /* ── Helpers ── */
 const AVATAR_COLORS = ['bg-avaa-dark', 'bg-teal-700', 'bg-emerald-700', 'bg-slate-600', 'bg-cyan-700', 'bg-stone-600'];
 function avatarColor(id: number) { return AVATAR_COLORS[id % AVATAR_COLORS.length]; }
@@ -300,11 +361,13 @@ function InterviewOptions({ interview, onEdit }: { interview: InterviewData; onE
 function JobGroup({
     jobTitle,
     interviews,
-    onEdit
+    onEdit,
+    onConfirmAction,
 }: {
     jobTitle: string;
     interviews: InterviewData[];
     onEdit: (i: InterviewData) => void;
+    onConfirmAction: (type: 'pass' | 'fail', interview: InterviewData) => void;
 }) {
     const [open, setOpen] = useState(true);
 
@@ -313,18 +376,6 @@ function JobGroup({
         const ampm = h >= 12 ? 'PM' : 'AM';
         return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ampm}`;
     }
-
-    const handlePass = (id: number) => {
-        if (confirm("Are you sure you want to pass this applicant? They will be marked as hired and notified.")) {
-            router.post(route('employer.interviews.pass', { interview: id }), {}, { preserveScroll: true });
-        }
-    };
-
-    const handleFail = (id: number) => {
-        if (confirm("Are you sure you want to fail this applicant? They will be notified via email.")) {
-            router.post(route('employer.interviews.fail', { interview: id }), {}, { preserveScroll: true });
-        }
-    };
 
     return (
         <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden mb-4 shadow-sm">
@@ -400,14 +451,14 @@ function JobGroup({
                                                 {i.status === 'active' && (
                                                     <>
                                                         <button
-                                                            onClick={() => handlePass(i.id)}
+                                                            onClick={() => onConfirmAction('pass', i)}
                                                             className="w-8 h-8 rounded-lg flex items-center justify-center text-emerald-600 bg-emerald-50 hover:bg-emerald-500 hover:text-white transition-all shadow-sm"
                                                             title="Pass Interview (Hire)"
                                                         >
                                                             <IcoCheck />
                                                         </button>
                                                         <button
-                                                            onClick={() => handleFail(i.id)}
+                                                            onClick={() => onConfirmAction('fail', i)}
                                                             className="w-8 h-8 rounded-lg flex items-center justify-center text-rose-600 bg-rose-50 hover:bg-rose-500 hover:text-white transition-all shadow-sm"
                                                             title="Fail Interview"
                                                         >
@@ -438,6 +489,11 @@ export default function Interviews({ interviews, stats }: Props) {
     const [editInterview, setEditInterview] = useState<InterviewData | null>(null);
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'completed' | 'cancelled'>('all');
+    const [confirmState, setConfirmState] = useState<{
+        type: 'pass' | 'fail';
+        interview: InterviewData;
+        loading: boolean;
+    } | null>(null);
 
     const filtered = interviews.filter(i => {
         const matchStatus = statusFilter === 'all' || i.status === statusFilter;
@@ -459,6 +515,34 @@ export default function Interviews({ interviews, stats }: Props) {
             <Head title="Interviews" />
 
             {editInterview && <EditModal interview={editInterview} onClose={() => setEditInterview(null)} />}
+
+            {confirmState && (
+                <ConfirmModal
+                    title={confirmState.type === 'pass' ? 'Confirm Hire' : 'Confirm Failure'}
+                    message={
+                        confirmState.type === 'pass'
+                            ? 'Are you sure you want to mark this applicant as hired and notify them?'
+                            : 'Are you sure you want to mark this applicant as failed and notify them via email?'
+                    }
+                    confirmLabel={confirmState.type === 'pass' ? 'Yes, mark as hired' : 'Yes, mark as failed'}
+                    loading={confirmState.loading}
+                    onCancel={() => !confirmState.loading && setConfirmState(null)}
+                    onConfirm={() => {
+                        if (!confirmState) return;
+                        setConfirmState({ ...confirmState, loading: true });
+                        const routeName =
+                            confirmState.type === 'pass' ? 'employer.interviews.pass' : 'employer.interviews.fail';
+                        router.post(
+                            route(routeName, { interview: confirmState.interview.id }),
+                            {},
+                            {
+                                preserveScroll: true,
+                                onFinish: () => setConfirmState(null),
+                            }
+                        );
+                    }}
+                />
+            )}
 
             {/* Stat Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
@@ -527,6 +611,9 @@ export default function Interviews({ interviews, stats }: Props) {
                             jobTitle={jobTitle}
                             interviews={groupInterviews}
                             onEdit={(i) => setEditInterview(i)}
+                            onConfirmAction={(type, interview) =>
+                                setConfirmState({ type, interview, loading: false })
+                            }
                         />
                     ))}
                 </div>

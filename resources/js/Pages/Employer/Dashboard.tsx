@@ -278,16 +278,16 @@ function MonthlyApplicationsChart() {
     ];
 
     return (
-        <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-6">
+        <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 mb-6">
             {/* Header */}
-            <div className="flex items-start justify-between mb-5">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-5">
                 <div>
                     <h2 className="text-xl font-bold text-gray-900">Monthly Applications</h2>
                     <p className="text-sm text-gray-400 mt-0.5">Application submissions over time</p>
                 </div>
 
                 {/* Filter tabs */}
-                <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1">
+                <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 self-start sm:self-auto overflow-x-auto">
                     {periods.map(({ key, label }) => (
                         <button
                             key={key}
@@ -305,8 +305,8 @@ function MonthlyApplicationsChart() {
             </div>
 
             {/* Summary stats */}
-            <div className="flex items-center gap-8 mb-5">
-                <div>
+            <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8 mb-5">
+                <div className="min-w-[150px]">
                     <p className="text-3xl font-extrabold text-gray-900 tracking-tight">{d.total}</p>
                     <div className="flex items-center gap-2 mt-1">
                         <p className="text-sm text-gray-400">Total applications</p>
@@ -316,20 +316,20 @@ function MonthlyApplicationsChart() {
                         </span>
                     </div>
                 </div>
-                <div className="w-px h-10 bg-gray-100" />
-                <div>
+                <div className="hidden md:block w-px h-10 bg-gray-100" />
+                <div className="min-w-[120px]">
                     <p className="text-3xl font-extrabold text-gray-900 tracking-tight">{d.peak}</p>
                     <p className="text-sm text-gray-400 mt-1">{d.peakLbl}</p>
                 </div>
-                <div className="w-px h-10 bg-gray-100" />
-                <div>
+                <div className="hidden md:block w-px h-10 bg-gray-100" />
+                <div className="min-w-[120px]">
                     <p className="text-3xl font-extrabold text-gray-900 tracking-tight">{d.avg}</p>
                     <p className="text-sm text-gray-400 mt-1">{d.avgLbl}</p>
                 </div>
             </div>
 
             {/* Chart */}
-            <div className="relative w-full" style={{ height: '220px' }}>
+            <div className="relative w-full h-56 sm:h-64">
                 <canvas ref={canvasRef} />
             </div>
         </div>
