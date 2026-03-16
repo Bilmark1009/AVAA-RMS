@@ -306,11 +306,11 @@ export default function JobDetail({
     hasApplied: initialApplied = false,
     source = 'browse',
 }: Props) {
-    const [saved, setSaved]     = useState(initialSaved);
+    const [saved, setSaved] = useState(initialSaved);
     const [applied, setApplied] = useState(initialApplied || job.has_applied || false);
     const [selectedRecruiter, setSelectedRecruiter] = useState<HiringTeamMember | null>(null);
 
-    const salary           = formatSalary(job.salary_min, job.salary_max, job.salary_currency);
+    const salary = formatSalary(job.salary_min, job.salary_max, job.salary_currency);
     const responsibilities = toLines(job.responsibilities);
     const qualifications   = toLines(job.qualifications);
     const requirements     = toLines(job.requirements);
@@ -372,8 +372,10 @@ export default function JobDetail({
                                     textClassName="text-white text-xl font-bold flex items-center justify-center"
                                 />
                                 <div className="flex-1 min-w-0">
-                                    <h1 className="text-2xl font-extrabold text-avaa-dark leading-tight">{job.title}</h1>
-                                    <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-gray-500">
+                                    <h1 className="text-xl sm:text-2xl font-extrabold text-avaa-dark leading-tight">{job.title}</h1>
+
+                                    {/* Meta row */}
+                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mt-2 text-sm text-gray-500">
                                         <span className="font-semibold text-gray-700">{job.company}</span>
                                         <span className="flex items-center gap-1.5">
                                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -393,12 +395,12 @@ export default function JobDetail({
                                     {/* Badges */}
                                     <div className="flex flex-wrap gap-2 mt-3">
                                         {job.employment_type && (
-                                            <span className="px-3 py-1 bg-gray-100 text-gray-600 text-sm font-semibold rounded-full">
+                                            <span className="inline-flex items-center px-3 py-1 bg-gray-100 text-gray-600 text-sm font-semibold rounded-full whitespace-nowrap">
                                                 {job.employment_type}
                                             </span>
                                         )}
                                         {salary && (
-                                            <span className="px-3 py-1 bg-avaa-primary-light text-avaa-teal text-sm font-semibold rounded-full">
+                                            <span className="inline-flex items-center px-3 py-1 bg-avaa-primary-light text-avaa-teal text-sm font-semibold rounded-full whitespace-nowrap">
                                                 {salary}
                                             </span>
                                         )}
@@ -440,11 +442,10 @@ export default function JobDetail({
                                 </button>
                                 <button
                                     onClick={toggleSave}
-                                    className={`flex items-center gap-2 px-5 h-11 rounded-xl border font-semibold text-sm transition-all ${
-                                        saved
+                                    className={`flex items-center gap-2 px-5 h-11 rounded-xl border font-semibold text-sm transition-all ${saved
                                             ? 'border-avaa-primary/30 bg-avaa-primary-light text-avaa-teal'
                                             : 'border-gray-200 text-gray-600 hover:border-avaa-primary/30 hover:text-avaa-teal hover:bg-avaa-primary-light'
-                                    }`}
+                                        }`}
                                 >
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill={saved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                         <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
