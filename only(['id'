@@ -1,0 +1,22 @@
+
+   Psy\Exception\ParseErrorException 
+
+  PHP Parse error: Syntax error, unexpected T_NS_SEPARATOR, expecting ')' on line 1
+
+  at D:\GitHub\AVAA-RMS\vendor\psy\psysh\src\Exception\ParseErrorException.php:44
+     40▕      * @param \PhpParser\Error $e
+     41▕      */
+     42▕     public static function fromParseError(\PhpParser\Error $e): self
+     43▕     {
+  ➜  44▕         return new self($e->getRawMessage(), $e->getAttributes());
+     45▕     }
+     46▕ }
+     47▕
+
+  1   D:\GitHub\AVAA-RMS\vendor\psy\psysh\src\CodeCleaner.php:488
+      Psy\Exception\ParseErrorException::fromParseError(Object(PhpParser\Error))
+
+  2   D:\GitHub\AVAA-RMS\vendor\psy\psysh\src\CodeCleaner.php:269
+      Psy\CodeCleaner::parse("<?php dump(App\\Models\\UserDocument::latest()-,'user_id','file_name','file_path']));
+")
+

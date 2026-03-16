@@ -19,8 +19,9 @@ class JobListing extends Model
         'description',
         'responsibilities',
         'qualifications',
-        'project_timeline',
-        'onboarding_process',
+        'requirements',
+        'screener_questions',
+        'work_arrangement',
         'logo_path',
         'employment_type',
         'industry',
@@ -37,6 +38,10 @@ class JobListing extends Model
 
     protected $casts = [
         'skills_required'   => 'array',
+        'qualifications'    => 'array',
+        'requirements'      => 'array',
+        'screener_questions'=> 'array',
+        'responsibilities'  => 'array',
         'is_remote'         => 'boolean',
         'salary_min'        => 'decimal:2',
         'salary_max'        => 'decimal:2',
@@ -54,6 +59,35 @@ class JobListing extends Model
     public function applications(): HasMany
     {
         return $this->hasMany(JobApplication::class, 'job_listing_id');
+    }
+
+    public function collaborators(): HasMany
+    {
+        return $this->hasMany(JobCollaborator::class);
+    }
+
+    public function acceptedCollaborators(): HasMany
+    {
+        return $this->hasMany(JobCollaborator::class)->where('status', 'accepted');
+    }
+
+    /**
+     * Check whether the given user is an accepted collaborator on this job.
+     */
+    public function isCollaborator(User $user): bool
+    {
+        return $this->collaborators()
+            ->where('user_id', $user->id)
+            ->where('status', 'accepted')
+            ->exists();
+    }
+
+    /**
+     * Check whether the given user is the owner OR an accepted collaborator.
+     */
+    public function isAccessibleBy(User $user): bool
+    {
+        return $this->employer_id === $user->id || $this->isCollaborator($user);
     }
 
     /* ── Scopes ── */

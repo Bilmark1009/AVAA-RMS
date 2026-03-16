@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 
 /* ── Icons ── */
 const IcoAccount = () => (
@@ -33,6 +33,16 @@ const IcoBlock = () => (
         <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
     </svg>
 );
+const IcoMenu = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
+    </svg>
+);
+const IcoX = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+);
 
 function safeRoute(name: string, params?: any): string {
     try { return route(name, params); }
@@ -47,12 +57,12 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-    { label: 'Account',           href: safeRoute('settings.account'),       icon: <IcoAccount />,   routeName: 'settings.account'        },
-    { label: 'Security & Privacy',href: safeRoute('settings.security'),      icon: <IcoShield />,    routeName: 'settings.security'       },
-    { label: 'Job Preferences',   href: safeRoute('settings.job-preferences'), icon: <IcoBriefcase />, routeName: 'settings.job-preferences' },
-    { label: 'Notifications',     href: safeRoute('settings.notifications'), icon: <IcoBell />,      routeName: 'settings.notifications'  },
-    { label: 'Documents',         href: safeRoute('settings.documents'),     icon: <IcoDoc />,       routeName: 'settings.documents'      },
-    { label: 'Blocked Users',     href: safeRoute('settings.blocked-users'),  icon: <IcoBlock />,    routeName: 'settings.blocked-users'  },
+    { label: 'Account',            href: safeRoute('settings.account'),          icon: <IcoAccount />,   routeName: 'settings.account'        },
+    { label: 'Security & Privacy', href: safeRoute('settings.security'),          icon: <IcoShield />,    routeName: 'settings.security'       },
+    { label: 'Job Preferences',    href: safeRoute('settings.job-preferences'),   icon: <IcoBriefcase />, routeName: 'settings.job-preferences' },
+    { label: 'Notifications',      href: safeRoute('settings.notifications'),     icon: <IcoBell />,      routeName: 'settings.notifications'  },
+    { label: 'Documents',          href: safeRoute('settings.documents'),         icon: <IcoDoc />,       routeName: 'settings.documents'      },
+    { label: 'Blocked Users',      href: safeRoute('settings.blocked-users'),     icon: <IcoBlock />,     routeName: 'settings.blocked-users'  },
 ];
 
 interface SettingsLayoutProps {
@@ -63,54 +73,134 @@ interface SettingsLayoutProps {
 
 export default function SettingsLayout({ children, title, subtitle }: SettingsLayoutProps) {
     const { url } = usePage();
+    const [drawerOpen, setDrawerOpen] = useState(false);
 
     const isActive = (item: NavItem) => {
-        // match by href prefix
         return url.startsWith('/' + item.href.replace(/^https?:\/\/[^/]+\//, ''));
+    };
+
+    const activeItem = NAV_ITEMS.find(item => isActive(item));
+
+    /* ── Shared nav link renderer ── */
+    const NavLink = ({ item }: { item: NavItem }) => {
+        const active = isActive(item);
+        return (
+            <Link
+                key={item.routeName}
+                href={item.href}
+                onClick={() => setDrawerOpen(false)}
+                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-all
+                    ${active
+                        ? 'bg-avaa-primary text-white'
+                        : 'text-avaa-text hover:bg-avaa-primary-light hover:text-avaa-dark'
+                    }`}
+            >
+                <span className={active ? 'text-white' : 'text-avaa-muted'}>
+                    {item.icon}
+                </span>
+                {item.label}
+            </Link>
+        );
     };
 
     return (
         <div className="flex gap-6 min-h-[calc(100vh-8rem)]">
 
-            {/* ── Left sidebar ── */}
-            <aside className="w-52 flex-shrink-0">
+            {/* ══════════════════════════════
+                DESKTOP sidebar (lg+)
+            ══════════════════════════════ */}
+            <aside className="hidden lg:block w-52 flex-shrink-0">
                 <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden sticky top-6">
                     <div className="px-4 pt-5 pb-3 border-b border-gray-100">
                         <p className="text-sm font-bold text-avaa-dark">Settings</p>
                         <p className="text-[11px] text-avaa-muted mt-0.5">Manage your preferences.</p>
                     </div>
                     <nav className="p-2 space-y-0.5">
-                        {NAV_ITEMS.map(item => {
-                            const active = isActive(item);
-                            return (
-                                <Link
-                                    key={item.routeName}
-                                    href={item.href}
-                                    className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-all
-                                        ${active
-                                            ? 'bg-avaa-primary text-white'
-                                            : 'text-avaa-text hover:bg-avaa-primary-light hover:text-avaa-dark'
-                                        }`}
-                                >
-                                    <span className={active ? 'text-white' : 'text-avaa-muted'}>
-                                        {item.icon}
-                                    </span>
-                                    {item.label}
-                                </Link>
-                            );
-                        })}
+                        {NAV_ITEMS.map(item => <NavLink key={item.routeName} item={item} />)}
                     </nav>
                 </div>
             </aside>
 
-            {/* ── Main content ── */}
-            <div className="flex-1 min-w-0 space-y-5">
-                {/* Page header */}
+            {/* ══════════════════════════════
+                MOBILE top bar + drawer (< lg)
+            ══════════════════════════════ */}
+            <div className="lg:hidden w-full">
+                {/* Mobile top bar */}
+                <div className="flex items-center justify-between mb-5 bg-white border border-gray-200 rounded-2xl px-4 py-3">
+                    <div className="flex items-center gap-2.5">
+                        <span className="text-avaa-muted">
+                            {activeItem?.icon}
+                        </span>
+                        <div>
+                            <p className="text-sm font-bold text-avaa-dark">{activeItem?.label ?? 'Settings'}</p>
+                            <p className="text-[11px] text-avaa-muted">Settings</p>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setDrawerOpen(true)}
+                        className="p-2 rounded-xl border border-gray-200 text-gray-600 hover:bg-avaa-primary-light hover:text-avaa-teal hover:border-avaa-primary/30 transition-all"
+                        aria-label="Open settings navigation"
+                    >
+                        <IcoMenu />
+                    </button>
+                </div>
+
+                {/* Overlay */}
+                {drawerOpen && (
+                    <div
+                        className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+                        onClick={() => setDrawerOpen(false)}
+                        aria-hidden="true"
+                    />
+                )}
+
+                {/* Slide-out drawer */}
+                <div
+                    className={`fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-2xl transform transition-transform duration-300 ease-in-out ${
+                        drawerOpen ? 'translate-x-0' : '-translate-x-full'
+                    }`}
+                >
+                    {/* Drawer header */}
+                    <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-gray-100">
+                        <div>
+                            <p className="text-sm font-bold text-avaa-dark">Settings</p>
+                            <p className="text-[11px] text-avaa-muted mt-0.5">Manage your preferences.</p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setDrawerOpen(false)}
+                            className="p-2 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-100 transition-colors"
+                            aria-label="Close settings navigation"
+                        >
+                            <IcoX />
+                        </button>
+                    </div>
+
+                    {/* Drawer nav */}
+                    <nav className="p-3 space-y-0.5 overflow-y-auto">
+                        {NAV_ITEMS.map(item => <NavLink key={item.routeName} item={item} />)}
+                    </nav>
+                </div>
+
+                {/* Main content (mobile) */}
+                <div className="space-y-5">
+                    <div>
+                        <h2 className="text-lg font-bold text-avaa-dark">{title}</h2>
+                        <p className="text-sm text-avaa-muted mt-0.5">{subtitle}</p>
+                    </div>
+                    {children}
+                </div>
+            </div>
+
+            {/* ══════════════════════════════
+                DESKTOP main content
+            ══════════════════════════════ */}
+            <div className="hidden lg:block flex-1 min-w-0 space-y-5">
                 <div>
                     <h2 className="text-lg font-bold text-avaa-dark">{title}</h2>
                     <p className="text-sm text-avaa-muted mt-0.5">{subtitle}</p>
                 </div>
-
                 {children}
             </div>
         </div>

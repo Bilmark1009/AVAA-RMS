@@ -1,4 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
+import { useState, useEffect, useRef } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
 import EmployerOnboarding from '@/Components/Modals/EmployerOnboarding';
 
@@ -67,7 +68,7 @@ function StatCard({
     value: string | number;
     sub?: string;
     icon: React.ReactNode;
-    color: string;          // tailwind bg for icon ring
+    color: string;
     badge?: string;
 }) {
     return (
@@ -120,7 +121,7 @@ function InitialsAvatar({ name, color }: { name: string; color: string }) {
 
 /* ── Format date ───────────────────────────────────────────── */
 function fmtDate(d: string) {
-    return new Date(d).toLocaleDateString('en-CA'); // produces YYYY-MM-DD
+    return new Date(d).toLocaleDateString('en-CA');
 }
 
 /* ── Deterministic color from string ───────────────────────── */
@@ -132,6 +133,207 @@ function pickColor(str: string) {
     let hash = 0;
     for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
     return avatarColors[Math.abs(hash) % avatarColors.length];
+}
+
+/* ══════════════════════════════════════════════════════════════
+   MONTHLY APPLICATIONS CHART
+   ══════════════════════════════════════════════════════════════ */
+type Period = 'weekly' | 'monthly' | 'yearly';
+
+interface ChartPeriodData {
+    labels: string[];
+    values: number[];
+    total: string;
+    peak: string;
+    avg: string;
+    peakLbl: string;
+    avgLbl: string;
+    badge: string;
+}
+
+const CHART_DATA: Record<Period, ChartPeriodData> = {
+    weekly: {
+        labels: ['Wk 1', 'Wk 2', 'Wk 3', 'Wk 4', 'Wk 5', 'Wk 6', 'Wk 7', 'Wk 8'],
+        values: [120, 95, 140, 175, 110, 190, 160, 210],
+        total: '1,200', peak: '210', avg: '150',
+        peakLbl: 'Peak week', avgLbl: 'Weekly avg', badge: '+12%',
+    },
+    monthly: {
+        labels: ['Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb'],
+        values: [480, 390, 510, 470, 610, 680],
+        total: '3,140', peak: '680', avg: '523',
+        peakLbl: 'Peak month', avgLbl: 'Monthly avg', badge: '+8%',
+    },
+    yearly: {
+        labels: ['2020', '2021', '2022', '2023', '2024', '2025'],
+        values: [2400, 3100, 4200, 5800, 7200, 9400],
+        total: '32,100', peak: '9,400', avg: '5,350',
+        peakLbl: 'Peak year', avgLbl: 'Yearly avg', badge: '+30%',
+    },
+};
+
+const TEAL_SOLID = '#1D9E75';
+const TEAL_LIGHT = 'rgba(29,158,117,0.13)';
+
+function MonthlyApplicationsChart() {
+    const [period, setPeriod] = useState<Period>('monthly');
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const chartRef = useRef<any>(null);
+
+    useEffect(() => {
+        let Chart: any;
+
+        async function loadAndDraw() {
+            // Dynamically import Chart.js (works with Vite / Laravel + Inertia setups)
+            // Install via: npm install chart.js
+            const mod = await import('chart.js/auto');
+            Chart = mod.default;
+            drawChart(Chart);
+        }
+
+        function drawChart(Chart: any) {
+            if (!canvasRef.current) return;
+            if (chartRef.current) {
+                chartRef.current.destroy();
+                chartRef.current = null;
+            }
+
+            const d = CHART_DATA[period];
+            const maxVal = Math.max(...d.values);
+
+            chartRef.current = new Chart(canvasRef.current, {
+                type: 'bar',
+                data: {
+                    labels: d.labels,
+                    datasets: [
+                        {
+                            data: d.values,
+                            backgroundColor: d.values.map(v => (v === maxVal ? TEAL_SOLID : TEAL_LIGHT)),
+                            hoverBackgroundColor: d.values.map(v => (v === maxVal ? '#0f6e56' : 'rgba(29,158,117,0.25)')),
+                            borderRadius: 6,
+                            borderSkipped: false,
+                            barPercentage: 0.55,
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#fff',
+                            borderColor: '#e5e7eb',
+                            borderWidth: 1,
+                            titleColor: '#111827',
+                            bodyColor: '#6b7280',
+                            padding: 10,
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: (ctx: any) => ` ${ctx.parsed.y.toLocaleString()} applications`,
+                            },
+                        },
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            border: { display: false },
+                            ticks: {
+                                font: { size: 12, family: 'inherit' },
+                                color: '#9ca3af',
+                                autoSkip: false,
+                            },
+                        },
+                        y: {
+                            grid: { color: 'rgba(0,0,0,0.05)' },
+                            border: { display: false },
+                            ticks: {
+                                font: { size: 11, family: 'inherit' },
+                                color: '#d1d5db',
+                                maxTicksLimit: 5,
+                                callback: (v: number) =>
+                                    v >= 1000 ? `${(v / 1000).toFixed(1)}k` : v,
+                            },
+                        },
+                    },
+                },
+            });
+        }
+
+        loadAndDraw();
+
+        return () => {
+            if (chartRef.current) {
+                chartRef.current.destroy();
+                chartRef.current = null;
+            }
+        };
+    }, [period]);
+
+    const d = CHART_DATA[period];
+    const periods: { key: Period; label: string }[] = [
+        { key: 'weekly', label: 'Weekly' },
+        { key: 'monthly', label: 'Monthly' },
+        { key: 'yearly', label: 'Yearly' },
+    ];
+
+    return (
+        <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 mb-6">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-5">
+                <div>
+                    <h2 className="text-xl font-bold text-gray-900">Monthly Applications</h2>
+                    <p className="text-sm text-gray-400 mt-0.5">Application submissions over time</p>
+                </div>
+
+                {/* Filter tabs */}
+                <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 self-start sm:self-auto overflow-x-auto">
+                    {periods.map(({ key, label }) => (
+                        <button
+                            key={key}
+                            onClick={() => setPeriod(key)}
+                            className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                                period === key
+                                    ? 'bg-white text-gray-900 shadow-sm border border-gray-200'
+                                    : 'text-gray-500 hover:text-gray-700'
+                            }`}
+                        >
+                            {label}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Summary stats */}
+            <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8 mb-5">
+                <div className="min-w-[150px]">
+                    <p className="text-3xl font-extrabold text-gray-900 tracking-tight">{d.total}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                        <p className="text-sm text-gray-400">Total applications</p>
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">
+                            <IcoTrendUp />
+                            {d.badge}
+                        </span>
+                    </div>
+                </div>
+                <div className="hidden md:block w-px h-10 bg-gray-100" />
+                <div className="min-w-[120px]">
+                    <p className="text-3xl font-extrabold text-gray-900 tracking-tight">{d.peak}</p>
+                    <p className="text-sm text-gray-400 mt-1">{d.peakLbl}</p>
+                </div>
+                <div className="hidden md:block w-px h-10 bg-gray-100" />
+                <div className="min-w-[120px]">
+                    <p className="text-3xl font-extrabold text-gray-900 tracking-tight">{d.avg}</p>
+                    <p className="text-sm text-gray-400 mt-1">{d.avgLbl}</p>
+                </div>
+            </div>
+
+            {/* Chart */}
+            <div className="relative w-full h-56 sm:h-64">
+                <canvas ref={canvasRef} />
+            </div>
+        </div>
+    );
 }
 
 /* ════════════════════════════════════════════════════════════ */
@@ -184,7 +386,7 @@ export default function EmployerDashboard({
                 )}
 
                 {/* ── Stat Cards ── */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
                     <StatCard
                         label="Active Users"
                         value={activeUsersCount}
@@ -218,6 +420,9 @@ export default function EmployerDashboard({
                         badge="+18%"
                     />
                 </div>
+
+                {/* ── Monthly Applications Chart ── */}
+                <MonthlyApplicationsChart />
 
                 {/* ── Posted Jobs Table ── */}
                 <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">

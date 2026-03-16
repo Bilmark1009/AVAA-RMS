@@ -109,14 +109,20 @@ const STEP_ICONS = [IcoUser, IcoBriefcase, IcoFile, IcoFile];
 ══════════════════════════════════════════════ */
 function StepIndicator({ current }: { current: number }) {
     const pct = ((current + 1) / STEPS.length) * 100;
+    // Progress connector width: stop at the current step icon, not beyond.
+    const connectorPct = current === 0
+        ? 0
+        : current === STEPS.length - 1
+            ? 94
+            : (current / (STEPS.length - 1)) * 100;
     return (
-        <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
+        <div className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-6 mb-6">
             {/* Icons + labels */}
             <div className="flex items-center justify-between mb-4 relative">
                 {/* Connector line behind icons */}
-                <div className="absolute top-5 left-8 right-8 h-0.5 bg-gray-200 z-0" />
-                <div className="absolute top-5 left-8 h-0.5 bg-avaa-teal z-0 transition-all duration-500"
-                    style={{ width: `${current === 0 ? 0 : ((current) / (STEPS.length - 1)) * 100}%` }} />
+                <div className="absolute top-5 left-6 right-6 sm:left-8 sm:right-8 h-0.5 bg-gray-200 z-0" />
+                <div className="absolute top-5 left-6 sm:left-8 h-0.5 bg-avaa-teal z-0 transition-all duration-500"
+                    style={{ width: `${connectorPct}%` }} />
 
                 {STEPS.map((label, i) => {
                     const Icon = STEP_ICONS[i];
@@ -124,11 +130,11 @@ function StepIndicator({ current }: { current: number }) {
                     const active = i === current;
                     return (
                         <div key={label} className="flex flex-col items-center relative z-10">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300
+                            <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300
                                 ${done ? 'bg-avaa-teal text-white' : active ? 'bg-avaa-teal text-white ring-4 ring-avaa-primary-light' : 'bg-gray-100 text-gray-400'}`}>
                                 {done ? <IcoCheck /> : <Icon />}
                             </div>
-                            <span className={`text-[10px] font-semibold mt-2 text-center max-w-[80px] leading-tight
+                            <span className={`hidden sm:block text-[10px] font-semibold mt-2 text-center max-w-[80px] leading-tight
                                 ${active ? 'text-avaa-teal' : done ? 'text-avaa-teal' : 'text-gray-400'}`}>
                                 {label}
                             </span>
@@ -537,33 +543,33 @@ export default function ApplyJob({ job, prefill, draftId }: Props) {
                             <span className="w-6 h-6 rounded-lg bg-avaa-primary-light text-avaa-teal flex items-center justify-center text-xs font-bold">1</span>
                             <h4 className="text-sm font-bold text-avaa-dark">Personal Information</h4>
                         </div>
-                        <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
                             <div>
                                 <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Full Name</p>
-                                <p className="text-sm font-semibold text-avaa-dark mt-0.5">{data.full_name}</p>
+                                <p className="text-sm font-semibold text-avaa-dark mt-0.5 [overflow-wrap:anywhere] break-words">{data.full_name}</p>
                             </div>
                             <div>
                                 <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Email</p>
-                                <p className="text-sm font-semibold text-avaa-dark mt-0.5">{data.email}</p>
+                                <p className="text-sm font-semibold text-avaa-dark mt-0.5 [overflow-wrap:anywhere] break-words">{data.email}</p>
                             </div>
                             <div>
                                 <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Phone Number</p>
-                                <p className="text-sm font-semibold text-avaa-dark mt-0.5">{data.phone || '—'}</p>
+                                <p className="text-sm font-semibold text-avaa-dark mt-0.5 [overflow-wrap:anywhere] break-words">{data.phone || '—'}</p>
                             </div>
                             <div>
                                 <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Location</p>
-                                <p className="text-sm font-semibold text-avaa-dark mt-0.5">{data.location || '—'}</p>
+                                <p className="text-sm font-semibold text-avaa-dark mt-0.5 [overflow-wrap:anywhere] break-words">{data.location || '—'}</p>
                             </div>
                             {data.linkedin_url && (
-                                <div>
+                                <div className="sm:col-span-2">
                                     <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">LinkedIn Url</p>
-                                    <p className="text-sm font-semibold text-avaa-dark mt-0.5">{data.linkedin_url}</p>
+                                    <p className="text-sm font-semibold text-avaa-dark mt-0.5 [overflow-wrap:anywhere] break-words">{data.linkedin_url}</p>
                                 </div>
                             )}
                             {data.portfolio_url && (
-                                <div>
+                                <div className="sm:col-span-2">
                                     <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Portfolio Link</p>
-                                    <p className="text-sm font-semibold text-avaa-dark mt-0.5">{data.portfolio_url}</p>
+                                    <p className="text-sm font-semibold text-avaa-dark mt-0.5 [overflow-wrap:anywhere] break-words">{data.portfolio_url}</p>
                                 </div>
                             )}
                         </div>
@@ -575,18 +581,18 @@ export default function ApplyJob({ job, prefill, draftId }: Props) {
                             <span className="w-6 h-6 rounded-lg bg-avaa-primary-light text-avaa-teal flex items-center justify-center text-xs font-bold">2</span>
                             <h4 className="text-sm font-bold text-avaa-dark">Professional Experience</h4>
                         </div>
-                        <div className="grid grid-cols-2 gap-x-8 gap-y-3">
-                            <div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 min-w-0">
+                            <div className="min-w-0">
                                 <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Current Job Title</p>
-                                <p className="text-sm font-semibold text-avaa-dark mt-0.5">{data.current_job_title || '—'}</p>
+                                <p className="text-sm font-semibold text-avaa-dark mt-0.5 whitespace-normal break-all max-w-full">{data.current_job_title || '—'}</p>
                             </div>
-                            <div>
+                            <div className="min-w-0">
                                 <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Company</p>
-                                <p className="text-sm font-semibold text-avaa-dark mt-0.5">{data.current_company || '—'}</p>
+                                <p className="text-sm font-semibold text-avaa-dark mt-0.5 whitespace-normal break-all max-w-full">{data.current_company || '—'}</p>
                             </div>
                             <div className="col-span-2">
                                 <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Years of Experience</p>
-                                <p className="text-sm font-semibold text-avaa-dark mt-0.5">{data.years_of_experience || '—'}</p>
+                                <p className="text-sm font-semibold text-avaa-dark mt-0.5 [overflow-wrap:anywhere] break-words">{data.years_of_experience || '—'}</p>
                             </div>
                         </div>
 

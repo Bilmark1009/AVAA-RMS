@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Employer\DashboardController as EmployerDashboardController;
 use App\Http\Controllers\Employer\JobListingController;
+use App\Http\Controllers\Employer\JobCollaboratorController;
 use App\Http\Controllers\Employer\InterviewController;
 use App\Http\Controllers\Employer\EmployeeController;
 use App\Http\Controllers\Employer\BlockedUsersController as EmployerBlockedUsersController;
@@ -123,6 +124,10 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         Route::delete('/{id}', [NotificationController::class, 'destroy'])->name('destroy');
     });
 
+    // Shared resume file endpoint (job seeker, employer, admin)
+    Route::get('/applications/{application}/resume', [JobApplicationController::class, 'resume'])
+        ->name('applications.resume');
+
     // ── Settings (shared across all roles) ───────────────────────────────────
     Route::prefix('settings')->name('settings.')->group(function () {
 
@@ -172,22 +177,45 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         Route::patch('/settings/company', [EmployerProfileController::class, 'updateCompany'])->name('settings.company.update');
         Route::post('/profile/avatar', [EmployerProfileController::class, 'uploadAvatar'])->name('profile.avatar');
         Route::delete('/profile/avatar', [EmployerProfileController::class, 'removeAvatar'])->name('profile.avatar.remove');
-        
+
         // Blocked Users
         Route::get('/settings/blocked-users', [EmployerBlockedUsersController::class, 'index'])->name('settings.blocked-users');
         Route::post('/settings/blocked-users/block', [EmployerBlockedUsersController::class, 'block'])->name('settings.blocked-users.block');
         Route::delete('/settings/blocked-users/unblock', [EmployerBlockedUsersController::class, 'unblock'])->name('settings.blocked-users.unblock');
         Route::get('/settings/blocked-users/search', [EmployerBlockedUsersController::class, 'searchUsers'])->name('settings.blocked-users.search');
 
+        // ── Job Listings ──────────────────────────────────────────────────
         Route::get('/jobs', [JobListingController::class, 'index'])->name('jobs.index');
+        Route::get('/jobs/create', [JobListingController::class, 'create'])->name('jobs.create');
         Route::post('/jobs', [JobListingController::class, 'store'])->name('jobs.store');
+
+        // ⚠️  Invitations — static sub-paths must come BEFORE /{job} wildcard
+        Route::get('/jobs/invitations', [JobCollaboratorController::class, 'myInvitations'])->name('jobs.invitations');
+        Route::post('/jobs/invitations/{collaborator}/accept', [JobCollaboratorController::class, 'accept'])->name('jobs.invitations.accept');
+        Route::post('/jobs/invitations/{collaborator}/decline', [JobCollaboratorController::class, 'decline'])->name('jobs.invitations.decline');
+
+        // ⚠️  Static sub-paths (create, etc.) must come BEFORE /{job} wildcard
+        Route::get('/jobs/{job}', [JobListingController::class, 'show'])->name('jobs.show');
+        Route::get('/jobs/{job}/edit', [JobListingController::class, 'edit'])->name('jobs.edit');
         Route::put('/jobs/{job}', [JobListingController::class, 'update'])->name('jobs.update');
         Route::delete('/jobs/{job}', [JobListingController::class, 'destroy'])->name('jobs.destroy');
         Route::patch('/jobs/{job}/status', [JobListingController::class, 'updateStatus'])->name('jobs.status');
+
+        // Duplicate & Repost
+        Route::post('/jobs/{job}/duplicate', [JobListingController::class, 'duplicate'])->name('jobs.duplicate');
+        Route::post('/jobs/{job}/repost', [JobListingController::class, 'repost'])->name('jobs.repost');
+
+        // Collaborators
+        Route::get('/jobs/{job}/collaborators/search', [JobCollaboratorController::class, 'search'])->name('jobs.collaborators.search');
+        Route::post('/jobs/{job}/collaborators', [JobCollaboratorController::class, 'invite'])->name('jobs.collaborators.invite');
+        Route::delete('/jobs/{job}/collaborators/{collaborator}', [JobCollaboratorController::class, 'remove'])->name('jobs.collaborators.remove');
+
+        // Applications
         Route::get('/jobs/{job}/applications', [JobListingController::class, 'applications'])->name('jobs.applications');
         Route::patch('/jobs/{job}/applications/{application}', [JobListingController::class, 'updateApplicationStatus'])->name('jobs.applications.status');
         Route::post('/jobs/{job}/applications/{application}/reject', [JobListingController::class, 'rejectApplication'])->name('jobs.applications.reject');
         Route::post('/jobs/{job}/applications/{application}/approve', [JobListingController::class, 'approveApplication'])->name('jobs.applications.approve');
+        // ─────────────────────────────────────────────────────────────────
 
         Route::get('/interviews', [InterviewController::class, 'index'])->name('interviews.index');
         Route::put('/interviews/{interview}', [InterviewController::class, 'update'])->name('interviews.update');
@@ -206,7 +234,7 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         Route::get('/profile', [JobSeekerProfileController::class, 'show'])->name('profile.show');
         Route::get('/profile/edit', [JobSeekerProfileController::class, 'edit'])->name('profile.edit');
         Route::match(['POST', 'PATCH'], '/profile', [JobSeekerProfileController::class, 'update'])->name('profile.update');
-        
+
         // Blocked Users
         Route::get('/settings/blocked-users', [JobSeekerBlockedUsersController::class, 'index'])->name('settings.blocked-users');
         Route::post('/settings/blocked-users/block', [JobSeekerBlockedUsersController::class, 'block'])->name('settings.blocked-users.block');
@@ -234,9 +262,11 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         Route::post('/employers/{user}/verify', [EmployerVerificationController::class, 'verify'])->name('employers.verify');
         Route::post('/employers/{user}/revoke', [EmployerVerificationController::class, 'revoke'])->name('employers.revoke');
         Route::get('/verifications', [EmployerVerificationController::class, 'index'])->name('verifications');
-        
+
         // Report Management
         Route::get('/reports', [App\Http\Controllers\Admin\AdminReportController::class, 'index'])->name('reports.index');
+        Route::patch('/reports/{report}/approve', [App\Http\Controllers\Admin\AdminReportController::class, 'approve'])->name('reports.approve');
+        Route::patch('/reports/{report}/decline', [App\Http\Controllers\Admin\AdminReportController::class, 'decline'])->name('reports.decline');
 
         // User Management
         Route::get('/users', [UserManagementController::class, 'index'])->name('users.index');

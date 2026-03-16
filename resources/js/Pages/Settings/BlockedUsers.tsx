@@ -1,6 +1,7 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import SettingsLayout from '@/Layouts/SettingsLayout';
+import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
 import { useState, useEffect } from 'react';
 import { PageProps } from '@/types';
 
@@ -61,20 +62,14 @@ function Avatar({ src, initials, size = 'md' }: { src?: string | null | undefine
         lg: 'w-12 h-12 text-base'
     };
 
-    if (src) {
-        return (
-            <img
-                src={src}
-                alt="Avatar"
-                className={`${sizeClasses[size]} rounded-full object-cover border border-gray-200`}
-            />
-        );
-    }
-
     return (
-        <div className={`${sizeClasses[size]} rounded-full bg-avaa-primary text-white flex items-center justify-center font-semibold border border-gray-200`}>
-            {initials}
-        </div>
+        <ImageInitialsFallback
+            src={src}
+            alt="Avatar"
+            initials={initials}
+            className={`${sizeClasses[size]} rounded-full overflow-hidden border border-gray-200 bg-avaa-primary`}
+            textClassName="text-white font-semibold flex items-center justify-center"
+        />
     );
 }
 

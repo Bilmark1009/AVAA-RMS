@@ -263,46 +263,46 @@ export default function AdminVerifications({ auth, pendingEmployers }: Props) {
                                             {/* Key Verification Details */}
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                                                 {/* Contact Information */}
-                                                <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
-                                                    <p className="text-xs font-bold text-blue-900 uppercase tracking-wide mb-3">📞 Contact Details</p>
+                                                <div className="p-4 bg-avaa-primary-light rounded-xl border border-avaa-primary/15">
+                                                    <p className="text-xs font-bold text-avaa-dark uppercase tracking-wide mb-3">Contact Details</p>
                                                     <div className="space-y-2.5">
                                                         <div>
-                                                            <p className="text-[10px] font-semibold text-blue-700 uppercase tracking-wide">Contact Person</p>
-                                                            <p className="text-sm text-blue-900 font-medium">{emp.name}</p>
+                                                            <p className="text-[10px] font-semibold text-avaa-muted uppercase tracking-wide">Contact Person</p>
+                                                            <p className="text-sm text-avaa-dark font-medium">{emp.name}</p>
                                                         </div>
                                                         <div>
-                                                            <p className="text-[10px] font-semibold text-blue-700 uppercase tracking-wide flex items-center gap-1">
+                                                            <p className="text-[10px] font-semibold text-avaa-muted uppercase tracking-wide flex items-center gap-1">
                                                                 <IcoMail /> Email
                                                             </p>
-                                                            <p className="text-sm text-blue-900">{emp.email}</p>
+                                                            <p className="text-sm text-avaa-dark break-words">{emp.email}</p>
                                                         </div>
                                                         {emp.profile?.phone && (
                                                             <div>
-                                                                <p className="text-[10px] font-semibold text-blue-700 uppercase tracking-wide flex items-center gap-1">
+                                                                <p className="text-[10px] font-semibold text-avaa-muted uppercase tracking-wide flex items-center gap-1">
                                                                     <IcoPhone /> Phone
                                                                 </p>
-                                                                <p className="text-sm text-blue-900 font-medium">{emp.profile.phone}</p>
+                                                                <p className="text-sm text-avaa-dark font-medium break-words">{emp.profile.phone}</p>
                                                             </div>
                                                         )}
                                                     </div>
                                                 </div>
 
                                                 {/* Company Information */}
-                                                <div className="p-4 bg-green-50 rounded-xl border border-green-100">
-                                                    <p className="text-xs font-bold text-green-900 uppercase tracking-wide mb-3">🏢 Company Info</p>
+                                                <div className="p-4 bg-white rounded-xl border border-gray-200">
+                                                    <p className="text-xs font-bold text-avaa-dark uppercase tracking-wide mb-3">Company Info</p>
                                                     <div className="space-y-2.5">
                                                         <div>
-                                                            <p className="text-[10px] font-semibold text-green-700 uppercase tracking-wide">Industry</p>
-                                                            <p className="text-sm text-green-900 font-medium">{emp.profile?.industry ?? '—'}</p>
+                                                            <p className="text-[10px] font-semibold text-avaa-muted uppercase tracking-wide">Industry</p>
+                                                            <p className="text-sm text-avaa-dark font-medium">{emp.profile?.industry ?? '—'}</p>
                                                         </div>
                                                         <div>
-                                                            <p className="text-[10px] font-semibold text-green-700 uppercase tracking-wide">Company Size</p>
-                                                            <p className="text-sm text-green-900">{emp.profile?.company_size ?? '—'}</p>
+                                                            <p className="text-[10px] font-semibold text-avaa-muted uppercase tracking-wide">Company Size</p>
+                                                            <p className="text-sm text-avaa-dark">{emp.profile?.company_size ?? '—'}</p>
                                                         </div>
                                                         {emp.profile?.year_established && (
                                                             <div>
-                                                                <p className="text-[10px] font-semibold text-green-700 uppercase tracking-wide">Year Established</p>
-                                                                <p className="text-sm text-green-900">{emp.profile.year_established}</p>
+                                                                <p className="text-[10px] font-semibold text-avaa-muted uppercase tracking-wide">Year Established</p>
+                                                                <p className="text-sm text-avaa-dark">{emp.profile.year_established}</p>
                                                             </div>
                                                         )}
                                                     </div>
@@ -313,35 +313,35 @@ export default function AdminVerifications({ auth, pendingEmployers }: Props) {
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                                                 {/* Address */}
                                                 {(emp.profile?.address || emp.profile?.city) && (
-                                                    <div className="p-4 bg-purple-50 rounded-xl border border-purple-100">
-                                                        <p className="text-xs font-bold text-purple-900 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+                                                    <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
+                                                        <p className="text-xs font-bold text-avaa-dark uppercase tracking-wide mb-3 flex items-center gap-1.5">
                                                             <IcoMapPin /> Address
                                                         </p>
-                                                        <div className="space-y-1 text-sm text-purple-900">
+                                                        <div className="space-y-1 text-sm text-avaa-text">
                                                             {emp.profile.address && <p>{emp.profile.address}</p>}
                                                             <p>
                                                                 {[emp.profile.city, emp.profile.state, emp.profile.postal_code].filter(Boolean).join(', ')}
                                                             </p>
-                                                            {emp.profile.country && <p className="font-medium">{emp.profile.country}</p>}
+                                                            {emp.profile.country && <p className="font-medium text-avaa-dark">{emp.profile.country}</p>}
                                                         </div>
                                                     </div>
                                                 )}
 
                                                 {/* Registration Details */}
                                                 {(emp.profile?.registration_number || emp.profile?.tax_id) && (
-                                                    <div className="p-4 bg-amber-50 rounded-xl border border-amber-100">
-                                                        <p className="text-xs font-bold text-amber-900 uppercase tracking-wide mb-3">🏛️ Legal Registration</p>
+                                                    <div className="p-4 bg-avaa-primary-light rounded-xl border border-avaa-primary/15">
+                                                        <p className="text-xs font-bold text-avaa-dark uppercase tracking-wide mb-3">Legal Registration</p>
                                                         <div className="space-y-2.5">
                                                             {emp.profile.registration_number && (
                                                                 <div>
-                                                                    <p className="text-[10px] font-semibold text-amber-700 uppercase tracking-wide">Registration Number</p>
-                                                                    <p className="text-sm text-amber-900 font-mono font-medium">{emp.profile.registration_number}</p>
+                                                                    <p className="text-[10px] font-semibold text-avaa-muted uppercase tracking-wide">Registration Number</p>
+                                                                    <p className="text-sm text-avaa-dark font-mono font-medium break-words">{emp.profile.registration_number}</p>
                                                                 </div>
                                                             )}
                                                             {emp.profile.tax_id && (
                                                                 <div>
-                                                                    <p className="text-[10px] font-semibold text-amber-700 uppercase tracking-wide">Tax ID / FEIN</p>
-                                                                    <p className="text-sm text-amber-900 font-mono font-medium">{emp.profile.tax_id}</p>
+                                                                    <p className="text-[10px] font-semibold text-avaa-muted uppercase tracking-wide">Tax ID / FEIN</p>
+                                                                    <p className="text-sm text-avaa-dark font-mono font-medium break-words">{emp.profile.tax_id}</p>
                                                                 </div>
                                                             )}
                                                         </div>
@@ -363,30 +363,30 @@ export default function AdminVerifications({ auth, pendingEmployers }: Props) {
                                                         )}
                                                         {emp.profile.linkedin_url && (
                                                             <a href={emp.profile.linkedin_url} target="_blank" rel="noreferrer"
-                                                                className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors text-sm">
+                                                                className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg hover:border-avaa-teal hover:bg-avaa-primary-light transition-colors text-sm">
                                                                 <IcoLinkedin />
-                                                                <span className="text-blue-600 font-medium">LinkedIn</span>
+                                                                <span className="text-avaa-teal font-medium">LinkedIn</span>
                                                             </a>
                                                         )}
                                                         {emp.profile.facebook_url && (
                                                             <a href={emp.profile.facebook_url} target="_blank" rel="noreferrer"
-                                                                className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg hover:border-blue-700 hover:bg-blue-50 transition-colors text-sm">
+                                                                className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg hover:border-avaa-teal hover:bg-avaa-primary-light transition-colors text-sm">
                                                                 <IcoFacebook />
-                                                                <span className="text-blue-700 font-medium">Facebook</span>
+                                                                <span className="text-avaa-teal font-medium">Facebook</span>
                                                             </a>
                                                         )}
                                                         {emp.profile.twitter_url && (
                                                             <a href={emp.profile.twitter_url} target="_blank" rel="noreferrer"
-                                                                className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg hover:border-sky-500 hover:bg-sky-50 transition-colors text-sm">
+                                                                className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg hover:border-avaa-teal hover:bg-avaa-primary-light transition-colors text-sm">
                                                                 <IcoTwitter />
-                                                                <span className="text-sky-500 font-medium">Twitter</span>
+                                                                <span className="text-avaa-teal font-medium">Twitter</span>
                                                             </a>
                                                         )}
                                                         {emp.profile.instagram_url && (
                                                             <a href={emp.profile.instagram_url} target="_blank" rel="noreferrer"
-                                                                className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg hover:border-pink-500 hover:bg-pink-50 transition-colors text-sm">
+                                                                className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg hover:border-avaa-teal hover:bg-avaa-primary-light transition-colors text-sm">
                                                                 <IcoInstagram />
-                                                                <span className="text-pink-600 font-medium">Instagram</span>
+                                                                <span className="text-avaa-teal font-medium">Instagram</span>
                                                             </a>
                                                         )}
                                                     </div>

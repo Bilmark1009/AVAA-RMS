@@ -5,7 +5,9 @@ namespace App\Http\Controllers\JobSeeker;
 use App\Http\Controllers\Controller;
 use App\Models\UserDocument;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -16,12 +18,25 @@ class ProfileController extends Controller
      */
     public function show(Request $request): Response
     {
-        $user = $request->user()->load(['jobSeekerProfile', 'workExperiences']);
+        $user = $request->user()->load(['jobSeekerProfile', 'workExperiences', 'documents']);
+
+        $documents = $user->documents
+            ->sortByDesc('created_at')
+            ->values()
+            ->map(fn(UserDocument $doc) => [
+                'id' => $doc->id,
+                'file_name' => $doc->file_name,
+                'file_type' => strtoupper($doc->file_type),
+                'file_size_kb' => (int) round($doc->file_size / 1024),
+                'document_type' => $doc->document_type,
+                'uploaded_at' => optional($doc->created_at)?->toISOString(),
+            ]);
 
         return Inertia::render('JobSeeker/Profile', [
             'user' => $user,
             'profile' => $user->jobSeekerProfile,
             'experiences' => $user->workExperiences,
+            'documents' => $documents,
         ]);
     }
 
@@ -59,7 +74,8 @@ class ProfileController extends Controller
         $resumePath = null;
         if ($request->hasFile('resume')) {
             $file = $request->file('resume');
-            $resumePath = $file->store("resumes/{$user->id}", 'local');
+            $resumePath = $this->storeWithOriginalName($file, "resumes/{$user->id}", 'public', 'resume');
+            $resumePath = '/storage/' . $resumePath;
 
             // Also create a user_documents entry so it shows in Settings > Documents
             $user->documents()->create([
@@ -110,6 +126,9 @@ class ProfileController extends Controller
             'field_of_study' => 'nullable|string|max:255',
             'institution_name' => 'nullable|string|max:255',
             'certifications' => 'nullable|array',
+            'certifications.*' => 'nullable|string|max:2048',
+            'certification_files' => 'nullable|array',
+            'certification_files.*' => 'file|mimes:pdf,doc,docx,jpg,jpeg,png,webp|max:10240',
             'portfolio_url' => 'nullable|string|max:255',
             'linkedin_url' => 'nullable|string|max:255',
             'employment_type_preference' => 'nullable|array',
@@ -133,10 +152,24 @@ class ProfileController extends Controller
         // Keep existing resume unless a new one is uploaded
         $resumePath = $profile->resume_path;
         if ($request->hasFile('resume')) {
-            $resumePath = $request->file('resume')->store("resumes/{$user->id}", 'local');
+            $resumePath = $this->storeWithOriginalName($request->file('resume'), "resumes/{$user->id}", 'public', 'resume');
+            $resumePath = '/storage/' . $resumePath;
         }
 
-        $completeness = $this->calculateCompleteness($request, $resumePath);
+        $certifications = collect($request->input('certifications', $profile->certifications ?? []))
+            ->filter(fn($value) => is_string($value) && trim($value) !== '')
+            ->values();
+
+        foreach ((array) $request->file('certification_files', []) as $file) {
+            if (!($file instanceof UploadedFile)) {
+                continue;
+            }
+
+            $storedPath = $this->storeWithOriginalName($file, "certifications/{$user->id}", 'public', 'certification');
+            $certifications->push('/storage/' . $storedPath);
+        }
+
+        $completeness = $this->calculateCompleteness($request, $resumePath, $certifications->isNotEmpty());
 
         $profile->update([
             'about' => $request->about,
@@ -152,7 +185,7 @@ class ProfileController extends Controller
             'field_of_study' => $request->field_of_study,
             'institution_name' => $request->institution_name,
             'skills' => $request->skills ?? [],
-            'certifications' => $request->certifications ?? [],
+            'certifications' => $certifications->all(),
             'resume_path' => $resumePath,
             'portfolio_url' => $request->portfolio_url,
             'linkedin_url' => $request->linkedin_url,
@@ -172,7 +205,7 @@ class ProfileController extends Controller
     /**
      * Shared completeness calculation — 40% base + up to 60% from optional fields.
      */
-    private function calculateCompleteness(Request $request, ?string $resumePath): int
+    private function calculateCompleteness(Request $request, ?string $resumePath, bool $hasCertifications = false): int
     {
         $checks = [
             !empty($request->skills),
@@ -182,7 +215,7 @@ class ProfileController extends Controller
             !empty($request->current_company),
             !empty($request->field_of_study),
             !empty($request->institution_name),
-            !empty($request->certifications),
+            $hasCertifications || !empty($request->certifications),
             !empty($request->portfolio_url),
             !empty($request->linkedin_url),
             !empty($request->desired_industries),
@@ -191,5 +224,25 @@ class ProfileController extends Controller
 
         $filled = collect($checks)->filter(fn($v) => $v)->count();
         return (int) round(40 + ($filled / count($checks)) * 60);
+    }
+
+    private function storeWithOriginalName(UploadedFile $file, string $directory, string $disk, string $fallbackBase): string
+    {
+        $originalBase = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+        $safeBase = preg_replace('/[^A-Za-z0-9_\- ]+/', '', $originalBase) ?: $fallbackBase;
+        $safeBase = trim(preg_replace('/\s+/', '_', $safeBase), '_') ?: $fallbackBase;
+
+        $extension = strtolower($file->getClientOriginalExtension());
+        $candidate = $extension !== '' ? "{$safeBase}.{$extension}" : $safeBase;
+        $counter = 1;
+
+        while (Storage::disk($disk)->exists("{$directory}/{$candidate}")) {
+            $candidate = $extension !== ''
+                ? "{$safeBase}_{$counter}.{$extension}"
+                : "{$safeBase}_{$counter}";
+            $counter++;
+        }
+
+        return $file->storeAs($directory, $candidate, $disk);
     }
 }

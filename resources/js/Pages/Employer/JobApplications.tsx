@@ -1,5 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
+import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
 import { useState, useEffect, useRef } from 'react';
 
 /* ── Types ── */
@@ -59,9 +60,10 @@ function timeAgo(dateStr: string) {
 }
 
 const STATUS_CFG: Record<string, { dot: string; text: string; bg: string; label: string }> = {
-    pending: { dot: 'bg-amber-400', text: 'text-amber-700', bg: 'bg-amber-50', label: 'Pending' },
-    approved: { dot: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50', label: 'Approved' },
-    rejected: { dot: 'bg-red-400', text: 'text-red-700', bg: 'bg-red-50', label: 'Rejected' },
+    pending:   { dot: 'bg-amber-400',  text: 'text-amber-700',  bg: 'bg-amber-50',  label: 'Pending' },
+    approved:  { dot: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50', label: 'Approved' },
+    rejected:  { dot: 'bg-red-400',    text: 'text-red-700',    bg: 'bg-red-50',    label: 'Rejected' },
+    withdrawn: { dot: 'bg-slate-400',  text: 'text-slate-600',  bg: 'bg-slate-50',  label: 'Withdrawn' },
 };
 
 const INTERVIEW_TYPES = ['Online Interview', 'In-Person', 'Phone'];
@@ -132,13 +134,13 @@ function RejectModal({ app, jobId, onClose }: { app: Application; jobId: number;
 
                 {/* Avatar + Name */}
                 <div className="px-6 -mt-8 flex items-end gap-3 flex-shrink-0 relative z-10 mb-3">
-                    {app.user.avatar ? (
-                        <img src={app.user.avatar} alt={fullName} className="w-16 h-16 rounded-2xl ring-4 ring-white object-cover shadow-md" />
-                    ) : (
-                        <div className={`w-16 h-16 rounded-2xl ring-4 ring-white ${avatarColor(app.user.id)} flex items-center justify-center text-white text-xl font-bold shadow-md`}>
-                            {getInitials(app.user.first_name, app.user.last_name)}
-                        </div>
-                    )}
+                    <ImageInitialsFallback
+                        src={app.user.avatar}
+                        alt={fullName}
+                        initials={getInitials(app.user.first_name, app.user.last_name)}
+                        className={`w-16 h-16 rounded-2xl ring-4 ring-white shadow-md overflow-hidden ${app.user.avatar ? 'bg-white' : avatarColor(app.user.id)}`}
+                        textClassName="text-white text-xl font-bold flex items-center justify-center"
+                    />
                     <div className="pb-1">
                         <h2 className="text-lg font-bold text-avaa-dark">{fullName}</h2>
                         <p className="text-sm text-gray-500">{app.user.email}</p>
@@ -241,13 +243,13 @@ function ApproveModal({ app, jobId, employerAddress, onClose }: {
 
                 {/* Avatar + Name */}
                 <div className="px-6 -mt-8 flex items-end gap-3 flex-shrink-0 relative z-10 mb-3">
-                    {app.user.avatar ? (
-                        <img src={app.user.avatar} alt={fullName} className="w-16 h-16 rounded-2xl ring-4 ring-white object-cover shadow-md" />
-                    ) : (
-                        <div className={`w-16 h-16 rounded-2xl ring-4 ring-white ${avatarColor(app.user.id)} flex items-center justify-center text-white text-xl font-bold shadow-md`}>
-                            {getInitials(app.user.first_name, app.user.last_name)}
-                        </div>
-                    )}
+                    <ImageInitialsFallback
+                        src={app.user.avatar}
+                        alt={fullName}
+                        initials={getInitials(app.user.first_name, app.user.last_name)}
+                        className={`w-16 h-16 rounded-2xl ring-4 ring-white shadow-md overflow-hidden ${app.user.avatar ? 'bg-white' : avatarColor(app.user.id)}`}
+                        textClassName="text-white text-xl font-bold flex items-center justify-center"
+                    />
                     <div className="pb-1">
                         <h2 className="text-lg font-bold text-avaa-dark">{fullName}</h2>
                         <p className="text-sm text-gray-500">{app.user.email}</p>
@@ -389,6 +391,17 @@ function AppStatusBadge({ status, jobId, appId, onReject, onApprove }: {
     );
 }
 
+function AppStatusChip({ status }: { status: string }) {
+    const cfg = STATUS_CFG[status] ?? STATUS_CFG.pending;
+
+    return (
+        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${cfg.bg} ${cfg.text}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+            {cfg.label}
+        </span>
+    );
+}
+
 /* ══════════════════════════════════════════════
    APPLICANT DETAIL MODAL
 ══════════════════════════════════════════════ */
@@ -409,6 +422,7 @@ function ApplicantModal({ app, jobId, onClose, onReject, onApprove }: {
     const initials = getInitials(u.first_name, u.last_name);
     const resumePath = (app.resume_path) ?? (u.profile?.resume_path) ?? (ad?.existing_resume);
     const resumeName = resumePath ? resumePath.split('/').pop() : null;
+    const resumeViewUrl = resumePath ? route('applications.resume', { application: app.id }) : null;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -422,13 +436,13 @@ function ApplicantModal({ app, jobId, onClose, onReject, onApprove }: {
                 </div>
 
                 <div className="px-6 -mt-10 flex items-end gap-4 flex-shrink-0 relative z-10 mb-2">
-                    {u.avatar ? (
-                        <img src={u.avatar} alt={fullName} className="w-20 h-20 rounded-2xl ring-4 ring-white object-cover shadow-md" />
-                    ) : (
-                        <div className={`w-20 h-20 rounded-2xl ring-4 ring-white ${avatarColor(u.id)} flex items-center justify-center text-white text-2xl font-bold shadow-md`}>
-                            {initials}
-                        </div>
-                    )}
+                    <ImageInitialsFallback
+                        src={u.avatar}
+                        alt={fullName}
+                        initials={initials}
+                        className={`w-20 h-20 rounded-2xl ring-4 ring-white shadow-md overflow-hidden ${u.avatar ? 'bg-white' : avatarColor(u.id)}`}
+                        textClassName="text-white text-2xl font-bold flex items-center justify-center"
+                    />
                     <div className="pb-1">
                         <h2 className="text-lg font-bold text-avaa-dark">{fullName}</h2>
                         <AppStatusBadge status={app.status} jobId={jobId} appId={app.id} onReject={onReject} onApprove={onApprove} />
@@ -490,7 +504,7 @@ function ApplicantModal({ app, jobId, onClose, onReject, onApprove }: {
                             <div className="flex items-center gap-3 border border-gray-200 rounded-xl p-3">
                                 <div className="w-9 h-9 rounded-xl bg-avaa-primary-light text-avaa-teal flex items-center justify-center flex-shrink-0"><IcoFile /></div>
                                 <div className="flex-1 min-w-0"><p className="text-sm font-medium text-avaa-dark truncate">{(resumeName) ?? 'Resume'}</p></div>
-                                <a href={resumePath} target="_blank" rel="noreferrer" className="text-gray-400 hover:text-avaa-teal transition-colors p-1"><IcoEye /></a>
+                                <a href={resumeViewUrl ?? '#'} target="_blank" rel="noreferrer" className="text-gray-400 hover:text-avaa-teal transition-colors p-1"><IcoEye /></a>
                             </div>
                         ) : (
                             <p className="text-sm text-gray-400 italic">No resume attached.</p>
@@ -542,6 +556,8 @@ function OptionsMenu({ app, jobId, onView, onReject, onApprove }: {
         setOpen(o => !o);
     };
 
+    const isWithdrawn = app.status === 'withdrawn';
+
     return (
         <>
             <button ref={btnRef} onClick={handleOpen} className="p-1.5 rounded-lg text-gray-400 hover:text-avaa-dark hover:bg-gray-100 transition-colors"><IcoDots /></button>
@@ -549,13 +565,13 @@ function OptionsMenu({ app, jobId, onView, onReject, onApprove }: {
                 <div id={`app-menu-${app.id}`} style={{ position: 'fixed', top: menuPos.top, right: menuPos.right }}
                     className="z-[9999] bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden min-w-[150px]">
                     <button onClick={() => { onView(); setOpen(false); }} className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"><IcoEye /> View</button>
-                    <div className="border-t border-gray-100" />
-                    {app.status !== 'approved' && (
+                    {!isWithdrawn && <div className="border-t border-gray-100" />}
+                    {!isWithdrawn && app.status !== 'approved' && (
                         <button onClick={() => { onApprove(); setOpen(false); }} className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-emerald-700 hover:bg-emerald-50 transition-colors">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />Approve
                         </button>
                     )}
-                    {app.status !== 'rejected' && (
+                    {!isWithdrawn && app.status !== 'rejected' && (
                         <button onClick={() => { onReject(); setOpen(false); }} className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors">
                             <span className="w-1.5 h-1.5 rounded-full bg-red-400" />Reject
                         </button>
@@ -573,7 +589,7 @@ export default function JobApplications({ job, applications, employerAddress }: 
     const [viewApp, setViewApp] = useState<Application | null>(null);
     const [rejectApp, setRejectApp] = useState<Application | null>(null);
     const [approveApp, setApproveApp] = useState<Application | null>(null);
-    const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+    const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'withdrawn'>('all');
     const [search, setSearch] = useState('');
 
     const filtered = applications.filter(a => {
@@ -583,16 +599,20 @@ export default function JobApplications({ job, applications, employerAddress }: 
         return matchFilter && matchSearch;
     });
 
+    // Active applications (exclude withdrawn) for the main count display
+    const activeCount = applications.filter(a => a.status !== 'withdrawn').length;
+
     const counts = {
         all: applications.length,
         pending: applications.filter(a => a.status === 'pending').length,
         approved: applications.filter(a => a.status === 'approved').length,
         rejected: applications.filter(a => a.status === 'rejected').length,
+        withdrawn: applications.filter(a => a.status === 'withdrawn').length,
     };
 
     return (
         <AppLayout pageTitle="Applicants"
-            pageSubtitle={`${applications.length} Applicant${applications.length !== 1 ? 's' : ''}`}
+            pageSubtitle={`${activeCount} Applicant${activeCount !== 1 ? 's' : ''}`}
             activeNav="Manage Jobs">
             <Head title={`Applicants - ${job.title}`} />
 
@@ -647,9 +667,13 @@ export default function JobApplications({ job, applications, employerAddress }: 
             {/* Toolbar */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
                 <div className="inline-flex items-center bg-white border border-gray-200 rounded-xl p-1 gap-0.5 shadow-sm flex-wrap">
-                    {(['all', 'pending', 'approved', 'rejected'] as const).map(tab => (
+                    {(['all', 'pending', 'approved', 'rejected', 'withdrawn'] as const).map(tab => (
                         <button key={tab} onClick={() => setFilter(tab)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all ${filter === tab ? 'bg-avaa-dark text-white shadow-sm' : 'text-gray-500 hover:text-avaa-dark hover:bg-gray-50'}`}>
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all ${
+                                filter === tab
+                                    ? tab === 'withdrawn' ? 'bg-slate-500 text-white shadow-sm' : 'bg-avaa-dark text-white shadow-sm'
+                                    : 'text-gray-500 hover:text-avaa-dark hover:bg-gray-50'
+                            }`}>
                             {tab}
                             <span className={`ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${filter === tab ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'}`}>{counts[tab]}</span>
                         </button>
@@ -690,17 +714,21 @@ export default function JobApplications({ job, applications, employerAddress }: 
                                 const initials = getInitials(app.user.first_name, app.user.last_name);
                                 const subTitle = (app.application_data?.current_job_title) ?? (app.user.profile?.professional_title) ?? (app.user.profile?.current_job_title) ?? '';
                                 const resumePath = (app.resume_path) ?? (app.user.profile?.resume_path);
+                                const resumeUrl = resumePath ? route('applications.resume', { application: app.id }) : null;
+                                const resumeDownloadUrl = resumePath ? `${route('applications.resume', { application: app.id })}?download=1` : null;
                                 const resumeName = resumePath ? resumePath.split('/').pop() : null;
 
                                 return (
                                     <tr key={app.id} className="hover:bg-gray-50/60 transition-colors">
                                         <td className="px-5 py-4">
                                             <div className="flex items-center gap-3">
-                                                {app.user.avatar ? (
-                                                    <img src={app.user.avatar} alt={fullName} className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
-                                                ) : (
-                                                    <div className={`w-9 h-9 rounded-full ${avatarColor(app.user.id)} flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>{initials}</div>
-                                                )}
+                                                <ImageInitialsFallback
+                                                    src={app.user.avatar}
+                                                    alt={fullName}
+                                                    initials={initials}
+                                                    className={`w-9 h-9 rounded-full flex-shrink-0 overflow-hidden ${app.user.avatar ? 'bg-white' : avatarColor(app.user.id)}`}
+                                                    textClassName="text-white text-xs font-bold flex items-center justify-center"
+                                                />
                                                 <div className="min-w-0">
                                                     <button onClick={() => setViewApp(app)} className="text-base font-semibold text-avaa-dark hover:text-avaa-teal transition-colors truncate block text-left">{fullName}</button>
                                                     {subTitle && <p className="text-sm text-avaa-muted truncate">{subTitle}</p>}
@@ -708,18 +736,30 @@ export default function JobApplications({ job, applications, employerAddress }: 
                                             </div>
                                         </td>
                                         <td className="px-4 py-4">
-                                            {resumePath ? (
-                                                <a href={resumePath} target="_blank" rel="noreferrer" className="text-sm text-avaa-teal hover:underline truncate block max-w-[180px]">{resumeName}</a>
+                                            {resumeUrl ? (
+                                                <div className="max-w-[220px]">
+                                                    <a href={resumeUrl} target="_blank" rel="noreferrer" className="text-sm text-avaa-teal hover:underline truncate block">{resumeName}</a>
+                                                    <div className="mt-1 flex items-center gap-3">
+                                                        <a href={resumeUrl} target="_blank" rel="noreferrer" className="text-xs font-medium text-avaa-dark hover:text-avaa-teal hover:underline">View</a>
+                                                        <a href={resumeDownloadUrl ?? '#'} className="text-xs font-medium text-avaa-dark hover:text-avaa-teal hover:underline">Download</a>
+                                                    </div>
+                                                </div>
                                             ) : <span className="text-sm text-gray-400 italic">—</span>}
                                         </td>
                                         <td className="px-4 py-4"><span className="text-base text-gray-600">{app.created_at}</span></td>
                                         <td className="px-4 py-4">
-                                            <AppStatusBadge status={app.status} jobId={job.id} appId={app.id}
-                                                onReject={() => setRejectApp(app)} onApprove={() => setApproveApp(app)} />
+                                            <AppStatusChip status={app.status} />
                                         </td>
                                         <td className="px-4 py-4 text-right">
-                                            <OptionsMenu app={app} jobId={job.id} onView={() => setViewApp(app)}
-                                                onReject={() => setRejectApp(app)} onApprove={() => setApproveApp(app)} />
+                                            {app.status === 'withdrawn' ? (
+                                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-50 text-slate-500 border border-slate-200">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                                                    Withdrawn by applicant
+                                                </span>
+                                            ) : (
+                                                <OptionsMenu app={app} jobId={job.id} onView={() => setViewApp(app)}
+                                                    onReject={() => setRejectApp(app)} onApprove={() => setApproveApp(app)} />
+                                            )}
                                         </td>
                                     </tr>
                                 );

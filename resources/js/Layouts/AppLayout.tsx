@@ -1,6 +1,7 @@
 import { Link, usePage, router } from '@inertiajs/react';
 import { useState, ReactNode, useRef, useEffect } from 'react';
 import NotificationDropdown from '@/Components/NotificationDropdown';
+import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
 import { PageProps } from '@/types';
 import { usePreventAuthBack } from '@/hooks/usePreventAuthBack';
 
@@ -78,6 +79,14 @@ const IcoInterview = () => (
 const IcoShield = () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    </svg>
+);
+const IcoFlag = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        {/* The Flagpole */}
+        <line x1="4" y1="22" x2="4" y2="4" />
+        {/* The Flag Banner */}
+        <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V5s-1 1-4 1-5-2-8-2-4 1-4 1z" />
     </svg>
 );
 const IcoJobsAdmin = () => (
@@ -166,7 +175,7 @@ function getAdminSideNav(): NavItem[] {
         { label: 'Users', href: safeRoute('admin.users.index'), icon: <IcoUsersAdmin /> },
         { label: 'Jobs', href: safeRoute('admin.jobs.index'), icon: <IcoJobsAdmin /> },
         { label: 'Verifications', href: safeRoute('admin.verifications'), icon: <IcoShield /> },
-        { label: 'Report View', href: route('admin.reports.index'), icon: <IcoShield /> },
+        { label: 'Report View', href: route('admin.reports.index'), icon: <IcoFlag /> },
         { label: 'Settings', href: safeRoute('admin.settings'), icon: <IcoSettings /> },
     ];
 }
@@ -215,20 +224,26 @@ function AvatarDropdown({ initials, avatar, name, email, role }: AvatarDropdownP
                            ring-2 ring-avaa-primary/30 hover:ring-avaa-primary/60
                            overflow-hidden flex-shrink-0"
             >
-                {avatar
-                    ? <img src={avatar} alt={name} className="w-full h-full object-cover" />
-                    : initials
-                }
+                <ImageInitialsFallback
+                    src={avatar}
+                    alt={name}
+                    initials={initials}
+                    className="w-full h-full"
+                    textClassName="text-white text-sm font-bold"
+                />
             </button>
 
             {open && (
                 <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl border border-gray-200 shadow-lg shadow-black/5 z-50 overflow-hidden">
                     <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full bg-avaa-dark flex items-center justify-center text-white text-xs font-bold flex-shrink-0 overflow-hidden">
-                            {avatar
-                                ? <img src={avatar} alt={name} className="w-full h-full object-cover" />
-                                : initials
-                            }
+                            <ImageInitialsFallback
+                                src={avatar}
+                                alt={name}
+                                initials={initials}
+                                className="w-full h-full"
+                                textClassName="text-white text-xs font-bold"
+                            />
                         </div>
                         <div className="min-w-0">
                             <p className="text-sm font-semibold text-avaa-dark truncate">{name}</p>

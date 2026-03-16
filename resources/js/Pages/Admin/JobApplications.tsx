@@ -1,6 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
+import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
 
 /* ── Types ── */
 interface WorkExp {
@@ -142,7 +143,14 @@ function ApplicantProfile({ app, onClose }: { app: Application; onClose: () => v
     const location = [p?.city, p?.state, p?.country].filter(Boolean).join(', ');
     const skills = p?.skills ?? ad?.skills ?? [];
     const certs = p?.certifications ?? [];
+    const certificationLabel = (value: string) => value.split('/').pop() || value;
+    const certificationLink = (value: string) =>
+        value.startsWith('/storage/') || value.startsWith('http://') || value.startsWith('https://')
+            ? value
+            : null;
     const resumePath = app.resume_path ?? p?.resume_path ?? ad?.existing_resume;
+    const resumeViewUrl = resumePath ? route('applications.resume', { application: app.id }) : null;
+    const resumeDownloadUrl = resumePath ? `${route('applications.resume', { application: app.id })}?download=1` : null;
     const about = p?.about ?? ad?.cover_letter;
     const coverLetter = app.cover_letter;
     const cfg = STATUS_CFG[app.status] ?? STATUS_CFG.pending;
@@ -172,10 +180,13 @@ function ApplicantProfile({ app, onClose }: { app: Application; onClose: () => v
 
                 {/* Avatar + name */}
                 <div className="px-6 -mt-12 flex items-end gap-4 mb-4 flex-shrink-0 relative z-10">
-                    {u.avatar
-                        ? <img src={u.avatar} alt={fullName} className="w-24 h-24 rounded-2xl ring-4 ring-white object-cover shadow-lg" />
-                        : <div className={`w-24 h-24 rounded-2xl ring-4 ring-white ${avatarColor(u.id)} flex items-center justify-center text-white text-3xl font-bold shadow-lg`}>{getInitials(u.first_name, u.last_name)}</div>
-                    }
+                    <ImageInitialsFallback
+                        src={u.avatar}
+                        alt={fullName}
+                        initials={getInitials(u.first_name, u.last_name)}
+                        className={`w-24 h-24 rounded-2xl ring-4 ring-white shadow-lg overflow-hidden ${u.avatar ? 'bg-white' : avatarColor(u.id)}`}
+                        textClassName="text-white text-3xl font-bold flex items-center justify-center"
+                    />
                     <div className="pb-1 flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
                             <div>
@@ -294,7 +305,21 @@ function ApplicantProfile({ app, onClose }: { app: Application; onClose: () => v
                             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Certifications</h3>
                             <div className="flex flex-wrap gap-2">
                                 {certs.map(c => (
-                                    <span key={c} className="px-3 py-1 rounded-xl bg-gray-100 text-gray-600 text-xs font-medium">{c}</span>
+                                    certificationLink(c) ? (
+                                        <a
+                                            key={c}
+                                            href={certificationLink(c) ?? '#'}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="px-3 py-1 rounded-xl bg-gray-100 text-gray-600 text-xs font-medium hover:underline"
+                                        >
+                                            {certificationLabel(c)}
+                                        </a>
+                                    ) : (
+                                        <span key={c} className="px-3 py-1 rounded-xl bg-gray-100 text-gray-600 text-xs font-medium">
+                                            {certificationLabel(c)}
+                                        </span>
+                                    )
                                 ))}
                             </div>
                         </section>
@@ -311,10 +336,16 @@ function ApplicantProfile({ app, onClose }: { app: Application; onClose: () => v
                                 <div className="flex-1 min-w-0">
                                     <p className="text-sm font-medium text-gray-800 truncate">{resumePath.split('/').pop()}</p>
                                 </div>
-                                <a href={resumePath} target="_blank" rel="noreferrer"
-                                    className="flex items-center gap-1.5 text-xs text-[#3d9e9e] hover:text-[#347f7f] font-semibold transition-colors">
-                                    <IcoEye /> View
-                                </a>
+                                <div className="flex items-center gap-3">
+                                    <a href={resumeViewUrl ?? '#'} target="_blank" rel="noreferrer"
+                                        className="flex items-center gap-1.5 text-xs text-[#3d9e9e] hover:text-[#347f7f] font-semibold transition-colors">
+                                        <IcoEye /> View
+                                    </a>
+                                    <a href={resumeDownloadUrl ?? '#'}
+                                        className="text-xs text-[#3d9e9e] hover:text-[#347f7f] font-semibold transition-colors">
+                                        Download
+                                    </a>
+                                </div>
                             </div>
                         </section>
                     )}
@@ -442,10 +473,13 @@ export default function AdminJobApplications({ job, applications }: Props) {
                                     <button key={app.id} onClick={() => setViewApp(app)}
                                         className="w-full flex items-center gap-4 px-5 py-4 hover:bg-gray-50/60 transition-colors text-left">
                                         {/* Avatar */}
-                                        {app.user.avatar
-                                            ? <img src={app.user.avatar} alt={fullName} className="w-11 h-11 rounded-full object-cover flex-shrink-0" />
-                                            : <div className={`w-11 h-11 rounded-full ${avatarColor(app.user.id)} flex items-center justify-center text-white text-sm font-bold flex-shrink-0`}>{initials}</div>
-                                        }
+                                        <ImageInitialsFallback
+                                            src={app.user.avatar}
+                                            alt={fullName}
+                                            initials={initials}
+                                            className={`w-11 h-11 rounded-full flex-shrink-0 overflow-hidden ${app.user.avatar ? 'bg-white' : avatarColor(app.user.id)}`}
+                                            textClassName="text-white text-sm font-bold flex items-center justify-center"
+                                        />
                                         {/* Name + sub */}
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm font-bold text-gray-800 leading-tight">{fullName}</p>

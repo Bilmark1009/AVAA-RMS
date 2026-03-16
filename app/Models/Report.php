@@ -14,7 +14,12 @@ class Report extends Model
         'message_id',
         'reason',
         'details',
+        'evidence',
         'status',
+    ];
+
+    protected $casts = [
+        'evidence' => 'array',
     ];
 
     /* ── Relationships ─────────────────────────────────────────────────── */

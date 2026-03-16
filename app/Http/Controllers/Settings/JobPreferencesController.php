@@ -53,6 +53,31 @@ class JobPreferencesController extends Controller
 
         $profile->update($validated);
 
+        $profile->profile_completeness = $this->calculateProfileCompleteness($profile);
+        $profile->save();
+
         return back();
+    }
+
+    private function calculateProfileCompleteness($profile): int
+    {
+        $checks = [
+            !empty($profile->skills),
+            !empty($profile->resume_path),
+            !empty($profile->state),
+            !empty($profile->current_job_title),
+            !empty($profile->current_company),
+            !empty($profile->field_of_study),
+            !empty($profile->institution_name),
+            !empty($profile->certifications),
+            !empty($profile->portfolio_url),
+            !empty($profile->linkedin_url),
+            !empty($profile->desired_industries),
+            !empty($profile->expected_salary_min),
+        ];
+
+        $filled = collect($checks)->filter(fn($v) => $v)->count();
+
+        return (int) round(40 + ($filled / count($checks)) * 60);
     }
 }
