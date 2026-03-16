@@ -1,7 +1,7 @@
-import { Head, Link, useForm, router } from '@inertiajs/react';
+import { Head, Link, useForm } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import InputError from '@/Components/InputError';
-import { FormEventHandler, useRef, useState } from 'react';
+import { FormEventHandler, useState } from 'react';
 
 /* ── Constants ── */
 const EXPERIENCE_LEVELS = [
@@ -137,6 +137,7 @@ interface ProfileData {
     phone: string;
     skills: string[];
     certifications: string[];
+    certification_files: File[];
     highest_education: string;
     field_of_study: string;
     institution_name: string;
@@ -183,6 +184,7 @@ export default function ProfileEdit({ user, profile }: Props) {
         phone: user.phone ?? '',
         skills: p.skills ?? [],
         certifications: p.certifications ?? [],
+        certification_files: [],
         highest_education: p.highest_education ?? '',
         field_of_study: p.field_of_study ?? '',
         institution_name: p.institution_name ?? '',
@@ -198,6 +200,12 @@ export default function ProfileEdit({ user, profile }: Props) {
             preserveScroll: true,
         });
     };
+
+    const certificationLabel = (value: string) => value.split('/').pop() || value;
+    const certificationLink = (value: string) =>
+        value.startsWith('/storage/') || value.startsWith('http://') || value.startsWith('https://')
+            ? value
+            : null;
 
     return (
         <AppLayout pageTitle="Edit Profile" pageSubtitle="Update your professional information" activeNav="Profile">
@@ -402,13 +410,63 @@ export default function ProfileEdit({ user, profile }: Props) {
                 <Card>
                     <CardHeader title="Certifications" subtitle="Add your professional certifications." />
                     <div className="p-6">
-                        <TagInput
-                            label="Certifications"
-                            items={data.certifications}
-                            onChange={(v) => setData('certifications', v)}
-                            placeholder="Type a certification and press Enter"
+                        <label className={labelClass}>Certifications</label>
+                        <input
+                            type="file"
+                            multiple
+                            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp"
+                            className={inputClass}
+                            onChange={(e) => {
+                                const files = e.target.files ? Array.from(e.target.files) : [];
+                                setData('certification_files', [...data.certification_files, ...files]);
+                            }}
                         />
+                        <InputError message={errors.certification_files} className="mt-1" />
                         <InputError message={errors.certifications} className="mt-1" />
+
+                        {(data.certifications.length > 0 || data.certification_files.length > 0) && (
+                            <div className="mt-3 space-y-2">
+                                {data.certifications.map((cert, index) => {
+                                    const href = certificationLink(cert);
+
+                                    return (
+                                        <div key={`existing-${index}`} className="flex items-center justify-between gap-2 text-xs text-avaa-muted">
+                                            <div className="truncate">
+                                                {href ? (
+                                                    <a href={href} target="_blank" rel="noreferrer" className="hover:underline text-avaa-teal">
+                                                        {certificationLabel(cert)}
+                                                    </a>
+                                                ) : (
+                                                    certificationLabel(cert)
+                                                )}
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setData('certifications', data.certifications.filter((_, i) => i !== index))}
+                                                className="text-avaa-muted hover:text-red-500"
+                                                aria-label="Remove certification"
+                                            >
+                                                ×
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+
+                                {data.certification_files.map((file, index) => (
+                                    <div key={`new-${index}`} className="flex items-center justify-between gap-2 text-xs text-avaa-muted">
+                                        <div className="truncate">{file.name}</div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setData('certification_files', data.certification_files.filter((_, i) => i !== index))}
+                                            className="text-avaa-muted hover:text-red-500"
+                                            aria-label="Remove certification file"
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </Card>
 

@@ -125,6 +125,11 @@ export default function JobSeekerProfilePage({ user, profile, experiences, docum
         if (Number.isNaN(date.getTime())) return 'Unknown date';
         return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
     };
+    const certificationLabel = (value: string) => value.split('/').pop() || value;
+    const certificationLink = (value: string) =>
+        value.startsWith('/storage/') || value.startsWith('http://') || value.startsWith('https://')
+            ? value
+            : null;
 
     return (
         <AppLayout pageTitle="My Profile" pageSubtitle="Your professional presence" activeNav="Profile">
@@ -298,16 +303,27 @@ export default function JobSeekerProfilePage({ user, profile, experiences, docum
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 {p.certifications!.map((c, i) => (
                                     <div
-                                        key={i}
+                                        key={`${c}-${i}`}
                                         className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl"
                                     >
                                         <div className="w-9 h-9 rounded-xl bg-avaa-primary-light flex items-center justify-center text-avaa-teal flex-shrink-0">
                                             <IcoCert />
                                         </div>
                                         <div className="min-w-0">
-                                            <p className="text-sm font-medium text-avaa-dark truncate">
-                                                {c}
-                                            </p>
+                                            {certificationLink(c) ? (
+                                                <a
+                                                    href={certificationLink(c) ?? '#'}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="text-sm font-medium text-avaa-dark truncate hover:underline"
+                                                >
+                                                    {certificationLabel(c)}
+                                                </a>
+                                            ) : (
+                                                <p className="text-sm font-medium text-avaa-dark truncate">
+                                                    {certificationLabel(c)}
+                                                </p>
+                                            )}
                                         </div>
                                     </div>
                                 ))}

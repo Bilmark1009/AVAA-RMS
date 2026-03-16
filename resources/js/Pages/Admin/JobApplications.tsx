@@ -143,6 +143,11 @@ function ApplicantProfile({ app, onClose }: { app: Application; onClose: () => v
     const location = [p?.city, p?.state, p?.country].filter(Boolean).join(', ');
     const skills = p?.skills ?? ad?.skills ?? [];
     const certs = p?.certifications ?? [];
+    const certificationLabel = (value: string) => value.split('/').pop() || value;
+    const certificationLink = (value: string) =>
+        value.startsWith('/storage/') || value.startsWith('http://') || value.startsWith('https://')
+            ? value
+            : null;
     const resumePath = app.resume_path ?? p?.resume_path ?? ad?.existing_resume;
     const resumeViewUrl = resumePath ? route('applications.resume', { application: app.id }) : null;
     const resumeDownloadUrl = resumePath ? `${route('applications.resume', { application: app.id })}?download=1` : null;
@@ -300,7 +305,21 @@ function ApplicantProfile({ app, onClose }: { app: Application; onClose: () => v
                             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Certifications</h3>
                             <div className="flex flex-wrap gap-2">
                                 {certs.map(c => (
-                                    <span key={c} className="px-3 py-1 rounded-xl bg-gray-100 text-gray-600 text-xs font-medium">{c}</span>
+                                    certificationLink(c) ? (
+                                        <a
+                                            key={c}
+                                            href={certificationLink(c) ?? '#'}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="px-3 py-1 rounded-xl bg-gray-100 text-gray-600 text-xs font-medium hover:underline"
+                                        >
+                                            {certificationLabel(c)}
+                                        </a>
+                                    ) : (
+                                        <span key={c} className="px-3 py-1 rounded-xl bg-gray-100 text-gray-600 text-xs font-medium">
+                                            {certificationLabel(c)}
+                                        </span>
+                                    )
                                 ))}
                             </div>
                         </section>
