@@ -18,12 +18,25 @@ class ProfileController extends Controller
      */
     public function show(Request $request): Response
     {
-        $user = $request->user()->load(['jobSeekerProfile', 'workExperiences']);
+        $user = $request->user()->load(['jobSeekerProfile', 'workExperiences', 'documents']);
+
+        $documents = $user->documents
+            ->sortByDesc('created_at')
+            ->values()
+            ->map(fn(UserDocument $doc) => [
+                'id' => $doc->id,
+                'file_name' => $doc->file_name,
+                'file_type' => strtoupper($doc->file_type),
+                'file_size_kb' => (int) round($doc->file_size / 1024),
+                'document_type' => $doc->document_type,
+                'uploaded_at' => optional($doc->created_at)?->toISOString(),
+            ]);
 
         return Inertia::render('JobSeeker/Profile', [
             'user' => $user,
             'profile' => $user->jobSeekerProfile,
             'experiences' => $user->workExperiences,
+            'documents' => $documents,
         ]);
     }
 

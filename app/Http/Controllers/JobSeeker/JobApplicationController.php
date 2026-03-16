@@ -21,6 +21,44 @@ use Inertia\Response;
 
 class JobApplicationController extends Controller
 {
+    public function resume(Request $request, JobApplication $application): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    {
+        $user = $request->user();
+
+        $application->loadMissing(['jobListing', 'user.jobSeekerProfile']);
+
+        $canAccess = false;
+
+        if ($user->id === $application->user_id) {
+            $canAccess = true;
+        } elseif ($user->isAdmin()) {
+            $canAccess = true;
+        } elseif ($user->isEmployer() && $application->jobListing && $application->jobListing->isAccessibleBy($user)) {
+            $canAccess = true;
+        }
+
+        abort_unless($canAccess, 403, 'You are not allowed to access this resume.');
+
+        $rawPath = $application->resume_path
+            ?? data_get($application->application_data, 'existing_resume')
+            ?? $application->user?->jobSeekerProfile?->resume_path;
+
+        $resolved = $this->resolveStoredResumePath($application->user_id, $rawPath);
+        abort_unless($resolved !== null, 404, 'Resume file not found.');
+
+        ['disk' => $disk, 'path' => $path] = $resolved;
+
+        $absolutePath = Storage::disk($disk)->path($path);
+        abort_unless(file_exists($absolutePath), 404, 'Resume file not found.');
+
+        $fileName = basename($path) ?: 'resume.pdf';
+        $disposition = $request->boolean('download') ? 'attachment' : 'inline';
+
+        return response()->file($absolutePath, [
+            'Content-Disposition' => $disposition . '; filename="' . $fileName . '"',
+        ]);
+    }
+
     /**
      * Job Seeker: Application History index.
      */
@@ -453,5 +491,76 @@ class JobApplicationController extends Controller
         }
 
         return $file->storeAs($directory, $candidate, $disk);
+    }
+
+    private function resolveStoredResumePath(int $userId, ?string $rawPath): ?array
+    {
+        $rawPath = trim((string) $rawPath);
+
+        if ($rawPath !== '') {
+            if (str_starts_with($rawPath, '/storage/')) {
+                $publicPath = ltrim(substr($rawPath, strlen('/storage/')), '/');
+                if (Storage::disk('public')->exists($publicPath)) {
+                    return ['disk' => 'public', 'path' => $publicPath];
+                }
+            }
+
+            if (str_starts_with($rawPath, 'storage/')) {
+                $publicPath = ltrim(substr($rawPath, strlen('storage/')), '/');
+                if (Storage::disk('public')->exists($publicPath)) {
+                    return ['disk' => 'public', 'path' => $publicPath];
+                }
+            }
+
+            if (Storage::disk('local')->exists($rawPath)) {
+                return ['disk' => 'local', 'path' => $rawPath];
+            }
+
+            if (Storage::disk('public')->exists($rawPath)) {
+                return ['disk' => 'public', 'path' => $rawPath];
+            }
+
+            $baseName = basename($rawPath);
+            if ($baseName !== '' && $baseName !== '.' && $baseName !== DIRECTORY_SEPARATOR) {
+                foreach (['public', 'local'] as $disk) {
+                    foreach (["resumes/{$userId}/{$baseName}", "documents/{$userId}/{$baseName}"] as $candidate) {
+                        if (Storage::disk($disk)->exists($candidate)) {
+                            return ['disk' => $disk, 'path' => $candidate];
+                        }
+                    }
+                }
+            }
+        }
+
+        $targetExt = strtolower(pathinfo((string) $rawPath, PATHINFO_EXTENSION));
+
+        foreach (['public', 'local'] as $disk) {
+            foreach (["resumes/{$userId}", "documents/{$userId}"] as $dir) {
+                $files = Storage::disk($disk)->files($dir);
+                if (empty($files)) {
+                    continue;
+                }
+
+                $sameExt = array_values(array_filter($files, function ($filePath) use ($targetExt) {
+                    if ($targetExt === '') {
+                        return true;
+                    }
+
+                    return strtolower(pathinfo($filePath, PATHINFO_EXTENSION)) === $targetExt;
+                }));
+
+                if (empty($sameExt)) {
+                    continue;
+                }
+
+                usort($sameExt, function ($a, $b) use ($disk) {
+                    return Storage::disk($disk)->lastModified($b) <=> Storage::disk($disk)->lastModified($a);
+                });
+
+                return ['disk' => $disk, 'path' => $sameExt[0]];
+            }
+        }
+
+        return null;
     }
 }

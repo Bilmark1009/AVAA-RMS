@@ -52,14 +52,6 @@ interface Props {
 const AVATAR_COLORS = ['bg-avaa-dark', 'bg-teal-700', 'bg-emerald-700', 'bg-slate-600', 'bg-cyan-700', 'bg-stone-600'];
 function avatarColor(id: number) { return AVATAR_COLORS[id % AVATAR_COLORS.length]; }
 function getInitials(first: string, last: string) { return `${(first[0] ?? '')}${(last[0] ?? '')}`.toUpperCase(); }
-function resolveResumeUrl(path?: string | null) {
-    if (!path) return null;
-    if (path.startsWith('http://') || path.startsWith('https://')) return path;
-    if (path.startsWith('/storage/')) return path;
-    if (path.startsWith('/')) return path;
-    // Bare path like 'resumes/1/MyCV.pdf' — assumed to be in public storage
-    return `/storage/${path}`;
-}
 function timeAgo(dateStr: string) {
     const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
     if (diff < 3600) return `${Math.max(1, Math.floor(diff / 60))}m ago`;
@@ -430,6 +422,7 @@ function ApplicantModal({ app, jobId, onClose, onReject, onApprove }: {
     const initials = getInitials(u.first_name, u.last_name);
     const resumePath = (app.resume_path) ?? (u.profile?.resume_path) ?? (ad?.existing_resume);
     const resumeName = resumePath ? resumePath.split('/').pop() : null;
+    const resumeViewUrl = resumePath ? route('applications.resume', { application: app.id }) : null;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -511,7 +504,7 @@ function ApplicantModal({ app, jobId, onClose, onReject, onApprove }: {
                             <div className="flex items-center gap-3 border border-gray-200 rounded-xl p-3">
                                 <div className="w-9 h-9 rounded-xl bg-avaa-primary-light text-avaa-teal flex items-center justify-center flex-shrink-0"><IcoFile /></div>
                                 <div className="flex-1 min-w-0"><p className="text-sm font-medium text-avaa-dark truncate">{(resumeName) ?? 'Resume'}</p></div>
-                                <a href={resumePath} target="_blank" rel="noreferrer" className="text-gray-400 hover:text-avaa-teal transition-colors p-1"><IcoEye /></a>
+                                <a href={resumeViewUrl ?? '#'} target="_blank" rel="noreferrer" className="text-gray-400 hover:text-avaa-teal transition-colors p-1"><IcoEye /></a>
                             </div>
                         ) : (
                             <p className="text-sm text-gray-400 italic">No resume attached.</p>
@@ -721,7 +714,8 @@ export default function JobApplications({ job, applications, employerAddress }: 
                                 const initials = getInitials(app.user.first_name, app.user.last_name);
                                 const subTitle = (app.application_data?.current_job_title) ?? (app.user.profile?.professional_title) ?? (app.user.profile?.current_job_title) ?? '';
                                 const resumePath = (app.resume_path) ?? (app.user.profile?.resume_path);
-                                const resumeUrl = resolveResumeUrl(resumePath);
+                                const resumeUrl = resumePath ? route('applications.resume', { application: app.id }) : null;
+                                const resumeDownloadUrl = resumePath ? `${route('applications.resume', { application: app.id })}?download=1` : null;
                                 const resumeName = resumePath ? resumePath.split('/').pop() : null;
 
                                 return (
@@ -747,7 +741,7 @@ export default function JobApplications({ job, applications, employerAddress }: 
                                                     <a href={resumeUrl} target="_blank" rel="noreferrer" className="text-sm text-avaa-teal hover:underline truncate block">{resumeName}</a>
                                                     <div className="mt-1 flex items-center gap-3">
                                                         <a href={resumeUrl} target="_blank" rel="noreferrer" className="text-xs font-medium text-avaa-dark hover:text-avaa-teal hover:underline">View</a>
-                                                        <a href={resumeUrl} download className="text-xs font-medium text-avaa-dark hover:text-avaa-teal hover:underline">Download</a>
+                                                        <a href={resumeDownloadUrl ?? '#'} className="text-xs font-medium text-avaa-dark hover:text-avaa-teal hover:underline">Download</a>
                                                     </div>
                                                 </div>
                                             ) : <span className="text-sm text-gray-400 italic">—</span>}

@@ -204,7 +204,8 @@ export default function SavedJobs({ user, savedJobs, filters, availableSkills, a
         });
     };
 
-    const handleView = (jobId: number) => router.visit(route('job-seeker.jobs.show', jobId));
+    const handleView = (jobId: number) =>
+        router.visit(route('job-seeker.jobs.show', { job: jobId, from: 'saved' }));
 
     const DATE_FILTERS = [
         { label: 'All Time', value: 'all' }, { label: 'Today', value: 'today' },
