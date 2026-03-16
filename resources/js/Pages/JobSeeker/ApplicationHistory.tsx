@@ -502,6 +502,7 @@ function ApplicationDetailsModal({
                                     </svg>
                                 }
                             />
+                            
                             <DetailTabButton
                                 active={tab === 'timeline'}
                                 onClick={() => setTab('timeline')}
@@ -635,16 +636,173 @@ function ApplicationDetailsModal({
                             </div>
                         )}
 
-                        {tab === 'timeline' && (
-                            <div className="py-12 text-center text-sm text-gray-500">
-                                Applied: {appliedDate} · Last Updated: {updatedDate}
-                                {isInterviewing && app.interview ? ` · Interview: ${app.interview.date_label ?? 'Date TBD'}${app.interview.time_label ? ` ${app.interview.time_label}` : ''}` : ''}
+                    {tab === 'timeline' && (
+                        <div className="modal-content">
+                            <p className="text-sm text-gray-500 mb-8">Track the progress of your application through each stage.</p>
+
+                            <div className="relative pl-2">
+                                {/* Vertical Line */}
+                                <div className="absolute left-[29px] top-2 bottom-10 w-[2px] bg-[#d1e5e8]"></div>
+
+                                {/* Step 1: Application Submitted */}
+                                <div className="flex gap-5 mb-9 relative z-10">
+                                    <div className="w-10 h-10 rounded-full bg-[#8fbabd] flex items-center justify-center text-white shrink-0 border-2 border-[#8fbabd]">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                            <polyline points="20 6 9 17 4 12" />
+                                        </svg>
+                                    </div>
+                                    <div className="min-w-0">
+                                        <div className="flex items-center gap-2">
+                                            <h4 className="text-base font-bold text-gray-800">Application Submitted</h4>
+                                            <span className="px-2.5 py-0.5 rounded-full bg-[#e8f5f2] text-[#4b8a92] text-[11px] font-bold uppercase">Done</span>
+                                        </div>
+                                        <p className="text-xs text-gray-500 mt-0.5">Submitted on {appliedDate}</p>
+                                    </div>
+                                </div>
+
+                                {/* Step 2: Under Review */}
+                                <div className={`flex gap-5 mb-9 relative z-10 ${!isPending ? '' : 'opacity-80'}`}>
+                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-2 ${!isPending ? 'bg-[#8fbabd] border-[#8fbabd] text-white' : 'bg-white border-gray-300 text-gray-400'}`}>
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 15 14" />
+                                        </svg>
+                                    </div>
+                                    <div className="min-w-0">
+                                        <div className="flex items-center gap-2">
+                                            <h4 className={`text-base font-bold ${!isPending ? 'text-gray-800' : 'text-gray-400'}`}>Under Review</h4>
+                                            {!isPending && <span className="px-2.5 py-0.5 rounded-full bg-[#e8f5f2] text-[#4b8a92] text-[11px] font-bold uppercase">Done</span>}
+                                        </div>
+                                        <p className="text-xs text-gray-500 mt-0.5">{!isPending ? 'Completed' : 'Awaiting review'}</p>
+                                    </div>
+                                </div>
+
+                                {/* Step 3: Interview Stage */}
+                                <div className={`flex gap-5 mb-9 relative z-10 ${isInterviewing ? '' : 'opacity-50'}`}>
+                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-2 ${isInterviewing ? 'bg-[#8fbabd] border-[#8fbabd] text-white' : 'bg-white border-gray-200 text-gray-300'}`}>
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                                            <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" />
+                                            <line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+                                        </svg>
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                        <div className="flex items-center gap-2">
+                                            <h4 className={`text-base font-bold ${isInterviewing ? 'text-gray-800' : 'text-gray-400'}`}>Interview Stage</h4>
+                                            {isInterviewing && <span className="px-2.5 py-0.5 rounded-full bg-[#e8f5f2] text-[#3d8076] text-[11px] font-bold uppercase">Current</span>}
+                                        </div>
+                                        <p className="text-xs text-gray-500 mt-0.5">
+                                            {isInterviewing ? 'In progress — awaiting update from employer' : 'Not reached yet'}
+                                        </p>
+                                        
+                                        {isInterviewing && app.interview && (
+                                            <div className="mt-3 bg-[#f0fdf9] border border-[#c2eadd] rounded-lg p-3 flex items-center gap-2.5 text-[13px] text-[#1b6b53] font-semibold">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                                                    <rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" />
+                                                </svg>
+                                                <span>Scheduled: {app.interview.date_label ?? 'TBD'} · {app.interview.time_label ?? ''}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Step 4: Final Decision */}
+                                <div className={`flex gap-5 relative z-10 ${isRejected || isWithdrawn ? '' : 'opacity-50'}`}>
+                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-2 ${isRejected || isWithdrawn ? 'bg-rose-500 border-rose-500 text-white' : 'bg-gray-100 border-gray-200 text-gray-300'}`}>
+                                        {isRejected ? (
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                                        ) : (
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
+                                        )}
+                                    </div>
+                                    <div className="min-w-0">
+                                        <h4 className={`text-base font-bold ${(isRejected || isWithdrawn) ? 'text-gray-800' : 'text-gray-400'}`}>Final Decision</h4>
+                                        <p className="text-xs text-gray-500 mt-0.5">
+                                            {isRejected ? 'Application Rejected' : isWithdrawn ? 'Application Withdrawn' : 'Not reached yet'}
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
-                        )}
+                        </div>
+                    )}
 
                         {tab === 'job' && (
-                            <div className="py-12 text-center text-sm text-gray-500">
-                                {app.job?.description || 'No additional job details available.'}
+                            <div className="space-y-6">
+                                {/* Job Description */}
+                                <p className="text-[15px] leading-relaxed text-gray-600">
+                                    {app.job?.description || 'No additional job details available.'}
+                                </p>
+
+                                <hr className="border-gray-100" />
+
+                                {/* Job Information Section */}
+                                <div className="space-y-4">
+                                    <h3 className="text-base font-bold text-gray-900">Job Information</h3>
+                                    
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-gray-500">Salary</span>
+                                            <span className="font-extrabold text-gray-900">{salaryRange}</span>
+                                        </div>
+                                        
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-gray-500">Location</span>
+                                            <span className="font-semibold text-gray-900">
+                                                {app.job?.is_remote ? 'Remote' : 'On-site'}
+                                            </span>
+                                        </div>
+
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-gray-500">Job Type</span>
+                                            <span className="font-semibold text-gray-900">
+                                                {app.job?.employment_type || 'Not specified'}
+                                            </span>
+                                        </div>
+
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-gray-500">Company Size</span>
+                                            <span className="font-semibold text-gray-900">
+                                                {app.company.size || 'Not specified'}
+                                            </span>
+                                        </div>
+
+                                        {app.company.industry && (
+                                            <div className="flex justify-between items-center text-sm">
+                                                <span className="text-gray-500">Industry</span>
+                                                <span className="font-semibold text-gray-900">{app.company.industry}</span>
+                                            </div>
+                                        )}
+
+                                        {app.company.website && (
+                                            <div className="flex justify-between items-center text-sm">
+                                                <span className="text-gray-500">Website</span>
+                                                <a 
+                                                    href={app.company.website} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer" 
+                                                    className="font-semibold text-avaa-dark hover:underline"
+                                                >
+                                                    {app.company.website.replace(/^https?:\/\//, '')}
+                                                </a>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <hr className="border-gray-100" />
+
+                                {/* Required Skills Section */}
+                                <div className="space-y-3">
+                                    <h3 className="text-base font-bold text-gray-900">Required Skills</h3>
+                                    <div className="flex flex-wrap gap-2">
+                                        {(skills.length ? skills : ['No skills listed']).map(s => (
+                                            <span 
+                                                key={s} 
+                                                className="text-sm px-4 py-1.5 bg-[#f0f7f8] text-[#4b8a92] rounded-full font-medium border border-[#d1e5e8]"
+                                            >
+                                                {s}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
                         )}
                     </div>

@@ -116,27 +116,50 @@ export default function EmployerOnboarding({ needsPhone = false }: Props) {
         clearErrors();
         setStepWarning(null);
 
+        const fieldLabels: Record<string, string> = {
+            company_name: 'Company Name',
+            company_website: 'Company Website',
+            industry: 'Industry',
+            company_size: 'Company Size',
+            company_description: 'Company Description',
+            headquarters_address: 'Headquarters Address',
+            city: 'City',
+            state: 'State / Province',
+            country: 'Country',
+            postal_code: 'Postal Code',
+            fein_tax_id: 'FEIN / Tax ID',
+            phone: 'Phone Number'
+        };
+
+        let missingFields: string[] = [];
+
         if (s === 1) {
-            const ok = !!(data.company_name && data.company_website && data.industry && data.company_size && data.company_description);
-            if (!ok) setStepWarning('Please fill in all required company information before continuing.');
-            return ok;
+            const required = ['company_name', 'company_website', 'industry', 'company_size', 'company_description'];
+            missingFields = required.filter(field => !data[field as keyof typeof data]);
+            
+            // Specific check for description length
+            if (data.company_description.length > 0 && data.company_description.length < 50) {
+                setStepWarning('Company Description must be at least 50 characters.');
+                return false;
+            }
+        } 
+        else if (s === 2) {
+            const required = ['headquarters_address', 'city', 'state', 'country', 'postal_code'];
+            missingFields = required.filter(field => !data[field as keyof typeof data]);
+        } 
+        else if (s === 3) {
+            if (!data.fein_tax_id) missingFields.push('fein_tax_id');
+        } 
+        else if (s === 4) {
+            if (!data.phone || data.phone.trim().length < 7) missingFields.push('phone');
         }
-        if (s === 2) {
-            const ok = !!(data.headquarters_address && data.city && data.state && data.country && data.postal_code);
-            if (!ok) setStepWarning('Please complete all required location details before continuing.');
-            return ok;
+
+        if (missingFields.length > 0) {
+            const names = missingFields.map(f => fieldLabels[f]).join(', ');
+            setStepWarning(`Please enter the following missing credentials: ${names}`);
+            return false;
         }
-        if (s === 3) {
-            const ok = !!(data.fein_tax_id);
-            if (!ok) setStepWarning('Please provide your FEIN / Tax ID before submitting for verification.');
-            return ok;
-        }
-        // Step 4 (phone) — only reached when needsPhone is true
-        if (s === 4) {
-            const ok = !!(data.phone && data.phone.trim().length >= 7);
-            if (!ok) setStepWarning('Please enter a valid phone number (at least 7 digits).');
-            return ok;
-        }
+
         return true;
     };
 
