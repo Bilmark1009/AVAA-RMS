@@ -61,6 +61,7 @@ interface Props {
     similarJobs?: SimilarJob[];
     isSaved?: boolean;
     hasApplied?: boolean;
+    source?: 'saved' | 'browse';
 }
 
 /* ── Helpers ── */
@@ -303,6 +304,7 @@ export default function JobDetail({
     similarJobs = [],
     isSaved: initialSaved = false,
     hasApplied: initialApplied = false,
+    source = 'browse',
 }: Props) {
     const [saved, setSaved]     = useState(initialSaved);
     const [applied, setApplied] = useState(initialApplied || job.has_applied || false);
@@ -312,6 +314,11 @@ export default function JobDetail({
     const responsibilities = toLines(job.responsibilities);
     const qualifications   = toLines(job.qualifications);
     const requirements     = toLines(job.requirements);
+    const fromSavedJobs = source === 'saved';
+    const backHref = fromSavedJobs
+        ? route('job-seeker.jobs.saved')
+        : route('job-seeker.jobs.browse');
+    const backLabel = fromSavedJobs ? 'Saved Jobs' : 'Home';
 
     const handleApply = () => router.visit(route('job-seeker.jobs.apply.form', job.id));
 
@@ -326,7 +333,7 @@ export default function JobDetail({
     };
 
     return (
-        <AppLayout activeNav="Jobs" pageTitle="Job Details">
+        <AppLayout activeNav={fromSavedJobs ? 'Saved Jobs' : 'Jobs'} pageTitle="Job Details">
             <Head title={job.title} />
 
             {/* Recruiter Profile Modal */}
@@ -339,8 +346,8 @@ export default function JobDetail({
 
             {/* Breadcrumb */}
             <nav className="flex items-center gap-2 text-sm text-gray-500 mb-6">
-                <Link href={route('job-seeker.jobs.browse')} className="hover:text-avaa-teal transition-colors font-medium">
-                    Home
+                <Link href={backHref} className="hover:text-avaa-teal transition-colors font-medium">
+                    {backLabel}
                 </Link>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                     <polyline points="9 18 15 12 9 6" />
@@ -702,7 +709,12 @@ export default function JobDetail({
                                                 />
                                                 <div className="min-w-0">
                                                     <button
-                                                        onClick={() => router.visit(route('job-seeker.jobs.show', sj.id))}
+                                                        onClick={() =>
+                                                            router.visit(route('job-seeker.jobs.show', {
+                                                                job: sj.id,
+                                                                ...(fromSavedJobs ? { from: 'saved' } : {}),
+                                                            }))
+                                                        }
                                                         className="text-[15px] font-semibold text-avaa-dark hover:text-avaa-teal transition-colors text-left block leading-snug"
                                                     >
                                                         {sj.title}
@@ -720,7 +732,7 @@ export default function JobDetail({
                                 })}
                             </div>
                             <button
-                                onClick={() => router.visit(route('job-seeker.jobs.browse'))}
+                                onClick={() => router.visit(backHref)}
                                 className="w-full mt-5 h-10 text-sm font-semibold text-gray-600 border border-gray-200 rounded-xl hover:bg-avaa-primary-light hover:text-avaa-teal hover:border-avaa-primary/30 transition-all"
                             >
                                 View All

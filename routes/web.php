@@ -124,6 +124,10 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         Route::delete('/{id}', [NotificationController::class, 'destroy'])->name('destroy');
     });
 
+    // Shared resume file endpoint (job seeker, employer, admin)
+    Route::get('/applications/{application}/resume', [JobApplicationController::class, 'resume'])
+        ->name('applications.resume');
+
     // ── Settings (shared across all roles) ───────────────────────────────────
     Route::prefix('settings')->name('settings.')->group(function () {
 

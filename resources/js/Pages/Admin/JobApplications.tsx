@@ -144,6 +144,8 @@ function ApplicantProfile({ app, onClose }: { app: Application; onClose: () => v
     const skills = p?.skills ?? ad?.skills ?? [];
     const certs = p?.certifications ?? [];
     const resumePath = app.resume_path ?? p?.resume_path ?? ad?.existing_resume;
+    const resumeViewUrl = resumePath ? route('applications.resume', { application: app.id }) : null;
+    const resumeDownloadUrl = resumePath ? `${route('applications.resume', { application: app.id })}?download=1` : null;
     const about = p?.about ?? ad?.cover_letter;
     const coverLetter = app.cover_letter;
     const cfg = STATUS_CFG[app.status] ?? STATUS_CFG.pending;
@@ -315,10 +317,16 @@ function ApplicantProfile({ app, onClose }: { app: Application; onClose: () => v
                                 <div className="flex-1 min-w-0">
                                     <p className="text-sm font-medium text-gray-800 truncate">{resumePath.split('/').pop()}</p>
                                 </div>
-                                <a href={resumePath} target="_blank" rel="noreferrer"
-                                    className="flex items-center gap-1.5 text-xs text-[#3d9e9e] hover:text-[#347f7f] font-semibold transition-colors">
-                                    <IcoEye /> View
-                                </a>
+                                <div className="flex items-center gap-3">
+                                    <a href={resumeViewUrl ?? '#'} target="_blank" rel="noreferrer"
+                                        className="flex items-center gap-1.5 text-xs text-[#3d9e9e] hover:text-[#347f7f] font-semibold transition-colors">
+                                        <IcoEye /> View
+                                    </a>
+                                    <a href={resumeDownloadUrl ?? '#'}
+                                        className="text-xs text-[#3d9e9e] hover:text-[#347f7f] font-semibold transition-colors">
+                                        Download
+                                    </a>
+                                </div>
                             </div>
                         </section>
                     )}

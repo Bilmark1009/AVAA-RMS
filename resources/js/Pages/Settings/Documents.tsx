@@ -1,7 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import SettingsLayout from '@/Layouts/SettingsLayout';
-import { useRef, useState, useMemo } from 'react';
+import { useRef, useState, useMemo, useEffect } from 'react';
 
 /* ── Icons ── */
 const IcoUpload = () => (
@@ -114,6 +114,10 @@ export default function Documents({ documents: initialDocs }: Props) {
     const [activeFilter, setActiveFilter] = useState(0); // index into FILTERS
     const fileRef = useRef<HTMLInputElement>(null);
 
+    useEffect(() => {
+        setDocs(initialDocs ?? []);
+    }, [initialDocs]);
+
     /* ── Filtered list ── */
     const filtered = useMemo(() =>
         docs.filter(d => FILTERS[activeFilter].match(d.file_type)),
@@ -133,11 +137,7 @@ export default function Documents({ documents: initialDocs }: Props) {
         router.post(route('settings.documents.store'), fd, {
             forceFormData: true,
             preserveScroll: true,
-            onSuccess: (page: any) => {
-                setDocs(page.props.documents ?? docs);
-                setUploading(false);
-            },
-            onError: () => setUploading(false),
+            onFinish: () => setUploading(false),
         });
     };
 
