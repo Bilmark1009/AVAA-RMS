@@ -3,12 +3,15 @@
 namespace App\Http\Controllers\Employer;
 
 use App\Http\Controllers\Controller;
+use App\Mail\InterviewRescheduled;
 use App\Models\Interview;
 use App\Models\JobListing;
 use App\Notifications\InterviewPassedNotification;
 use App\Notifications\InterviewFailedNotification;
+use App\Notifications\InterviewRescheduledNotification;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -74,6 +77,13 @@ class InterviewController extends Controller
     {
         $this->authorizeInterview($request, $interview);
 
+        $originalSchedule = [
+            'interview_date' => optional($interview->interview_date)?->toDateString(),
+            'interview_time' => $interview->interview_time,
+            'interview_type' => $interview->interview_type,
+            'location_or_link' => $interview->location_or_link,
+        ];
+
         $request->validate([
             'interview_date' => 'required|date',
             'interview_time' => 'required|string',
@@ -91,6 +101,24 @@ class InterviewController extends Controller
             'location_or_link',
             'notes',
         ]));
+
+        $wasRescheduled = $originalSchedule['interview_date'] !== optional($interview->interview_date)?->toDateString()
+            || $originalSchedule['interview_time'] !== $interview->interview_time
+            || $originalSchedule['interview_type'] !== $interview->interview_type
+            || $originalSchedule['location_or_link'] !== $interview->location_or_link;
+
+        if ($wasRescheduled) {
+            $interview->loadMissing(['candidate', 'jobListing']);
+            $candidate = $interview->candidate;
+            $job = $interview->jobListing;
+
+            $candidateName = trim(($candidate->first_name ?? '') . ' ' . ($candidate->last_name ?? ''));
+
+            Mail::to($candidate->email)->send(new InterviewRescheduled($interview, $job, $candidateName));
+            $candidate->notify(new InterviewRescheduledNotification($interview, $job));
+
+            return back()->with('success', 'Interview rescheduled and applicant notified.');
+        }
 
         return back()->with('success', 'Interview updated.');
     }
