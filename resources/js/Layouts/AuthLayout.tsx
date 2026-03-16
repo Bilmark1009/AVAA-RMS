@@ -40,16 +40,16 @@ export default function AuthLayout({
                 <div
                     className="absolute inset-0 bg-cover bg-center transition-transform duration-700 hover:scale-105"
                     style={{
-                        backgroundImage:
-                            "url('/logos/bg.jpg')",
+                        backgroundImage: "url('/logos/bg.jpg')",
                     }}
                 >
                     {/* Darker Gradient Overlay to match screenshot depth */}
                     <div
                         className="absolute inset-0 opacity-40"
-                       style={{ 
-            background: 'linear-gradient(180deg, #005C69 0%, #00292F 60%, #00292F 100%)' 
-        }}
+                        style={{
+                            background:
+                                "linear-gradient(180deg, #005C69 0%, #00292F 60%, #00292F 100%)",
+                        }}
                     />
                 </div>
 
@@ -140,7 +140,7 @@ export default function AuthLayout({
                             alt="AVAA Logo"
                             className="h-12 w-auto " // Force logo to be white
                         />
-                        <span className="text-3xl font-bold text-white tracking-widest">
+                        <span className="text-3xl font-extrabold text-avaa-dark tracking-tighter uppercase">
                             AVAA
                         </span>
                     </div>
