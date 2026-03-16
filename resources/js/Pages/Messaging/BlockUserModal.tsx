@@ -41,10 +41,10 @@ export default function BlockUserModal({
                     </svg>
                 </div>
 
-                <h3 className="text-[20px] font-bold text-gray-900 mb-4">Blocked this Person</h3>
+                <h3 className="text-[20px] font-bold text-gray-900 mb-4">Block {userName}?</h3>
                 
                 <p className="text-[15px] text-gray-500 leading-relaxed mb-8 px-4">
-                    Are you sure you want to blocked this Person?
+                    They won't be able to message you, and you won't see their messages. You can unblock them anytime in your settings.
                 </p>
 
                 <div className="w-full space-y-3">
@@ -55,7 +55,7 @@ export default function BlockUserModal({
                     >
                         {isProcessing ? (
                             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        ) : 'Blocked'}
+                        ) : 'Block User'}
                     </button>
 
                     <button

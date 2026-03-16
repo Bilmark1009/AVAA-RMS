@@ -59,6 +59,25 @@ class ProfileController extends Controller
                 'login_alert_email' => true,
                 'login_alert_push' => true,
             ],
+            'blockedUsers' => $user->blockedUsers()
+                ->with('blockedUser:id,first_name,last_name,avatar,role')
+                ->latest()
+                ->get()
+                ->map(function ($block) {
+                    $user = $block->blockedUser;
+                    return [
+                        'id' => $user->id,
+                        'name' => $user->full_name,
+                        'avatar' => $user->avatar,
+                        'role' => $user->role,
+                        'reason' => $block->reason,
+                        'blocked_at' => $block->created_at->toISOString(),
+                        'initials' => strtoupper(($user->first_name[0] ?? '') . ($user->last_name[0] ?? '')),
+                        'job_title' => $user->jobSeekerProfile?->professional_title 
+                            ?? $user->jobSeekerProfile?->current_job_title 
+                            ?? 'Job Seeker',
+                    ];
+                }),
         ]);
     }
 

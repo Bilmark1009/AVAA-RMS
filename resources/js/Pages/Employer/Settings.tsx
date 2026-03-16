@@ -119,12 +119,13 @@ interface Props extends PageProps {
         login_alert_email: boolean;
         login_alert_push: boolean;
     };
+    blockedUsers?: any[];
 }
 
 /* ══════════════════════════════════════════════
    PAGE
 ══════════════════════════════════════════════ */
-export default function EmployerSettings({ user, profile, security }: Props) {
+export default function EmployerSettings({ user, profile, security, blockedUsers }: Props) {
     const [activeTab, setActiveTab] = useState(0);
 
     /* ── Personal info form ── */
@@ -581,7 +582,7 @@ export default function EmployerSettings({ user, profile, security }: Props) {
 
                     {/* ═══ TAB 2: Blocked Users ═══ */}
                     {activeTab === 2 && (
-                        <EmployerBlockedUsers auth={{ user }} />
+                        <EmployerBlockedUsers auth={{ user }} blockedUsers={blockedUsers} />
                     )}
 
                 </div>

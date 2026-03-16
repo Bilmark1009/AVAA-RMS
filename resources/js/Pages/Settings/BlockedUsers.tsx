@@ -338,14 +338,6 @@ export default function BlockedUsers({ auth }: PageProps<{ auth: any }>) {
             
             <SettingsLayout title="Blocked Users" subtitle="Manage users you've blocked from contacting you.">
                 <div className="space-y-6">
-                    {/* Header */}
-                    <div>
-                        <h2 className="text-xl font-bold text-gray-900">Blocked Users</h2>
-                        <p className="text-sm text-gray-600 mt-1">
-                            Manage users you've blocked from contacting you.
-                        </p>
-                    </div>
-
                     {/* Block New User */}
                     <BlockUserForm onBlock={handleBlock} />
 
@@ -357,8 +349,7 @@ export default function BlockedUsers({ auth }: PageProps<{ auth: any }>) {
                         
                         {blockedUsersList.length === 0 ? (
                             <div className="text-center py-8 bg-white border border-gray-200 rounded-xl">
-                                <IcoBlock />
-                                <p className="text-sm text-gray-600 mt-2">No blocked users</p>
+                                <p className="text-sm text-gray-600">No blocked users</p>
                                 <p className="text-xs text-gray-400 mt-1">
                                     Users you block will appear here
                                 </p>

@@ -1,8 +1,7 @@
-import { Head, router, usePage } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
 import { useState, useEffect } from 'react';
-import { PageProps } from '@/types';
 
 /* ── Icons ── */
 const IcoBlock = () => (
@@ -313,9 +312,8 @@ function BlockJobSeekerForm({ onBlock }: { onBlock: (user: SearchResult & { reas
 }
 
 /* ── Main Component ── */
-export default function EmployerBlockedUsers({ auth }: PageProps<{ auth: any }>) {
-    const { blockedUsers } = usePage().props;
-    const [blockedUsersList, setBlockedUsersList] = useState<BlockedUser[]>(blockedUsers as BlockedUser[] || []);
+export default function EmployerBlockedUsers({ auth, blockedUsers }: { auth: any; blockedUsers?: BlockedUser[] }) {
+    const [blockedUsersList, setBlockedUsersList] = useState<BlockedUser[]>(blockedUsers || []);
 
     const handleUnblock = (userId: number) => {
         setBlockedUsersList(prev => prev.filter(user => user.id !== userId));
@@ -337,14 +335,6 @@ export default function EmployerBlockedUsers({ auth }: PageProps<{ auth: any }>)
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div>
-                <h2 className="text-xl font-bold text-gray-900">Blocked Job Seekers</h2>
-                <p className="text-sm text-gray-600 mt-1">
-                    Manage job seekers you've blocked from contacting you.
-                </p>
-            </div>
-
             {/* Block New Job Seeker */}
             <BlockJobSeekerForm onBlock={handleBlock} />
 
@@ -356,8 +346,7 @@ export default function EmployerBlockedUsers({ auth }: PageProps<{ auth: any }>)
                 
                 {blockedUsersList.length === 0 ? (
                     <div className="text-center py-8 bg-white border border-gray-200 rounded-xl">
-                        <IcoBriefcase />
-                        <p className="text-sm text-gray-600 mt-2">No blocked job seekers</p>
+                        <p className="text-sm text-gray-600">No blocked job seekers</p>
                         <p className="text-xs text-gray-400 mt-1">
                             Job seekers you block will appear here
                         </p>

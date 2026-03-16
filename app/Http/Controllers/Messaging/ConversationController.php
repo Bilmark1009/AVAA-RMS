@@ -404,6 +404,15 @@ class ConversationController extends Controller
             : null;
 
         $pivot = $c->participants->firstWhere('id', $currentUserId)?->pivot;
+        
+        // Check blocking status
+        $isBlocked = false;
+        $isBlockedByOther = false;
+        if ($other) {
+            $currentUser = \App\Models\User::find($currentUserId);
+            $isBlocked = $currentUser->hasBlocked($other);
+            $isBlockedByOther = $currentUser->isBlockedBy($other);
+        }
 
         return [
             'id' => $c->id,
@@ -437,6 +446,8 @@ class ConversationController extends Controller
             'unread_count' => $c->unreadCountFor($currentUserId),
             'is_archived' => (bool) ($pivot?->is_archived ?? false),
             'is_muted' => (bool) ($pivot?->is_muted ?? false),
+            'is_blocked' => $isBlocked,
+            'is_blocked_by_other' => $isBlockedByOther,
             'last_message_at' => $c->last_message_at?->toISOString(),
             'job_listing' => $c->jobListing
                 ? ['id' => $c->jobListing->id, 'title' => $c->jobListing->title]
