@@ -22,25 +22,26 @@ class DocumentsController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'document' => [
-                'required',
+            'documents' => 'required|array',
+            'documents.*' => [
                 'file',
                 'mimes:pdf,doc,docx,png,jpg,jpeg',
                 'max:25600', // 25 MB
             ],
         ]);
 
-        $file = $request->file('document');
-        // Use 'local' disk — always available in Laravel by default
-        $path = $this->storeWithOriginalName($file, "documents/{$request->user()->id}", 'local', 'document');
+        foreach ($request->file('documents') as $file) {
+            // Use 'local' disk — always available in Laravel by default
+            $path = $this->storeWithOriginalName($file, "documents/{$request->user()->id}", 'local', 'document');
 
-        $request->user()->documents()->create([
-            'file_name' => $file->getClientOriginalName(),
-            'file_path' => $path,
-            'file_type' => strtolower($file->getClientOriginalExtension()),
-            'file_size' => $file->getSize(),
-            'document_type' => $this->inferDocumentType($file->getClientOriginalName()),
-        ]);
+            $request->user()->documents()->create([
+                'file_name' => $file->getClientOriginalName(),
+                'file_path' => $path,
+                'file_type' => strtolower($file->getClientOriginalExtension()),
+                'file_size' => $file->getSize(),
+                'document_type' => $this->inferDocumentType($file->getClientOriginalName()),
+            ]);
+        }
 
         return redirect()
             ->route('settings.documents')
