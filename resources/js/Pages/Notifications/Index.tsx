@@ -283,52 +283,72 @@ export default function NotificationsIndex({ notifications }: Props) {
         (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '';
 
     async function apiPatch(url: string) {
-        return fetch(url, {
+        const res = await fetch(url, {
             method: 'PATCH',
             headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': csrf() },
             credentials: 'same-origin',
+            keepalive: true,
         });
+
+        return res.ok;
     }
     async function apiPost(url: string) {
-        return fetch(url, {
+        const res = await fetch(url, {
             method: 'POST',
             headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': csrf() },
             credentials: 'same-origin',
+            keepalive: true,
         });
+
+        return res.ok;
     }
     async function apiDelete(url: string) {
-        return fetch(url, {
+        const res = await fetch(url, {
             method: 'DELETE',
             headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': csrf() },
             credentials: 'same-origin',
+            keepalive: true,
         });
+
+        return res.ok;
     }
 
     const handleRead = async (id: string) => {
-        await apiPatch(safeRoute('notifications.read', { id }));
+        const ok = await apiPatch(safeRoute('notifications.read', { id }));
+        if (!ok) return;
         setItems(prev => prev.map(n => n.id === id ? { ...n, read_at: new Date().toISOString() } : n));
     };
 
     const handleUnread = async (id: string) => {
-        await apiPatch(safeRoute('notifications.unread', { id }));
+        const ok = await apiPatch(safeRoute('notifications.unread', { id }));
+        if (!ok) return;
         setItems(prev => prev.map(n => n.id === id ? { ...n, read_at: null } : n));
     };
 
     const handleDelete = async (id: string) => {
-        await apiDelete(safeRoute('notifications.destroy', { id }));
+        const ok = await apiDelete(safeRoute('notifications.destroy', { id }));
+        if (!ok) return;
         setItems(prev => prev.filter(n => n.id !== id));
     };
 
     const handleMarkAllRead = async () => {
         setProcessing(true);
-        await apiPost(safeRoute('notifications.mark-all-read'));
+        const ok = await apiPost(safeRoute('notifications.mark-all-read'));
+        if (!ok) {
+            setProcessing(false);
+            return;
+        }
         setItems(prev => prev.map(n => ({ ...n, read_at: new Date().toISOString() })));
         setProcessing(false);
     };
 
     const handleDeleteAll = async () => {
         setProcessing(true);
-        await apiDelete(safeRoute('notifications.destroy-all'));
+        const ok = await apiDelete(safeRoute('notifications.destroy-all'));
+        if (!ok) {
+            setProcessing(false);
+            return;
+        }
         setItems([]);
         setConfirm(null);
         setProcessing(false);

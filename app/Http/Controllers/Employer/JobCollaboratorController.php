@@ -76,7 +76,9 @@ class JobCollaboratorController extends Controller
             if ($existing->status === 'declined') {
                 // Re-invite: reset to pending
                 $existing->update(['status' => 'pending', 'accepted_at' => null]);
-                $invitee->notify(new CollaborationInviteNotification($existing, $job, $request->user()));
+                if ($job->status === 'active') {
+                    $invitee->notify(new CollaborationInviteNotification($existing, $job, $request->user()));
+                }
                 return back()->with('success', 'Invitation re-sent.');
             }
             return back()->with('info', 'This recruiter has already been invited.');
@@ -90,7 +92,9 @@ class JobCollaboratorController extends Controller
             'status'         => 'pending',
         ]);
 
-        $invitee->notify(new CollaborationInviteNotification($collaborator, $job, $request->user()));
+        if ($job->status === 'active') {
+            $invitee->notify(new CollaborationInviteNotification($collaborator, $job, $request->user()));
+        }
 
         return back()->with('success', 'Invitation sent successfully.');
     }
@@ -117,6 +121,8 @@ class JobCollaboratorController extends Controller
 
         $invitations = JobCollaborator::where('user_id', $user->id)
             ->where('status', 'pending')
+            ->whereHas('jobListing')
+            ->whereHas('inviter')
             ->with(['jobListing', 'inviter.employerProfile'])
             ->orderByDesc('created_at')
             ->get()

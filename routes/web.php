@@ -187,6 +187,7 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         // ── Job Listings ──────────────────────────────────────────────────
         Route::get('/jobs', [JobListingController::class, 'index'])->name('jobs.index');
         Route::get('/jobs/create', [JobListingController::class, 'create'])->name('jobs.create');
+        Route::post('/jobs/drafts', [JobListingController::class, 'createDraft'])->name('jobs.drafts.store');
         Route::post('/jobs', [JobListingController::class, 'store'])->name('jobs.store');
 
         // ⚠️  Invitations — static sub-paths must come BEFORE /{job} wildcard
