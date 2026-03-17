@@ -587,6 +587,55 @@ function NewMessageModal({ onClose, onStart }: {
 }
 
 /* ══════════════════════════════════════════════════════════
+   GROUP MEMBERS MODAL
+   ══════════════════════════════════════════════════════════ */
+function GroupMembersModal({ isOpen, onClose, participants }: {
+    isOpen: boolean; onClose: () => void; participants: any[];
+}) {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl shadow-xl w-full max-w-sm overflow-hidden flex flex-col max-h-[80vh]">
+                <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+                    <div>
+                        <h3 className="text-[15px] font-bold text-avaa-dark">Group Members</h3>
+                        <p className="text-[11px] text-avaa-muted">{participants.length} participants</p>
+                    </div>
+                    <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-avaa-muted transition-colors">
+                        <IcoClose />
+                    </button>
+                </div>
+                <div className="flex-1 overflow-y-auto py-2 custom-scrollbar">
+                    {participants.map(p => (
+                        <div key={p.id} className="flex items-center gap-3 px-6 py-3 hover:bg-gray-50 transition-colors">
+                            <Avatar src={p.avatar} initials={`${p.first_name[0]}${p.last_name[0]}`} size="md" />
+                            <div className="flex-1 min-w-0">
+                                <p className="text-[14px] font-semibold text-avaa-dark truncate">
+                                    {p.first_name} {p.last_name}
+                                </p>
+                                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full mt-0.5 inline-block
+                                    ${p.role === 'employer' ? 'bg-blue-50 text-blue-600' : 'bg-avaa-primary-light text-avaa-primary'}`}>
+                                    {p.role === 'job_seeker' ? 'Job Seeker' : 'Employer'}
+                                </span>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                <div className="px-6 py-4 border-t border-gray-100 flex-shrink-0">
+                    <button
+                        onClick={onClose}
+                        className="w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-avaa-dark text-[13.5px] font-semibold rounded-xl transition-colors"
+                    >
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+/* ══════════════════════════════════════════════════════════
    CONVERSATION ROW
 ══════════════════════════════════════════════════════════ */
 function ConvoRow({ convo, active, currentUserId, onClick }: {
@@ -674,8 +723,8 @@ function useToast() {
 /* ══════════════════════════════════════════════════════════
    CONTEXT MENU
 ══════════════════════════════════════════════════════════ */
-function ContextMenu({ onArchive, onUnarchive, onMute, onDelete, onDeleteGroup, onReport, onBlock, onClose, isMuted, isArchived, isGroup, isCreator, showToast }: {
-    onArchive: () => void; onUnarchive: () => void; onMute: () => void; onDelete: () => void; onDeleteGroup: () => void; onReport: () => void; onBlock: () => void;
+function ContextMenu({ onArchive, onUnarchive, onMute, onDelete, onDeleteGroup, onReport, onBlock, onViewMembers, onClose, isMuted, isArchived, isGroup, isCreator, showToast }: {
+    onArchive: () => void; onUnarchive: () => void; onMute: () => void; onDelete: () => void; onDeleteGroup: () => void; onReport: () => void; onBlock: () => void; onViewMembers: () => void;
     onClose: () => void; isMuted: boolean; isArchived: boolean; isGroup: boolean; isCreator: boolean; showToast: (msg: string) => void;
 }) {
     const ref = useRef<HTMLDivElement>(null);
@@ -696,6 +745,7 @@ function ContextMenu({ onArchive, onUnarchive, onMute, onDelete, onDeleteGroup, 
                 },
                 { icon: <IcoBlock />, label: 'Block', action: () => { onBlock(); onClose(); } },
                 { icon: <IcoFlag />, label: 'Report', action: () => { onReport(); onClose(); } },
+                ...(isGroup ? [{ icon: <IcoUsers />, label: 'View Members', action: () => { onViewMembers(); onClose(); } }] : []),
             ].map(item => (
                 <button key={item.label} onClick={item.action}
                     className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-avaa-text hover:bg-avaa-primary-light transition-colors">
@@ -998,6 +1048,7 @@ const [showBlockModal, setShowBlockModal] = useState(false);
     const [loadingConvo, setLoadingConvo] = useState(false);
     const [showNewMsg, setShowNewMsg] = useState(false);
     const [showNewGroup, setShowNewGroup] = useState(false);
+    const [showMembersModal, setShowMembersModal] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<UserResult[]>([]);
     const [searchLoading, setSearchLoading] = useState(false);
@@ -1558,6 +1609,15 @@ const [showBlockModal, setShowBlockModal] = useState(false);
                 />
             )}
 
+            {/* Group Members Modal */}
+            {activeConvo && activeConvo.type === 'group' && (
+                <GroupMembersModal
+                    isOpen={showMembersModal}
+                    onClose={() => setShowMembersModal(false)}
+                    participants={activeConvo.participants}
+                />
+            )}
+
             {/* Confirm Delete Group Modal */}
             {confirmDeleteGroup !== null && (
                 <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
@@ -1818,18 +1878,25 @@ const [showBlockModal, setShowBlockModal] = useState(false);
                                 <div className="flex-1 min-w-0">
                                     <p className="font-semibold text-[14px] text-avaa-dark truncate">{activeConvo.name}</p>
                                     {activeConvo.type === 'group' ? (
-                                        <p className="text-[11.5px] text-avaa-muted truncate mt-0.5">
-                                            <span className="text-avaa-primary font-medium">{activeConvo.participants.length} members</span>
-                                            <span className="mx-1">·</span>
-                                            {activeConvo.participants.slice(0, 3).map(p => p.first_name).join(', ')}
-                                            {activeConvo.participants.length > 3 && '...'}
-                                            {activeConvo.job_listing && (
-                                                <>
-                                                    <span className="mx-1">·</span>
-                                                    <span className="text-avaa-primary/80">{activeConvo.job_listing.title}</span>
-                                                </>
-                                            )}
-                                        </p>
+                                        <div className="mt-0.5 flex items-center gap-1.5">
+                                            <button 
+                                                onClick={() => setShowMembersModal(true)}
+                                                className="text-[11.5px] text-avaa-primary font-medium hover:underline cursor-pointer"
+                                            >
+                                                {activeConvo.participants.length} members
+                                            </button>
+                                            <span className="text-avaa-muted text-[11px]">·</span>
+                                            <p className="text-[11.5px] text-avaa-muted truncate">
+                                                {activeConvo.participants.slice(0, 3).map(p => p.first_name).join(', ')}
+                                                {activeConvo.participants.length > 3 && '...'}
+                                                {activeConvo.job_listing && (
+                                                    <>
+                                                        <span className="mx-1">·</span>
+                                                        <span className="text-avaa-primary/80">{activeConvo.job_listing.title}</span>
+                                                    </>
+                                                )}
+                                            </p>
+                                        </div>
                                     ) : (
                                         !activeConvo.is_blocked && !activeConvo.is_blocked_by_other ? (
                                             <p className="text-[11.5px] text-emerald-500 font-medium">● Online</p>
@@ -1857,6 +1924,7 @@ const [showBlockModal, setShowBlockModal] = useState(false);
                                             onDeleteGroup={() => setConfirmDeleteGroup(activeConvo.id)}
                                             onReport={handleReportUser}
                                             onBlock={() => setShowBlockModal(true)}
+                                            onViewMembers={() => setShowMembersModal(true)}
                                             onClose={() => setShowMenu(false)}
                                             isMuted={activeConvo.is_muted}
                                             isArchived={activeConvo.is_archived}
