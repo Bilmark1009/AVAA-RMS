@@ -23,6 +23,17 @@ interface Message {
     type: 'text' | 'file' | 'image' | 'system';
     attachment_url?: string | null;
     attachment_name?: string | null;
+    has_attachments?: boolean;
+    attachments?: Array<{
+        id: number;
+        file_url: string;
+        original_name: string;
+        mime_type: string;
+        file_size: number;
+        file_size_formatted: string;
+        is_image: boolean;
+        file_extension: string;
+    }>;
     created_at: string;
     sender: Sender;
 }
@@ -58,9 +69,88 @@ interface MessagingIndexPageProps extends PageProps {
     activeConversationId: number | null;
     initialMessages: Message[];
     activeConversation: ConversationSummary | null;
-auth: { user: any; session_id: string };
+    auth: { user: any; session_id: string };
     unreadNotificationsCount: number;
     [key: string]: any;
+}
+
+/* ══════════════════════════════════════════════════════════
+   ATTACHMENT COMPONENTS
+══════════════════════════════════════════════════════════ */
+
+interface AttachmentProps {
+    attachment: {
+        id: number;
+        file_url: string;
+        original_name: string;
+        mime_type: string;
+        file_size: number;
+        file_size_formatted: string;
+        is_image: boolean;
+        file_extension: string;
+    };
+    isOwn: boolean;
+    onImageClick?: (url: string, name: string) => void;
+    onFileClick?: (url: string, name: string) => void;
+}
+
+function AttachmentDisplay({ attachment, isOwn, onImageClick, onFileClick }: AttachmentProps) {
+    if (attachment.is_image) {
+        return (
+            <div className="mt-2">
+                <img 
+                    src={attachment.file_url} 
+                    alt={attachment.original_name} 
+                    className="max-w-[220px] rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
+                    onClick={() => onImageClick?.(attachment.file_url, attachment.original_name)}
+                />
+                <p className={`text-xs mt-1 ${isOwn ? 'text-white/70' : 'text-gray-500'}`}>
+                    {attachment.original_name} • {attachment.file_size_formatted}
+                </p>
+            </div>
+        );
+    }
+
+    return (
+        <button
+            onClick={() => onFileClick?.(attachment.file_url, attachment.original_name)}
+            className={`flex items-center gap-2 mt-2 underline underline-offset-2 ${isOwn ? 'text-white/90' : 'text-avaa-primary'} hover:opacity-80 transition-opacity`}
+        >
+            <IcoAttach />
+            <span className="text-sm">{attachment.original_name}</span>
+            <span className={`text-xs ${isOwn ? 'text-white/70' : 'text-gray-500'}`}>
+                • {attachment.file_size_formatted}
+            </span>
+        </button>
+    );
+}
+
+function AttachmentsList({ 
+    attachments, 
+    isOwn, 
+    onImageClick, 
+    onFileClick 
+}: { 
+    attachments: any[], 
+    isOwn: boolean, 
+    onImageClick?: (url: string, name: string) => void, 
+    onFileClick?: (url: string, name: string) => void 
+}) {
+    if (!attachments || attachments.length === 0) return null;
+
+    return (
+        <div className="mt-2 space-y-2">
+            {attachments.map((attachment) => (
+                <AttachmentDisplay
+                    key={attachment.id}
+                    attachment={attachment}
+                    isOwn={isOwn}
+                    onImageClick={onImageClick}
+                    onFileClick={onFileClick}
+                />
+            ))}
+        </div>
+    );
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -810,14 +900,15 @@ function Bubble({ msg, isOwn, showAvatar, onImageClick, onFileClick, onReport }:
                             ? 'bg-avaa-primary text-white rounded-br-sm'
                             : 'bg-white text-avaa-dark border border-gray-100 shadow-sm rounded-bl-sm'
                         }`}>
-                        {msg.type === 'image' && msg.attachment_url ? (
+                        {/* Legacy attachment handling for backward compatibility */}
+                        {msg.type === 'image' && msg.attachment_url && !msg.attachments?.length ? (
                             <img 
                                 src={msg.attachment_url} 
                                 alt="attachment" 
                                 className="max-w-[220px] rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
                                 onClick={() => onImageClick(msg.attachment_url!, msg.attachment_name || 'Image')}
                             />
-                        ) : msg.type === 'file' && msg.attachment_url ? (
+                        ) : msg.type === 'file' && msg.attachment_url && !msg.attachments?.length ? (
                             <button
                                 onClick={() => onFileClick(msg.attachment_url!, msg.attachment_name || 'File')}
                                 className={`flex items-center gap-2 underline underline-offset-2 ${isOwn ? 'text-white/90' : 'text-avaa-primary'} hover:opacity-80 transition-opacity`}
@@ -826,6 +917,14 @@ function Bubble({ msg, isOwn, showAvatar, onImageClick, onFileClick, onReport }:
                                 {msg.attachment_name ?? 'Download'}
                             </button>
                         ) : msg.body}
+                        
+                        {/* New multiple attachments handling */}
+                        <AttachmentsList 
+                            attachments={msg.attachments || []}
+                            isOwn={isOwn}
+                            onImageClick={onImageClick}
+                            onFileClick={onFileClick}
+                        />
                     </div>
                     {/* Flag button — only on others' messages */}
                     {!isOwn && onReport && (
@@ -1328,7 +1427,14 @@ const [showBlockModal, setShowBlockModal] = useState(false);
         try {
             const fd = new FormData();
             if (body.trim()) fd.append('body', body.trim());
-            if (fileRef.current?.files?.[0]) fd.append('attachment', fileRef.current.files[0]);
+            
+            // Handle multiple file attachments
+            if (fileRef.current?.files?.length) {
+                Array.from(fileRef.current.files).forEach((file, index) => {
+                    fd.append(`attachments[${index}]`, file);
+                });
+            }
+            
             const res = await axios.post(route('messages.send', activeConvo.id), fd, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
@@ -2016,10 +2122,18 @@ const [showBlockModal, setShowBlockModal] = useState(false);
                                             title="Attach file">
                                             <IcoAttach />
                                         </button>
-                                        <input ref={fileRef} type="file" className="hidden" accept="image/*,.pdf,.doc,.docx"
+                                        <input ref={fileRef} type="file" className="hidden" multiple accept="image/*,.pdf,.doc,.docx,.txt,.xlsx,.xls,.ppt,.pptx"
                                             onChange={() => {
-                                                const f = fileRef.current?.files?.[0];
-                                                if (f && !body.trim()) setBody(f.name);
+                                                const files = fileRef.current?.files;
+                                                if (files && files.length > 0) {
+                                                    if (!body.trim()) {
+                                                        if (files.length === 1) {
+                                                            setBody(files[0].name);
+                                                        } else {
+                                                            setBody(`${files.length} files attached`);
+                                                        }
+                                                    }
+                                                }
                                             }} />
                                         <textarea
                                             ref={textareaRef}
