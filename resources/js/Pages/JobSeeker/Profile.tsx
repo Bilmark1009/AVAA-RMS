@@ -46,6 +46,15 @@ interface WorkExperience {
     description?: string | null;
 }
 
+interface UserDocument {
+    id: number;
+    file_name: string;
+    file_type: string;
+    file_size_kb: number;
+    document_type: string;
+    uploaded_at?: string | null;
+}
+
 interface Props {
     user: {
         first_name: string;
@@ -58,6 +67,7 @@ interface Props {
     };
     profile: JobSeekerProfile | null;
     experiences: WorkExperience[];
+    documents?: UserDocument[];
 }
 
 /* ── Icons ── */
@@ -96,7 +106,7 @@ const IcoCert = () => (
 /* ══════════════════════════════════════════════
    MAIN PAGE — Figma-aligned read-only profile
 ══════════════════════════════════════════════ */
-export default function JobSeekerProfilePage({ user, profile, experiences }: Props) {
+export default function JobSeekerProfilePage({ user, profile, experiences, documents = [] }: Props) {
     const p = profile ?? ({} as JobSeekerProfile);
     const completeness = p.profile_completeness ?? 0;
     const location = [p.city, p.state, p.country].filter(Boolean).join(', ');
@@ -109,6 +119,17 @@ export default function JobSeekerProfilePage({ user, profile, experiences }: Pro
     };
     const dateRange = (exp: WorkExperience) =>
         `${formatDate(exp.start_date)} - ${exp.is_current ? 'Present' : exp.end_date ? formatDate(exp.end_date) : ''}`;
+    const formatUploadedAt = (value?: string | null) => {
+        if (!value) return 'Unknown date';
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return 'Unknown date';
+        return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    };
+    const certificationLabel = (value: string) => value.split('/').pop() || value;
+    const certificationLink = (value: string) =>
+        value.startsWith('/storage/') || value.startsWith('http://') || value.startsWith('https://')
+            ? value
+            : null;
 
     return (
         <AppLayout pageTitle="My Profile" pageSubtitle="Your professional presence" activeNav="Profile">
@@ -282,16 +303,27 @@ export default function JobSeekerProfilePage({ user, profile, experiences }: Pro
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 {p.certifications!.map((c, i) => (
                                     <div
-                                        key={i}
+                                        key={`${c}-${i}`}
                                         className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl"
                                     >
                                         <div className="w-9 h-9 rounded-xl bg-avaa-primary-light flex items-center justify-center text-avaa-teal flex-shrink-0">
                                             <IcoCert />
                                         </div>
                                         <div className="min-w-0">
-                                            <p className="text-sm font-medium text-avaa-dark truncate">
-                                                {c}
-                                            </p>
+                                            {certificationLink(c) ? (
+                                                <a
+                                                    href={certificationLink(c) ?? '#'}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="text-sm font-medium text-avaa-dark truncate hover:underline"
+                                                >
+                                                    {certificationLabel(c)}
+                                                </a>
+                                            ) : (
+                                                <p className="text-sm font-medium text-avaa-dark truncate">
+                                                    {certificationLabel(c)}
+                                                </p>
+                                            )}
                                         </div>
                                     </div>
                                 ))}
@@ -299,6 +331,40 @@ export default function JobSeekerProfilePage({ user, profile, experiences }: Pro
                         ) : (
                             <p className="text-sm text-gray-400 italic">
                                 No certificates added yet.
+                            </p>
+                        )}
+                    </div>
+
+                    {/* ── Documents ── */}
+                    <div className="bg-white rounded-2xl border border-gray-200 p-6">
+                        <h3 className="text-sm font-bold text-avaa-dark mb-4">Documents</h3>
+                        {documents.length > 0 ? (
+                            <div className="space-y-3">
+                                {documents.map((doc) => (
+                                    <div
+                                        key={doc.id}
+                                        className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5"
+                                    >
+                                        <div className="min-w-0">
+                                            <p className="text-sm font-medium text-avaa-dark truncate">{doc.file_name}</p>
+                                            <p className="text-xs text-avaa-muted mt-0.5">
+                                                {doc.document_type} • {doc.file_type} • {doc.file_size_kb} KB • {formatUploadedAt(doc.uploaded_at)}
+                                            </p>
+                                        </div>
+                                        <a
+                                            href={route('settings.documents.download', doc.id)}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="text-xs font-semibold text-avaa-teal hover:underline flex-shrink-0"
+                                        >
+                                            View
+                                        </a>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-sm text-gray-400 italic">
+                                No documents uploaded yet.
                             </p>
                         )}
                     </div>

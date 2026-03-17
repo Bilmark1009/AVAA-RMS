@@ -16,10 +16,15 @@ class Report extends Model
         'details',
         'evidence',
         'status',
+        'action_taken',
+        'action_by',
+        'action_at',
+        'action_note',
     ];
 
     protected $casts = [
         'evidence' => 'array',
+        'action_at' => 'datetime',
     ];
 
     /* ── Relationships ─────────────────────────────────────────────────── */
@@ -42,5 +47,10 @@ class Report extends Model
     public function message(): BelongsTo
     {
         return $this->belongsTo(Message::class);
+    }
+
+    public function actionBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'action_by');
     }
 }

@@ -64,6 +64,7 @@ Route::middleware(['auth'])->prefix('messages')->name('messages.')->group(functi
     Route::get('/report/{user}', [ReportController::class, 'create'])->name('report');
     Route::post('/report/{user}', [ReportController::class, 'store'])->name('report.store');
     Route::get('/archived-count', [ConversationController::class, 'archivedCount'])->name('archived-count');
+    Route::get('/unread-total', [ConversationController::class, 'unreadCount'])->name('unread-total');
 
     // ✅ ->missing() redirects to messages index instead of 404
     // when conversation is deleted and user reloads the old URL
@@ -124,6 +125,10 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         Route::delete('/{id}', [NotificationController::class, 'destroy'])->name('destroy');
     });
 
+    // Shared resume file endpoint (job seeker, employer, admin)
+    Route::get('/applications/{application}/resume', [JobApplicationController::class, 'resume'])
+        ->name('applications.resume');
+
     // ── Settings (shared across all roles) ───────────────────────────────────
     Route::prefix('settings')->name('settings.')->group(function () {
 
@@ -183,6 +188,7 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         // ── Job Listings ──────────────────────────────────────────────────
         Route::get('/jobs', [JobListingController::class, 'index'])->name('jobs.index');
         Route::get('/jobs/create', [JobListingController::class, 'create'])->name('jobs.create');
+        Route::post('/jobs/drafts', [JobListingController::class, 'createDraft'])->name('jobs.drafts.store');
         Route::post('/jobs', [JobListingController::class, 'store'])->name('jobs.store');
 
         // ⚠️  Invitations — static sub-paths must come BEFORE /{job} wildcard

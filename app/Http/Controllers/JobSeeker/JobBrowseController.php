@@ -97,7 +97,7 @@ class JobBrowseController extends Controller
         ]);
     }
 
-    public function show(JobListing $job)
+    public function show(Request $request, JobListing $job)
     {
         $user = Auth::user();
 
@@ -146,12 +146,15 @@ class JobBrowseController extends Controller
 
         $hiringTeam = collect($hiringTeamItems);
 
+        $source = $request->query('from') === 'saved' ? 'saved' : 'browse';
+
         return Inertia::render('JobSeeker/JobDetail', [
             'job'         => $this->shapeJob($job, $savedJobIds, $appliedJobIds, $applicationStatuses),
             'isSaved'     => in_array($job->id, $savedJobIds),
             'hasApplied'  => in_array($job->id, $appliedJobIds),
             'similarJobs' => $similarJobs,
             'hiringTeam'  => $hiringTeam->values(),
+            'source'      => $source,
         ]);
     }
 

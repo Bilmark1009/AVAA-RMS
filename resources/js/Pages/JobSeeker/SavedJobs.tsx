@@ -164,6 +164,16 @@ function FilterPill({ label, active, onClick }: { label: string; active: boolean
     );
 }
 
+/* ── Drawer Filter Section ── */
+function DrawerFilterSection({ title, children }: { title: string; children: React.ReactNode }) {
+    return (
+        <div>
+            <p className="text-xs font-bold text-avaa-dark uppercase tracking-wider mb-3">{title}</p>
+            {children}
+        </div>
+    );
+}
+
 /* ══════════════════════════════════════════════
    MAIN PAGE
 ══════════════════════════════════════════════ */
@@ -173,6 +183,7 @@ export default function SavedJobs({ user, savedJobs, filters, availableSkills, a
     const [selectedSkills, setSelectedSkills] = useState<string[]>(filters.skills ?? []);
     const [selectedCompanies, setSelectedCompanies] = useState<string[]>(filters.companies ?? []);
     const [jobs, setJobs] = useState<JobListing[]>(savedJobs);
+    const [drawerOpen, setDrawerOpen] = useState(false);
     const isFirstRender = useRef(true);
     const isFirstRenderSearch = useRef(true);
 
@@ -204,16 +215,120 @@ export default function SavedJobs({ user, savedJobs, filters, availableSkills, a
         });
     };
 
-    const handleView = (jobId: number) => router.visit(route('job-seeker.jobs.show', jobId));
+    const handleView = (jobId: number) =>
+        router.visit(route('job-seeker.jobs.show', { job: jobId, from: 'saved' }));
 
     const DATE_FILTERS = [
         { label: 'All Time', value: 'all' }, { label: 'Today', value: 'today' },
         { label: 'This Week', value: 'week' }, { label: 'This Month', value: 'month' },
     ];
 
+    const activeFilterCount =
+        (dateFilter !== 'all' ? 1 : 0) +
+        selectedSkills.length +
+        selectedCompanies.length;
+
     return (
         <AppLayout activeNav="Saved Jobs" pageTitle="Saved Jobs">
             <Head title="Saved Jobs" />
+
+            {/* ── Mobile Filter Drawer ── */}
+            {/* Backdrop */}
+            <div
+                className={`lg:hidden fixed inset-0 z-40 bg-black/40 backdrop-blur-sm transition-opacity duration-300 ${
+                    drawerOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+                }`}
+                onClick={() => setDrawerOpen(false)}
+            />
+            {/* Drawer panel */}
+            <div
+                className={`lg:hidden fixed top-0 left-0 z-50 h-full w-[85vw] max-w-xs bg-white shadow-2xl flex flex-col transition-transform duration-300 ease-in-out ${
+                    drawerOpen ? 'translate-x-0' : '-translate-x-full'
+                }`}
+            >
+                {/* Drawer header */}
+                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                    <div className="flex items-center gap-2">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-avaa-teal">
+                            <line x1="4" y1="6" x2="20" y2="6" />
+                            <line x1="8" y1="12" x2="20" y2="12" />
+                            <line x1="12" y1="18" x2="20" y2="18" />
+                        </svg>
+                        <span className="text-base font-bold text-avaa-dark">Filters</span>
+                        {activeFilterCount > 0 && (
+                            <span className="ml-1 px-2 py-0.5 bg-avaa-primary text-white text-xs font-bold rounded-full">
+                                {activeFilterCount}
+                            </span>
+                        )}
+                    </div>
+                    <button
+                        onClick={() => setDrawerOpen(false)}
+                        className="p-2 rounded-lg text-gray-400 hover:text-avaa-dark hover:bg-gray-100 transition-colors"
+                        aria-label="Close filters"
+                    >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                    </button>
+                </div>
+
+                {/* Drawer body */}
+                <div className="flex-1 overflow-y-auto px-5 py-5 space-y-6">
+                    {/* Date Posted */}
+                    <DrawerFilterSection title="Date Posted">
+                        <div className="flex flex-wrap gap-2">
+                            {DATE_FILTERS.map(f => (
+                                <FilterPill key={f.value} label={f.label} active={dateFilter === f.value}
+                                    onClick={() => setDateFilter(f.value)} />
+                            ))}
+                        </div>
+                    </DrawerFilterSection>
+
+                    {/* Skills */}
+                    {availableSkills.length > 0 && (
+                        <DrawerFilterSection title="Skills">
+                            <div className="flex flex-wrap gap-2">
+                                {availableSkills.map(s => (
+                                    <FilterPill key={s} label={s} active={selectedSkills.includes(s)}
+                                        onClick={() => setSelectedSkills(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])} />
+                                ))}
+                            </div>
+                        </DrawerFilterSection>
+                    )}
+
+                    {/* Company */}
+                    {availableCompanies.length > 0 && (
+                        <DrawerFilterSection title="Company">
+                            <div className="space-y-3">
+                                {availableCompanies.map(c => (
+                                    <label key={c} className="flex items-center gap-3 cursor-pointer group">
+                                        <input type="checkbox" checked={selectedCompanies.includes(c)}
+                                            onChange={() => setSelectedCompanies(prev => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c])}
+                                            className="w-4 h-4 rounded border-gray-300 accent-avaa-primary cursor-pointer" />
+                                        <span className="text-sm text-gray-600 group-hover:text-avaa-dark transition-colors">{c}</span>
+                                    </label>
+                                ))}
+                            </div>
+                        </DrawerFilterSection>
+                    )}
+                </div>
+
+                {/* Drawer footer */}
+                {activeFilterCount > 0 && (
+                    <div className="px-5 py-4 border-t border-gray-100">
+                        <button
+                            onClick={() => {
+                                setDateFilter('all');
+                                setSelectedSkills([]);
+                                setSelectedCompanies([]);
+                            }}
+                            className="w-full py-2.5 text-sm font-semibold text-avaa-teal border border-avaa-primary/30 rounded-xl hover:bg-avaa-primary-light transition-colors"
+                        >
+                            Clear All Filters
+                        </button>
+                    </div>
+                )}
+            </div>
 
             {/* Page heading */}
             <div className="mb-6 sm:mb-8">
@@ -221,9 +336,10 @@ export default function SavedJobs({ user, savedJobs, filters, availableSkills, a
                 <p className="text-sm sm:text-base text-avaa-muted mt-2">Browse the jobs you've saved.</p>
             </div>
 
-            {/* Mobile search + date filters (visible when sidebar hidden) */}
-            <div className="lg:hidden mb-6 space-y-4">
-                <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 h-11 shadow-sm focus-within:ring-2 focus-within:ring-avaa-primary/20 focus-within:border-avaa-primary transition-all">
+            {/* ── Mobile top bar: search + filter trigger (hidden on lg+) ── */}
+            <div className="lg:hidden mb-5 flex items-center gap-3">
+                {/* Search */}
+                <div className="flex-1 flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 h-11 shadow-sm focus-within:ring-2 focus-within:ring-avaa-primary/20 focus-within:border-avaa-primary transition-all">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-gray-400 flex-shrink-0">
                         <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
                     </svg>
@@ -237,63 +353,24 @@ export default function SavedJobs({ user, savedJobs, filters, availableSkills, a
                         </button>
                     )}
                 </div>
-                <div>
-                    <p className="text-xs font-bold text-avaa-dark mb-2">Date Posted</p>
-                    <div className="flex flex-wrap gap-2">
-                        {DATE_FILTERS.map(f => (
-                            <FilterPill key={f.value} label={f.label} active={dateFilter === f.value} onClick={() => setDateFilter(f.value)} />
-                        ))}
-                    </div>
-                </div>
-
-                {/* Skills + Company filters on mobile (so they don't disappear) */}
-                {(availableSkills.length > 0 || availableCompanies.length > 0) && (
-                    <details className="bg-white border border-gray-200 rounded-2xl p-4">
-                        <summary className="cursor-pointer select-none text-sm font-bold text-avaa-dark flex items-center justify-between">
-                            Filters
-                            <span className="text-gray-400 text-xs font-semibold">Skills / Company</span>
-                        </summary>
-
-                        <div className="pt-4 space-y-5">
-                            {availableSkills.length > 0 && (
-                                <div>
-                                    <p className="text-xs font-bold text-avaa-dark mb-2">Skills</p>
-                                    <div className="flex flex-wrap gap-2">
-                                        {availableSkills.map(s => (
-                                            <FilterPill
-                                                key={s}
-                                                label={s}
-                                                active={selectedSkills.includes(s)}
-                                                onClick={() => setSelectedSkills(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])}
-                                            />
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {availableCompanies.length > 0 && (
-                                <div>
-                                    <p className="text-xs font-bold text-avaa-dark mb-2">Company</p>
-                                    <div className="space-y-3">
-                                        {availableCompanies.map(c => (
-                                            <label key={c} className="flex items-center gap-3 cursor-pointer group">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedCompanies.includes(c)}
-                                                    onChange={() => setSelectedCompanies(prev => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c])}
-                                                    className="w-4 h-4 rounded border-gray-300 accent-avaa-primary cursor-pointer"
-                                                />
-                                                <span className="text-sm text-gray-600 group-hover:text-avaa-dark transition-colors">
-                                                    {c}
-                                                </span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </details>
-                )}
+                {/* Filter drawer trigger */}
+                <button
+                    onClick={() => setDrawerOpen(true)}
+                    className="relative flex-shrink-0 flex items-center gap-2 px-4 h-11 bg-white border border-gray-200 rounded-xl shadow-sm text-sm font-semibold text-gray-700 hover:border-avaa-primary/40 hover:text-avaa-teal transition-colors"
+                    aria-label="Open filters"
+                >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="4" y1="6" x2="20" y2="6" />
+                        <line x1="8" y1="12" x2="20" y2="12" />
+                        <line x1="12" y1="18" x2="20" y2="18" />
+                    </svg>
+                    Filters
+                    {activeFilterCount > 0 && (
+                        <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-avaa-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                            {activeFilterCount}
+                        </span>
+                    )}
+                </button>
             </div>
 
             <div className="flex gap-8 min-w-0 overflow-x-hidden">

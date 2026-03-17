@@ -14,6 +14,7 @@ class Conversation extends Model
         'type',
         'job_listing_id',
         'name',
+        'created_by',
         'last_message_at',
     ];
 
@@ -22,6 +23,11 @@ class Conversation extends Model
     ];
 
     /* ── Relationships ─────────────────────────────────────────────────── */
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
 
     public function jobListing(): BelongsTo
     {

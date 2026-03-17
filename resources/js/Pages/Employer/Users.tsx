@@ -86,6 +86,8 @@ function ApplicantModal({ employee, onClose }: { employee: Employee; onClose: ()
     const initials = getInitials(u.first_name, u.last_name);
     const resumePath = (employee.resume_path) ?? (u.profile?.resume_path) ?? (ad?.existing_resume);
     const resumeName = resumePath ? resumePath.split('/').pop() : null;
+    const resumeViewUrl = resumePath ? route('applications.resume', { application: employee.id }) : null;
+    const resumeDownloadUrl = resumePath ? `${route('applications.resume', { application: employee.id })}?download=1` : null;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -167,7 +169,10 @@ function ApplicantModal({ employee, onClose }: { employee: Employee; onClose: ()
                             <div className="flex items-center gap-3 border border-gray-200 rounded-xl p-3">
                                 <div className="w-9 h-9 rounded-xl bg-avaa-primary-light text-avaa-teal flex items-center justify-center flex-shrink-0"><IcoFile /></div>
                                 <div className="flex-1 min-w-0"><p className="text-sm font-medium text-avaa-dark truncate">{(resumeName) ?? 'Resume'}</p></div>
-                                <a href={resumePath} target="_blank" rel="noreferrer" className="text-gray-400 hover:text-avaa-teal transition-colors p-1"><IcoEye /></a>
+                                <div className="flex items-center gap-3">
+                                    <a href={resumeViewUrl ?? '#'} target="_blank" rel="noreferrer" className="text-gray-400 hover:text-avaa-teal transition-colors p-1"><IcoEye /></a>
+                                    <a href={resumeDownloadUrl ?? '#'} className="text-xs font-medium text-avaa-dark hover:text-avaa-teal hover:underline">Download</a>
+                                </div>
                             </div>
                         ) : (
                             <p className="text-sm text-gray-400 italic">No resume attached.</p>

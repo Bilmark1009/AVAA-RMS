@@ -14,8 +14,11 @@ use App\Notifications\ApplicationRejectedNotification;
 use App\Notifications\InterviewScheduledNotification;
 use App\Notifications\NewApplicationNotification;
 use App\Notifications\AdminNewJobPostedNotification;
+use App\Notifications\CollaborationInviteNotification;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -39,7 +42,7 @@ class JobListingController extends Controller
                 'company'            => $job->company_name ?? $user->employerProfile?->company_name ?? "{$user->first_name} {$user->last_name}",
                 'status'             => $job->status,
                 'applications_count' => $job->applications_count,
-                'posted_date'        => $job->created_at->toDateString(),
+                'posted_date'        => $job->created_at->toISOString(),
                 'description'        => $job->description,
                 'responsibilities'   => $this->splitList($job->responsibilities),
                 'qualifications'     => $this->splitList($job->qualifications),
@@ -84,6 +87,8 @@ class JobListingController extends Controller
         // Pending invitation count
         $pendingInvitationsCount = JobCollaborator::where('user_id', $user->id)
             ->where('status', 'pending')
+            ->whereHas('jobListing')
+            ->whereHas('inviter')
             ->count();
 
         return Inertia::render('Employer/ManageJobs', [
@@ -111,6 +116,30 @@ class JobListingController extends Controller
     }
 
     /**
+     * Create a lightweight draft job so collaborators can be invited before final submit.
+     */
+    public function createDraft(Request $request): JsonResponse
+    {
+        $user = $request->user()->load('employerProfile');
+
+        $job = JobListing::create($this->persistableJobAttributes([
+            'employer_id'        => $user->id,
+            'title'              => 'Untitled Job',
+            'company_name'       => $user->employerProfile?->company_name ?? "{$user->first_name} {$user->last_name}",
+            'location'           => 'To be updated',
+            'description'        => 'Draft job listing. Complete details before publishing.',
+            'employment_type'    => 'Full-time',
+            'salary_currency'    => 'USD',
+            'is_remote'          => false,
+            'status'             => 'draft',
+        ]));
+
+        return response()->json([
+            'id' => $job->id,
+        ]);
+    }
+
+    /**
      * Store a new job listing.
      */
     public function store(Request $request): RedirectResponse
@@ -130,7 +159,7 @@ class JobListingController extends Controller
             'screener_questions.*'=> 'string|max:500',
             'project_timeline'    => 'nullable|string|max:10000',
             'onboarding_process'  => 'nullable|string|max:10000',
-            'logo'                => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'logo'                => 'nullable|image|max:5120',
             'employment_type'     => 'required|string',
             'salary_min'          => 'nullable|numeric|min:0',
             'salary_max'          => 'nullable|numeric|min:0|gte:salary_min',
@@ -140,7 +169,7 @@ class JobListingController extends Controller
             'experience_level'    => 'nullable|string',
             'industry'            => 'nullable|string',
             'is_remote'           => 'boolean',
-            'deadline'            => 'nullable|date|after:today',
+            'deadline'            => 'nullable|date',
             'status'              => 'nullable|in:active,inactive,draft',
             'application_limit'   => 'nullable|integer|min:1',
             'work_arrangement'    => 'nullable|string|max:100',
@@ -152,7 +181,7 @@ class JobListingController extends Controller
             $logoPath   = '/storage/' . $storedPath;
         }
 
-        $job = JobListing::create([
+        $job = JobListing::create($this->persistableJobAttributes([
             'employer_id'        => $request->user()->id,
             'title'              => $request->title,
             'company_name'       => $request->input('company'),
@@ -177,7 +206,7 @@ class JobListingController extends Controller
             'status'             => $request->status ?? 'active',
             'application_limit'  => $request->application_limit,
             'work_arrangement'   => $request->input('work_arrangement'),
-        ]);
+        ]));
 
         // Notify all admins about the new job posting
         $employer = $request->user();
@@ -236,7 +265,7 @@ class JobListingController extends Controller
                 'location'           => $job->location,
                 'status'             => $job->status,
                 'applications_count' => $job->applications()->count(),
-                'posted_date'        => $job->created_at->toDateTimeString(),
+                'posted_date'        => $job->created_at->toISOString(),
                 'description'        => $job->description,
                 'responsibilities'   => $this->splitList($job->responsibilities),
                 'qualifications'     => $this->splitList($job->qualifications),
@@ -266,8 +295,7 @@ class JobListingController extends Controller
      */
     public function edit(Request $request, JobListing $job): Response
     {
-        // Only the owner can edit the job settings (not collaborators)
-        abort_if($job->employer_id !== $request->user()->id, 403, 'Only the job owner can edit this listing.');
+        $this->authorizeJob($request, $job);
 
         $user        = $request->user()->load('employerProfile');
         $companyName = $user->employerProfile?->company_name ?? "{$user->first_name} {$user->last_name}";
@@ -327,6 +355,7 @@ class JobListingController extends Controller
     public function update(Request $request, JobListing $job): RedirectResponse
     {
         $this->authorizeJob($request, $job);
+        $wasDraft = $job->status === 'draft';
 
         $request->validate([
             'title'               => 'required|string|max:255',
@@ -343,7 +372,7 @@ class JobListingController extends Controller
             'screener_questions.*'=> 'string|max:500',
             'project_timeline'    => 'nullable|string|max:10000',
             'onboarding_process'  => 'nullable|string|max:10000',
-            'logo'                => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'logo'                => 'nullable|image|max:5120',
             'employment_type'     => 'required|string',
             'salary_min'          => 'nullable|numeric|min:0',
             'salary_max'          => 'nullable|numeric|min:0|gte:salary_min',
@@ -370,7 +399,7 @@ class JobListingController extends Controller
             $logoPath   = '/storage/' . $storedPath;
         }
 
-        $job->update([
+        $job->update($this->persistableJobAttributes([
             'title'              => $request->title,
             'company_name'       => $request->input('company'),
             'location'           => $request->location,
@@ -394,7 +423,11 @@ class JobListingController extends Controller
             'status'             => $request->status ?? $job->status,
             'application_limit'  => $request->application_limit,
             'work_arrangement'   => $request->input('work_arrangement'),
-        ]);
+        ]));
+
+        if ($wasDraft && $job->status === 'active') {
+            $this->notifyPendingCollaboratorsForPostedJob($job, $request->user());
+        }
 
         return redirect()->route('employer.jobs.show', $job->id)
             ->with('success', 'Job listing updated successfully!');
@@ -406,9 +439,14 @@ class JobListingController extends Controller
     public function updateStatus(Request $request, JobListing $job): RedirectResponse
     {
         $this->authorizeJob($request, $job);
+        $wasDraft = $job->status === 'draft';
 
         $request->validate(['status' => 'required|in:active,inactive,draft']);
         $job->update(['status' => $request->status]);
+
+        if ($wasDraft && $job->status === 'active') {
+            $this->notifyPendingCollaboratorsForPostedJob($job, $request->user());
+        }
 
         return back()->with('success', 'Job status updated.');
     }
@@ -522,7 +560,7 @@ class JobListingController extends Controller
                 'company'         => $companyName,
                 'location'        => $job->location,
                 'employment_type' => $job->employment_type,
-                'posted_date'     => $job->created_at->toDateString(),
+                'posted_date'     => $job->created_at->toISOString(),
             ],
             'applications'    => $applications,
             'employerAddress' => $employerAddress ?: null,
@@ -709,5 +747,40 @@ class JobListingController extends Controller
         }
 
         return [];
+    }
+
+    /**
+     * Keep writes compatible with environments that may not have all latest
+     * job_listings columns migrated yet.
+     */
+    private function persistableJobAttributes(array $attributes): array
+    {
+        static $columns = null;
+
+        if ($columns === null) {
+            $columns = Schema::getColumnListing((new JobListing())->getTable());
+        }
+
+        return array_intersect_key($attributes, array_flip($columns));
+    }
+
+    /**
+     * Send collaboration notifications for pending invites once a draft job is posted.
+     */
+    private function notifyPendingCollaboratorsForPostedJob(JobListing $job, User $actor): void
+    {
+        $pendingCollaborators = $job->collaborators()
+            ->where('status', 'pending')
+            ->with(['user', 'inviter'])
+            ->get();
+
+        foreach ($pendingCollaborators as $collaborator) {
+            if (!$collaborator->user) {
+                continue;
+            }
+
+            $inviter = $collaborator->inviter ?? $actor;
+            $collaborator->user->notify(new CollaborationInviteNotification($collaborator, $job, $inviter));
+        }
     }
 }

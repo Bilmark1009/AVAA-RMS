@@ -78,12 +78,12 @@ function passwordStrength(pw: string): { score: number; label: string; color: st
 /* ── Tab component ── */
 function TabBar({ tabs, active, onChange }: { tabs: string[]; active: number; onChange: (i: number) => void }) {
     return (
-        <div className="flex gap-1 border-b border-gray-200 mb-6">
+        <div className="flex gap-1 border-b border-gray-200 mb-6 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {tabs.map((tab, i) => (
                 <button
                     key={tab}
                     onClick={() => onChange(i)}
-                    className={`px-4 py-2.5 text-base font-semibold transition-colors relative
+                    className={`shrink-0 whitespace-nowrap px-3 sm:px-4 py-2.5 text-sm sm:text-base font-semibold transition-colors relative
                         ${active === i
                             ? 'text-avaa-teal'
                             : 'text-avaa-muted hover:text-avaa-dark'
@@ -119,12 +119,13 @@ interface Props extends PageProps {
         login_alert_email: boolean;
         login_alert_push: boolean;
     };
+    blockedUsers?: any[];
 }
 
 /* ══════════════════════════════════════════════
    PAGE
 ══════════════════════════════════════════════ */
-export default function EmployerSettings({ user, profile, security }: Props) {
+export default function EmployerSettings({ user, profile, security, blockedUsers }: Props) {
     const [activeTab, setActiveTab] = useState(0);
 
     /* ── Personal info form ── */
@@ -581,7 +582,7 @@ export default function EmployerSettings({ user, profile, security }: Props) {
 
                     {/* ═══ TAB 2: Blocked Users ═══ */}
                     {activeTab === 2 && (
-                        <EmployerBlockedUsers auth={{ user }} />
+                        <EmployerBlockedUsers auth={{ user }} blockedUsers={blockedUsers} />
                     )}
 
                 </div>
