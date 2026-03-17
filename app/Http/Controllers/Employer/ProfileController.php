@@ -140,7 +140,7 @@ class ProfileController extends Controller
     public function uploadAvatar(Request $request): RedirectResponse
     {
         $request->validate([
-            'avatar' => ['required', 'image', 'mimes:jpg,jpeg,png,webp,gif', 'max:5120'],
+            'avatar' => ['required', 'image', 'max:5120'],
         ]);
 
         $user = $request->user();
@@ -189,7 +189,7 @@ class ProfileController extends Controller
             'industry' => 'required|string',
             'company_size' => 'required|string',
             'company_description' => 'required|string|min:50',
-            'logo' => 'nullable|image|mimes:jpeg,png,jpg,svg|max:2048',
+            'logo' => 'nullable|image|max:2048',
             'headquarters_address' => 'required|string|max:255',
             'city' => 'required|string|max:100',
             'state' => 'required|string|max:100',
