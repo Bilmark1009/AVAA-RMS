@@ -178,7 +178,7 @@ export default function Profile({ user, profile }: Props) {
                     <div className="bg-white rounded-2xl border border-gray-200 p-6">
                         <h3 className="text-base font-bold text-avaa-dark mb-3">About</h3>
                         {p?.company_description ? (
-                            <p className="text-base text-avaa-muted leading-relaxed whitespace-pre-line">
+                            <p className="text-base text-avaa-muted leading-relaxed whitespace-pre-line break-words [overflow-wrap:anywhere]">
                                 {p.company_description}
                             </p>
                         ) : (
@@ -191,7 +191,7 @@ export default function Profile({ user, profile }: Props) {
                     {/* ── Personal Information ── */}
                     <div className="bg-white rounded-2xl border border-gray-200 p-6">
                         <h3 className="text-base font-bold text-avaa-dark mb-4">Personal Information</h3>
-                        <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
                             <div>
                                 <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">First Name</p>
                                 <p className="text-base text-avaa-dark mt-0.5">{user.first_name}</p>
@@ -213,19 +213,19 @@ export default function Profile({ user, profile }: Props) {
                             </div>
                             <div>
                                 <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Email Address</p>
-                                <div className="flex items-center gap-2 mt-0.5">
-                                    <p className="text-base text-avaa-dark">{user.email}</p>
+                                <div className="flex items-center gap-2 mt-0.5 min-w-0">
+                                    <p className="text-base text-avaa-dark break-words [overflow-wrap:anywhere] min-w-0">{user.email}</p>
                                     {user.email_verified_at && (
-                                        <span className="text-[10px] font-semibold text-avaa-teal">Verified</span>
+                                        <span className="text-[10px] font-semibold text-avaa-teal flex-shrink-0">Verified</span>
                                     )}
                                 </div>
                             </div>
                             <div>
                                 <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Phone Number</p>
-                                <div className="flex items-center gap-2 mt-0.5">
-                                    <p className="text-base text-avaa-dark">{user.phone ?? '—'}</p>
+                                <div className="flex items-center gap-2 mt-0.5 min-w-0">
+                                    <p className="text-base text-avaa-dark break-words [overflow-wrap:anywhere] min-w-0">{user.phone ?? '—'}</p>
                                     {user.phone && (
-                                        <span className="text-[10px] font-semibold text-avaa-teal">Verified</span>
+                                        <span className="text-[10px] font-semibold text-avaa-teal flex-shrink-0">Verified</span>
                                     )}
                                 </div>
                             </div>
@@ -236,18 +236,18 @@ export default function Profile({ user, profile }: Props) {
                     {p && (
                         <div className="bg-white rounded-2xl border border-gray-200 p-6">
                             <h3 className="text-base font-bold text-avaa-dark mb-4">Company Details</h3>
-                            <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
                                 <div>
                                     <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Company Name</p>
-                                    <p className="text-base text-avaa-dark mt-0.5">{p.company_name}</p>
+                                    <p className="text-base text-avaa-dark mt-0.5 break-words [overflow-wrap:anywhere]">{p.company_name}</p>
                                 </div>
                                 <div>
                                     <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Industry</p>
-                                    <p className="text-base text-avaa-dark mt-0.5">{p.industry}</p>
+                                    <p className="text-base text-avaa-dark mt-0.5 break-words [overflow-wrap:anywhere]">{p.industry}</p>
                                 </div>
                                 <div>
                                     <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Company Size</p>
-                                    <p className="text-base text-avaa-dark mt-0.5">{p.company_size}</p>
+                                    <p className="text-base text-avaa-dark mt-0.5 break-words [overflow-wrap:anywhere]">{p.company_size}</p>
                                 </div>
                                 <div>
                                     <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Year Established</p>
@@ -255,9 +255,11 @@ export default function Profile({ user, profile }: Props) {
                                 </div>
                                 <div className="col-span-2">
                                     <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Headquarters</p>
-                                    <p className="text-base text-avaa-dark mt-0.5 flex items-center gap-1.5">
-                                        <IcoMapPin />
-                                        {p.headquarters_address}, {p.city}, {p.state} {p.postal_code}, {p.country}
+                                    <p className="text-base text-avaa-dark mt-0.5 flex items-start gap-1.5 min-w-0">
+                                        <span className="flex-shrink-0 mt-0.5"><IcoMapPin /></span>
+                                        <span className="min-w-0 break-words [overflow-wrap:anywhere]">
+                                            {p.headquarters_address}, {p.city}, {p.state} {p.postal_code}, {p.country}
+                                        </span>
                                     </p>
                                 </div>
                             </div>
@@ -271,32 +273,37 @@ export default function Profile({ user, profile }: Props) {
                             <div className="space-y-2">
                                 {p?.company_website && (
                                     <a href={p.company_website} target="_blank" rel="noreferrer"
-                                        className="flex items-center gap-2 text-base text-avaa-teal hover:underline">
-                                        <IcoGlobe /> {p.company_website}
+                                        className="flex items-start gap-2 text-base text-avaa-teal hover:underline min-w-0">
+                                        <span className="flex-shrink-0 mt-0.5"><IcoGlobe /></span>
+                                        <span className="min-w-0 break-words [overflow-wrap:anywhere]">{p.company_website}</span>
                                     </a>
                                 )}
                                 {p?.linkedin_url && (
                                     <a href={p.linkedin_url} target="_blank" rel="noreferrer"
-                                        className="flex items-center gap-2 text-sm text-avaa-teal hover:underline">
-                                        <IcoLinkedIn /> {p.linkedin_url}
+                                        className="flex items-start gap-2 text-sm text-avaa-teal hover:underline min-w-0">
+                                        <span className="flex-shrink-0 mt-0.5"><IcoLinkedIn /></span>
+                                        <span className="min-w-0 break-words [overflow-wrap:anywhere]">{p.linkedin_url}</span>
                                     </a>
                                 )}
                                 {p?.facebook_url && (
                                     <a href={p.facebook_url} target="_blank" rel="noreferrer"
-                                        className="flex items-center gap-2 text-sm text-avaa-teal hover:underline">
-                                        <IcoLink /> {p.facebook_url}
+                                        className="flex items-start gap-2 text-sm text-avaa-teal hover:underline min-w-0">
+                                        <span className="flex-shrink-0 mt-0.5"><IcoLink /></span>
+                                        <span className="min-w-0 break-words [overflow-wrap:anywhere]">{p.facebook_url}</span>
                                     </a>
                                 )}
                                 {p?.twitter_url && (
                                     <a href={p.twitter_url} target="_blank" rel="noreferrer"
-                                        className="flex items-center gap-2 text-sm text-avaa-teal hover:underline">
-                                        <IcoLink /> {p.twitter_url}
+                                        className="flex items-start gap-2 text-sm text-avaa-teal hover:underline min-w-0">
+                                        <span className="flex-shrink-0 mt-0.5"><IcoLink /></span>
+                                        <span className="min-w-0 break-words [overflow-wrap:anywhere]">{p.twitter_url}</span>
                                     </a>
                                 )}
                                 {p?.instagram_url && (
                                     <a href={p.instagram_url} target="_blank" rel="noreferrer"
-                                        className="flex items-center gap-2 text-sm text-avaa-teal hover:underline">
-                                        <IcoLink /> {p.instagram_url}
+                                        className="flex items-start gap-2 text-sm text-avaa-teal hover:underline min-w-0">
+                                        <span className="flex-shrink-0 mt-0.5"><IcoLink /></span>
+                                        <span className="min-w-0 break-words [overflow-wrap:anywhere]">{p.instagram_url}</span>
                                     </a>
                                 )}
                             </div>

@@ -85,6 +85,11 @@ const STATUS_OPTIONS = ['active', 'inactive', 'draft'] as const;
 const inp = "w-full rounded-xl border border-gray-200 bg-gray-50 text-gray-800 text-sm px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#6D9886] focus:border-transparent transition-all placeholder-gray-400";
 const lbl = "block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide";
 
+function FieldError({ message, className = '' }: { message?: string; className?: string }) {
+    if (!message) return null;
+    return <p className={`text-xs text-red-500 mt-1 ${className}`}>{message}</p>;
+}
+
 const TABS = [
     {
         label: 'Job Details',
@@ -306,13 +311,50 @@ export default function CreateJob({ user, profile, companyName, mode = 'create',
         setLogoPreview(null);
     };
 
+    const getError = (key: string) => (errors as any)?.[key] as string | undefined;
+    const getGroupError = (prefix: string) => {
+        const k = Object.keys(errors ?? {}).find(x => x === prefix || x.startsWith(prefix + '.'));
+        return k ? (errors as any)[k] as string : undefined;
+    };
+
     const validate = () => {
         const e: Record<string, string> = {};
         if (!form.title.trim())       e.title           = 'Job title is required.';
         if (!form.location.trim())    e.location        = 'Location is required.';
         if (!form.description.trim()) e.description     = 'Description is required.';
         if (!form.employment_type)    e.employment_type = 'Employment type is required.';
+        if (form.salary_min && Number.isNaN(Number(form.salary_min))) e.salary_min = 'Salary min must be a number.';
+        if (form.salary_max && Number.isNaN(Number(form.salary_max))) e.salary_max = 'Salary max must be a number.';
+        if (form.salary_min && form.salary_max) {
+            const min = Number(form.salary_min);
+            const max = Number(form.salary_max);
+            if (!Number.isNaN(min) && !Number.isNaN(max) && max < min) e.salary_max = 'Salary max must be greater than or equal to salary min.';
+        }
+        if (form.deadline) {
+            const d = new Date(form.deadline + 'T00:00:00');
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            if (Number.isNaN(d.getTime())) e.deadline = 'Expiry date is invalid.';
+            else if (d <= today) e.deadline = 'Expiry date must be in the future.';
+        }
         return e;
+    };
+
+    const validateStep = (step: number) => {
+        const all = validate();
+        // Only block navigation for required fields on the current step.
+        // Step 0: Job Details
+        if (step === 0) {
+            const keys = ['title', 'location', 'employment_type', 'salary_min', 'salary_max'] as const;
+            return Object.fromEntries(Object.entries(all).filter(([k]) => (keys as readonly string[]).includes(k)));
+        }
+        // Step 1: Description
+        if (step === 1) {
+            const keys = ['description'] as const;
+            return Object.fromEntries(Object.entries(all).filter(([k]) => (keys as readonly string[]).includes(k)));
+        }
+        // Other steps currently have no required fields
+        return {};
     };
 
     const handleSubmit = () => {
@@ -441,6 +483,12 @@ export default function CreateJob({ user, profile, companyName, mode = 'create',
 
                         {/* Tab Content — scrollbar is inside this div */}
                         <div className="flex-1 overflow-y-auto p-4 sm:p-6 min-w-0 min-h-0">
+                            {Object.keys(errors ?? {}).length > 0 && (
+                                <div className="mb-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3">
+                                    <p className="text-sm font-semibold text-red-700">Please fix the highlighted fields below.</p>
+                                    <p className="text-xs text-red-600 mt-0.5">Fields with errors will show a message under the input.</p>
+                                </div>
+                            )}
                             {/* ── Tab 0: Job Details ── */}
                             {tab === 0 && (
                                 <div className="space-y-4">
@@ -454,17 +502,18 @@ export default function CreateJob({ user, profile, companyName, mode = 'create',
                                     <div>
                                         <label className={lbl}>Job Title *</label>
                                         <input value={form.title} onChange={e => set('title', e.target.value)} className={inp} placeholder="e.g. Senior Frontend Developer" />
-                                        {errors.title && <p className="text-xs text-red-500 mt-1">{errors.title}</p>}
+                                        <FieldError message={getError('title')} />
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         <div>
                                             <label className={lbl}>Company</label>
                                             <input value={form.company} onChange={e => set('company', e.target.value)} className={inp} placeholder="Company name" />
+                                            <FieldError message={getError('company')} />
                                         </div>
                                         <div>
                                             <label className={lbl}>Location *</label>
                                             <input value={form.location} onChange={e => set('location', e.target.value)} className={inp} placeholder="e.g. Manila, PH" />
-                                            {errors.location && <p className="text-xs text-red-500 mt-1">{errors.location}</p>}
+                                            <FieldError message={getError('location')} />
                                         </div>
                                     </div>
 
@@ -480,6 +529,7 @@ export default function CreateJob({ user, profile, companyName, mode = 'create',
                                                 <input value={form.salary_max} onChange={e => set('salary_max', e.target.value)} type="number" className={`${inp} flex-1 min-w-0`} placeholder="Max" min="0"/>
                                             </div>
                                         </div>
+                                        <FieldError message={getError('salary_min') ?? getError('salary_max')} />
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         <div>
@@ -488,7 +538,7 @@ export default function CreateJob({ user, profile, companyName, mode = 'create',
                                                 <option value="">Select type</option>
                                                 {EMPLOYMENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                                             </select>
-                                            {errors.employment_type && <p className="text-xs text-red-500 mt-1">{errors.employment_type}</p>}
+                                            <FieldError message={getError('employment_type')} />
                                         </div>
                                         <div>
                                             <label className={lbl}>Work Arrangement</label>
@@ -496,6 +546,7 @@ export default function CreateJob({ user, profile, companyName, mode = 'create',
                                                 <option value="">Select</option>
                                                 {WORK_ARRANGEMENTS.map(w => <option key={w} value={w}>{w}</option>)}
                                             </select>
+                                            <FieldError message={getError('work_arrangement')} />
                                         </div>
                                     </div>
 
@@ -505,6 +556,7 @@ export default function CreateJob({ user, profile, companyName, mode = 'create',
                                             <option value="">Select level</option>
                                             {EXPERIENCE_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
                                         </select>
+                                        <FieldError message={getError('experience_level')} />
                                     </div>
 
                                     {/* Skills */}
@@ -538,6 +590,7 @@ export default function CreateJob({ user, profile, companyName, mode = 'create',
                                                 ))}
                                             </div>
                                         )}
+                                        <FieldError message={getGroupError('skills_required')} />
                                     </div>
                                 </div>
                             )}
@@ -549,7 +602,7 @@ export default function CreateJob({ user, profile, companyName, mode = 'create',
                                         <label className={lbl}>Job Summary *</label>
                                         <textarea value={form.description} onChange={e => set('description', e.target.value)}
                                             rows={5} className={`${inp} resize-none`} placeholder="Describe the role and what the candidate will do..." />
-                                        {errors.description && <p className="text-xs text-red-500 mt-1">{errors.description}</p>}
+                                        <FieldError message={getError('description')} />
                                     </div>
 
                                     {/* Key Responsibilities */}
@@ -573,6 +626,7 @@ export default function CreateJob({ user, profile, companyName, mode = 'create',
                                                 ))}
                                             </ul>
                                         )}
+                                        <FieldError message={getGroupError('responsibilities')} />
                                     </div>
 
                                     {/* Qualifications */}
@@ -596,6 +650,7 @@ export default function CreateJob({ user, profile, companyName, mode = 'create',
                                                 ))}
                                             </ul>
                                         )}
+                                        <FieldError message={getGroupError('qualifications')} />
                                     </div>
 
                                     {/* Requirements */}
@@ -619,6 +674,7 @@ export default function CreateJob({ user, profile, companyName, mode = 'create',
                                                 ))}
                                             </ul>
                                         )}
+                                        <FieldError message={getGroupError('requirements')} />
                                     </div>
                                 </div>
                             )}
@@ -767,6 +823,7 @@ export default function CreateJob({ user, profile, companyName, mode = 'create',
                                                 <p className="text-xs text-gray-400">No screener questions added yet.</p>
                                             </div>
                                         )}
+                                        <FieldError message={getGroupError('screener_questions')} />
                                     </div>
                                 </div>
                             )}
@@ -779,17 +836,20 @@ export default function CreateJob({ user, profile, companyName, mode = 'create',
                                             <label className={lbl}>Application Limit</label>
                                             <input value={form.application_limit} onChange={e => set('application_limit', e.target.value)}
                                                 type="number" className={inp} placeholder="e.g. 200" min="1" />
+                                            <FieldError message={getError('application_limit')} />
                                         </div>
                                         <div>
                                             <label className={lbl}>Status</label>
                                             <select value={form.status} onChange={e => set('status', e.target.value as any)} className={inp}>
                                                 {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
                                             </select>
+                                            <FieldError message={getError('status')} />
                                         </div>
                                     </div>
                                     <div>
                                         <label className={lbl}>Expiry Date</label>
                                         <input value={form.deadline} onChange={e => set('deadline', e.target.value)} type="date" className={inp} />
+                                        <FieldError message={getError('deadline')} />
                                     </div>
                                     <div className="flex items-center gap-2.5 p-3 bg-gray-50 rounded-xl border border-gray-100">
                                         <input type="checkbox" id="is_remote" checked={form.is_remote}
@@ -800,6 +860,7 @@ export default function CreateJob({ user, profile, companyName, mode = 'create',
                                     <div>
                                         <label className={lbl}>Industry</label>
                                         <input value={form.industry} onChange={e => set('industry', e.target.value)} className={inp} placeholder="e.g. Technology" />
+                                        <FieldError message={getError('industry')} />
                                     </div>
                                 </div>
                             )}
@@ -832,7 +893,15 @@ export default function CreateJob({ user, profile, companyName, mode = 'create',
                                 </button>
                             )}
                             {tab < TABS.length - 1 ? (
-                                <button onClick={() => setTab(t => t + 1)}
+                                <button
+                                    onClick={() => {
+                                        const stepErrors = validateStep(tab);
+                                        if (Object.keys(stepErrors).length > 0) {
+                                            setErrors(prev => ({ ...(prev ?? {}), ...stepErrors }));
+                                            return;
+                                        }
+                                        setTab(t => t + 1);
+                                    }}
                                     className="px-5 py-2 bg-[#6D9886] hover:bg-[#5a8371] text-white text-sm font-semibold rounded-xl transition-colors">
                                     Next
                                 </button>

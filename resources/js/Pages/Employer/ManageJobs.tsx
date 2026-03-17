@@ -654,9 +654,7 @@ function JobFormModal({ mode, job, companyName, onClose }: {
 export default function ManageJobs({ user, profile, jobs, isVerified, pendingInvitationsCount = 0 }: Props) {
     const [filter, setFilter] = useState<'all' | 'active' | 'inactive' | 'draft'>('all');
     const [search, setSearch] = useState('');
-    const [editJob, setEditJob] = useState<JobListing | null>(null);
     const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'most_applicants'>('newest');
-    const [showCreate, setShowCreate] = useState(false);
 
     const companyName = profile?.company_name ?? `${user.first_name} ${user.last_name}`;
 
@@ -685,9 +683,6 @@ export default function ManageJobs({ user, profile, jobs, isVerified, pendingInv
     return (
         <AppLayout pageTitle="Job Management" pageSubtitle="Monitor and manage job postings." activeNav="Manage Jobs">
             <Head title="Manage Jobs" />
-
-            {showCreate && <JobFormModal mode="create" companyName={companyName} onClose={() => setShowCreate(false)} />}
-            {editJob && <JobFormModal mode="edit" job={editJob} companyName={companyName} onClose={() => setEditJob(null)} />}
 
             <div className="space-y-5">
                 {/* Toolbar */}
@@ -760,7 +755,7 @@ export default function ManageJobs({ user, profile, jobs, isVerified, pendingInv
                     <>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                             {filtered.map(job => (
-                                <JobCard key={job.id} job={job} onEdit={() => setEditJob(job)} />
+                                <JobCard key={job.id} job={job} onEdit={() => router.visit(route('employer.jobs.edit', job.id))} />
                             ))}
                         </div>
                         <p className="text-xs text-gray-400">
