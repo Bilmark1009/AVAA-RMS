@@ -64,6 +64,7 @@ Route::middleware(['auth'])->prefix('messages')->name('messages.')->group(functi
     Route::get('/report/{user}', [ReportController::class, 'create'])->name('report');
     Route::post('/report/{user}', [ReportController::class, 'store'])->name('report.store');
     Route::get('/archived-count', [ConversationController::class, 'archivedCount'])->name('archived-count');
+    Route::get('/unread-total', [ConversationController::class, 'unreadCount'])->name('unread-total');
 
     // ✅ ->missing() redirects to messages index instead of 404
     // when conversation is deleted and user reloads the old URL

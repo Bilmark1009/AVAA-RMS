@@ -21,7 +21,7 @@ class ConversationController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
-        $showArchived = $request->query('archived', false);
+        $showArchived = (bool) $request->query('archived', false);
 
         return Inertia::render('Messaging/Index', [
             'conversations' => $this->getConversations($user, $showArchived),
@@ -158,24 +158,39 @@ class ConversationController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:100',
-            'participant_ids' => 'required|array|min:1',
+            'participant_ids' => 'required|array|min:2',
             'participant_ids.*' => 'exists:users,id',
         ]);
+
+        // Validate participants are job seekers
+        $participants = User::whereIn('id', $request->participant_ids)
+            ->where('role', 'job_seeker')
+            ->get();
+
+        if ($participants->count() < 2) {
+            return back()->with('error', 'You must select at least 2 job seekers to create a group chat.');
+        }
+
+        // Filter out job seekers who have blocked the employer or were blocked by him
+        $validParticipantIds = $participants->filter(function ($u) use ($current) {
+            return $current->canMessage($u);
+        })->pluck('id')->all();
+
+        if (count($validParticipantIds) < 2) {
+            return back()->with('error', 'Group creation failed: Not enough eligible participants (respecting blocking logic).');
+        }
 
         $conversation = Conversation::create([
             'type' => 'group',
             'name' => $request->name,
+            'created_by' => $current->id,
         ]);
 
         // Attach the employer (creator)
         $conversation->participants()->attach($current->id);
 
-        // Attach selected participants (excluding self)
-        $participantIds = collect($request->participant_ids)
-            ->filter(fn($id) => (int) $id !== $current->id)
-            ->unique()
-            ->all();
-        $conversation->participants()->attach($participantIds);
+        // Attach selected participants
+        $conversation->participants()->attach($validParticipantIds);
 
         return redirect()->route('messages.show', $conversation->id);
     }
@@ -241,6 +256,26 @@ class ConversationController extends Controller
             ->count();
 
         return response()->json(['count' => $count]);
+    }
+
+    /**
+     * Get total unread messages count for the current user (JSON).
+     * Excludes archived conversations.
+     */
+    public function unreadCount(Request $request): JsonResponse
+    {
+        $userId = $request->user()->id;
+
+        $conversations = Conversation::whereHas('participants', function ($q) use ($userId) {
+            $q->where('user_id', $userId)
+                ->where('is_archived', false);
+        })->get();
+
+        $totalUnread = $conversations->sum(fn($c) => $c->unreadCountFor($userId));
+
+        return response()->json([
+            'total' => $totalUnread,
+        ]);
     }
 
     public function debug(Request $request): JsonResponse
@@ -315,7 +350,7 @@ class ConversationController extends Controller
                         ->exists();
                 }
             })
-            ->map(fn($c) => $this->formatConversation($c, $userId))
+            ->map(fn(Conversation $c) => $this->formatConversation($c, $userId))
             ->values()
             ->all();
     }
@@ -417,6 +452,7 @@ class ConversationController extends Controller
         return [
             'id' => $c->id,
             'type' => $c->type,
+            'created_by' => $c->created_by,
             'name' => $c->type === 'group'
                 ? ($c->name ?? 'Group Chat')
                 : ($other ? "{$other->first_name} {$other->last_name}" : 'Unknown'),
