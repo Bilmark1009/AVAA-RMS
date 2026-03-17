@@ -86,10 +86,10 @@ function BlockedUserCard({ user, onUnblock }: { user: BlockedUser; onUnblock: (i
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || ''
                 },
                 body: JSON.stringify({ 
-                    user_id: user.id,
-                    _token: (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || ''
+                    user_id: user.id
                 }),
             });
             
@@ -201,11 +201,11 @@ function BlockUserForm({ onBlock }: { onBlock: (user: SearchResult & { reason?: 
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || ''
                 },
                 body: JSON.stringify({
                     user_id: selectedUser.id,
                     reason: reason.trim() || undefined,
-                    _token: (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || ''
                 }),
             });
             
