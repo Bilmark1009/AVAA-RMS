@@ -242,14 +242,16 @@ export default function Welcome() {
     const sectionsRef = useRef<HTMLDivElement>(null);
 
     const [showPrivacy, setShowPrivacy] = useState(false);
+    const [showTerms, setShowTerms] = useState(false);
 
     useEffect(() => {
-        if (showPrivacy) {
+        if (showPrivacy || showTerms) {
             document.body.style.overflow = "hidden";
         } else {
             document.body.style.overflow = "unset";
         }
-    }, [showPrivacy]);
+    }, [showPrivacy, showTerms]);
+
     useEffect(() => {
         const t = setTimeout(() => setHeroVisible(true), 100);
         return () => clearTimeout(t);
@@ -1203,123 +1205,134 @@ export default function Welcome() {
                     FOOTER
                 ════════════════════════════════════ */}
                 <footer className="bg-avaa-dark-mid text-avaa-muted">
-                    <div className={`${C} py-14`}>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
-                            {/* Brand */}
-                            <div className="sm:col-span-2 lg:col-span-1">
-                                <div className="flex items-center gap-2.5 mb-4">
-                                    <img
-                                        src="/logos/AVAA_Logo.png"
-                                        alt="AVAA"
-                                        className="h-7 w-auto object-contain brightness-0 invert"
-                                    />
-                                    <span className="text-lg font-bold text-white tracking-wide">
-                                        AVAA
-                                    </span>
-                                </div>
-                                <p className="text-sm leading-relaxed max-w-xs">
-                                    Your next career move starts here. Browse
-                                    jobs, grow your network, and land your dream
-                                    role.
-                                </p>
-                            </div>
+    <div className={`${C} py-14`}>
+        {/* We use flex instead of grid for perfect centering and equal spacing */}
+        <div className="flex flex-col md:flex-row flex-wrap justify-center items-start gap-12 lg:gap-24 mb-12 text-center">
+            
+            {/* Quick Links */}
+            <div className="flex-1 min-w-[200px] max-w-[300px]">
+                <h4 className="text-sm font-bold text-white mb-6">
+                    Quick Links
+                </h4>
+                <ul className="space-y-3 text-sm">
+                    {[
+                        ["#how-it-works", "How It Works"],
+                        ["#categories", "Categories"],
+                        ["#jobs", "Featured Jobs"],
+                        ["#testimonials", "Testimonials"],
+                    ].map(([href, label]) => (
+                        <li key={href}>
+                            <a
+                                href={href}
+                                className="hover:text-avaa-primary transition-colors block"
+                            >
+                                {label}
+                            </a>
+                        </li>
+                    ))}
+                </ul>
+            </div>
 
-                            {/* Quick Links */}
-                            <div>
-                                <h4 className="text-sm font-bold text-white mb-5">
-                                    Quick Links
-                                </h4>
-                                <ul className="space-y-3 text-sm">
-                                    {[
-                                        ["#how-it-works", "How It Works"],
-                                        ["#categories", "Categories"],
-                                        ["#jobs", "Featured Jobs"],
-                                        ["#testimonials", "Testimonials"],
-                                    ].map(([href, label]) => (
-                                        <li key={href}>
-                                            <a
-                                                href={href}
-                                                className="hover:text-avaa-primary transition-colors"
-                                            >
-                                                {label}
-                                            </a>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
+            {/* Contact Us */}
+            <div className="flex-1 min-w-[250px] max-w-[350px]">
+                <h4 className="text-sm font-bold text-white mb-6 uppercase tracking-wider">
+                    Contact Us
+                </h4>
+                <ul className="space-y-4 text-sm flex flex-col items-center">
+                    {/* Address */}
+                    <li className="flex items-start gap-3 group max-w-[280px]">
+                        <svg
+                            className="w-4 h-4 mt-1 text-avaa-primary shrink-0 transition-transform group-hover:scale-110"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                        >
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
+                            <circle cx="12" cy="10" r="3" />
+                        </svg>
+                        <span className="text-xs leading-relaxed opacity-80 group-hover:opacity-100 transition-opacity text-left">
+                           Suite 1502, Antel Corporate Center, 121 Valero Street, Salcedo Village, Makati City, 1227 Metro Manila.
+                        </span>
+                    </li>
 
-                            {/* Resources */}
-                            <div>
-                                <h4 className="text-sm font-bold text-white mb-5">
-                                    Resources
-                                </h4>
-                                <ul className="space-y-3 text-sm">
-                                    {[
-                                        "Help Center",
-                                        "Privacy Policy",
-                                        "Terms of Service",
-                                        "Contact Us",
-                                    ].map((item) => (
-                                        <li key={item}>
-                                            <button
-                                                onClick={() =>
-                                                    item === "Privacy Policy"
-                                                        ? setShowPrivacy(true)
-                                                        : null
-                                                }
-                                                className={`transition-colors text-left ${
-                                                    item === "Privacy Policy"
-                                                        ? "opacity-100 hover:text-avaa-primary"
-                                                        : "opacity-40 cursor-default"
-                                                }`}
-                                            >
-                                                {item}
-                                            </button>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
+                    {/* Phone */}
+                    <li className="flex items-center gap-3 group">
+                        <svg
+                            className="w-4 h-4 text-avaa-primary shrink-0 transition-transform group-hover:scale-110"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                        >
+                            <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" />
+                        </svg>
+                        <span className="text-xs opacity-80 group-hover:opacity-100 transition-opacity">
+                            +63(990 - 000 - 000)
+                        </span>
+                    </li>
 
-                            {/* Newsletter */}
-                            <div>
-                                <h4 className="text-sm font-bold text-white mb-5">
-                                    Stay Updated
-                                </h4>
-                                <p className="text-sm mb-4 leading-relaxed">
-                                    Get the latest jobs delivered to your inbox.
-                                </p>
-                                <div className="flex gap-2">
-                                    <input
-                                        type="email"
-                                        placeholder="Your email"
-                                        className="flex-1 min-w-0 px-3 py-2.5 rounded-lg bg-white/10 border border-avaa-primary/20 text-sm text-white placeholder-avaa-muted/50 focus:outline-none focus:ring-2 focus:ring-avaa-primary focus:border-transparent"
-                                    />
-                                    <button className="flex-shrink-0 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-avaa-primary hover:bg-avaa-primary-hover transition-colors">
-                                        →
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
+                    {/* Email */}
+                    <li className="flex items-center gap-3 group">
+                        <svg
+                            className="w-4 h-4 text-avaa-primary shrink-0 transition-transform group-hover:scale-110"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                        >
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                            <polyline points="22,6 12,13 2,6" />
+                        </svg>
+                        <span className="text-xs opacity-80 group-hover:opacity-100 transition-opacity">
+                            AVAA_RMS@gmail.com
+                        </span>
+                    </li>
+                </ul>
+            </div>
 
-                        <div className="border-t border-white/10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs opacity-40">
-                            <p>© 2026 AVAA. All rights reserved.</p>
-                            <div className="flex items-center gap-5">
-                                {["Privacy", "Terms", "Cookies"].map((item) => (
-                                    <span
-                                        key={item}
-                                        className="cursor-default hover:opacity-70 transition-opacity"
-                                    >
-                                        {item}
-                                    </span>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </footer>
+            {/* Resources */}
+            <div className="flex-1 min-w-[200px] max-w-[300px]">
+                <h4 className="text-sm font-bold text-white mb-6 uppercase tracking-wider">
+                    Resources
+                </h4>
+                <ul className="space-y-4 text-sm">
+                    <li>
+                        <button
+                            onClick={() => setShowPrivacy(true)}
+                            className="transition-colors hover:text-avaa-primary"
+                        >
+                            Privacy Policy
+                        </button>
+                    </li>
+                    <li>
+                        <button
+                            onClick={() => setShowTerms(true)}
+                            className="transition-colors hover:text-avaa-primary"
+                        >
+                            Terms of Service
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        {/* Bottom Bar */}
+        <div className="border-t border-white/10 pt-6 flex justify-center text-xs opacity-40">
+            <p>© 2026 AVAA. All rights reserved.</p>
+        </div>
+    </div>
+</footer>
             </div>
             {/* ════════════════════════════════════
-    PRIVACY POLICY MODAL
-════════════════════════════════════ */}
+                     PRIVACY POLICY MODAL
+                ════════════════════════════════════ */}
             {showPrivacy && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
                     {/* Backdrop */}
@@ -1405,6 +1418,108 @@ export default function Welcome() {
                                     contacting our support team.
                                 </p>
                             </section>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {showTerms && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+                    {/* Backdrop */}
+                    <div
+                        className="absolute inset-0 bg-avaa-dark/60 backdrop-blur-sm"
+                        onClick={() => setShowTerms(false)}
+                    />
+
+                    {/* Modal Content */}
+                    <div className="relative bg-white w-full max-w-2xl max-h-[80vh] overflow-hidden rounded-3xl shadow-2xl flex flex-col animate-in fade-in zoom-in duration-300">
+                        {/* Header */}
+                        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+                            <h3 className="text-xl font-extrabold text-avaa-dark">
+                                Terms of Service
+                            </h3>
+                            <button
+                                onClick={() => setShowTerms(false)}
+                                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                            >
+                                <svg
+                                    width="20"
+                                    height="20"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2.5"
+                                >
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                        </div>
+
+                        {/* Terms Body */}
+                        <div className="flex-1 overflow-y-auto p-6 sm:p-8 text-sm text-avaa-text leading-relaxed">
+                            <section className="space-y-4">
+                                <p className="font-bold text-avaa-dark">
+                                    Effective Date: March 17, 2026
+                                </p>
+
+                                <h4 className="font-bold text-avaa-dark text-base pt-2">
+                                    1. Acceptance of Terms
+                                </h4>
+                                <p>
+                                    By accessing AVAA, you agree to comply with
+                                    these terms. If you do not agree, please
+                                    refrain from using our recruitment services.
+                                </p>
+
+                                <h4 className="font-bold text-avaa-dark text-base pt-2">
+                                    2. User Responsibilities
+                                </h4>
+                                <p>
+                                    You agree to provide accurate information in
+                                    your professional profile and resume.
+                                    Impersonation or providing false credentials
+                                    may lead to account termination.
+                                </p>
+
+                                <h4 className="font-bold text-avaa-dark text-base pt-2">
+                                    3. Platform Usage
+                                </h4>
+                                <p>
+                                    Our AI-driven job matching is designed to
+                                    assist your career search. Users must not
+                                    attempt to scrape data or disrupt platform
+                                    security.
+                                </p>
+
+                                <h4 className="font-bold text-avaa-dark text-base pt-2">
+                                    4. Limitation of Liability
+                                </h4>
+                                <p>
+                                    AVAA facilitates connections between
+                                    candidates and employers but does not
+                                    guarantee employment or the accuracy of
+                                    third-party job listings.
+                                </p>
+
+                                <h4 className="font-bold text-avaa-dark text-base pt-2">
+                                    5. Termination
+                                </h4>
+                                <p>
+                                    We reserve the right to suspend accounts
+                                    that violate our community guidelines or
+                                    engage in fraudulent recruitment activity.
+                                </p>
+                            </section>
+                        </div>
+
+                        {/* Footer Action */}
+                        <div className="p-6 border-t border-gray-100 flex justify-end">
+                            <button
+                                onClick={() => setShowTerms(false)}
+                                className="px-6 py-2.5 bg-avaa-primary text-white font-bold rounded-xl hover:bg-avaa-primary-hover transition-colors"
+                            >
+                                I Understand
+                            </button>
                         </div>
                     </div>
                 </div>
