@@ -24,7 +24,7 @@ class ConversationController extends Controller
         $showArchived = (bool) $request->query('archived', false);
 
         return Inertia::render('Messaging/Index', [
-            'conversations' => $this->getConversations($user, $showArchived),
+            'conversations' => $this->getConversations($user),
             'activeConversationId' => null,
             'initialMessages' => [],
             'activeConversation' => null,
@@ -61,11 +61,16 @@ class ConversationController extends Controller
 
         $messages = $this->getMessages($conversation, $clearedAt);
 
+        // Check if this conversation is archived for the current user
+        $pivot = $conversation->participants->firstWhere('id', $user->id)?->pivot;
+        $isArchived = (bool) ($pivot?->is_archived ?? false);
+
         return Inertia::render('Messaging/Index', [
             'conversations' => $this->getConversations($user),
             'activeConversationId' => $conversation->id,
             'initialMessages' => $messages,
             'activeConversation' => $this->formatConversation($conversation, $user->id),
+            'showArchived' => $isArchived,
         ]);
     }
 
@@ -311,7 +316,7 @@ class ConversationController extends Controller
 
     /* ── Private helpers ───────────────────────────────────────────────── */
 
-    private function getConversations(User $user, bool $showArchived = false): array
+    private function getConversations(User $user): array
     {
         $userId = $user->id;
 
@@ -326,29 +331,24 @@ class ConversationController extends Controller
             ])
             ->orderByDesc('last_message_at')
             ->get()
-            ->filter(function (Conversation $c) use ($userId, $showArchived) {
+            ->filter(function (Conversation $c) use ($userId) {
                 $pivot = $c->participants->firstWhere('id', $userId)?->pivot;
                 $isArchived = (bool) ($pivot?->is_archived ?? false);
                 
-                // Filter based on archived status
-                if ($showArchived) {
-                    // For archived view, only check if archived, ignore cleared_at
-                    return $isArchived;
-                } else {
-                    // For normal view, exclude archived and check cleared_at
-                    if ($isArchived) return false;
-                    
-                    $clearedAt = $pivot?->cleared_at;
+                // Always include archived conversations - frontend will filter them into the Archived tab
+                if ($isArchived) return true;
+                
+                // For non-archived, still honor the cleared_at logic
+                $clearedAt = $pivot?->cleared_at;
 
-                    // If never cleared, always show
-                    if (!$clearedAt) return true;
+                // If never cleared, show
+                if (!$clearedAt) return true;
 
-                    // Show only if there are messages AFTER cleared_at
-                    return $c->messages()
-                        ->whereNull('deleted_at')
-                        ->where('created_at', '>', $clearedAt)
-                        ->exists();
-                }
+                // Show only if there are messages AFTER cleared_at
+                return $c->messages()
+                    ->whereNull('deleted_at')
+                    ->where('created_at', '>', $clearedAt)
+                    ->exists();
             })
             ->map(fn(Conversation $c) => $this->formatConversation($c, $userId))
             ->values()

@@ -967,12 +967,14 @@ export default function MessagingIndex({
     initialMessages: initMsgs,
     activeConversation: initActive,
     unreadNotificationsCount,
+    showArchived = false,
 }: {
     conversations: ConversationSummary[];
     activeConversationId: number | null;
     initialMessages: Message[];
     activeConversation: ConversationSummary | null;
     unreadNotificationsCount: number;
+    showArchived?: boolean;
 }) {
 const [showBlockModal, setShowBlockModal] = useState(false);
     const [blocking, setBlocking] = useState(false);
@@ -981,17 +983,17 @@ const [showBlockModal, setShowBlockModal] = useState(false);
     const [imageModal, setImageModal] = useState<{ url: string; name: string } | null>(null);
     const [fileDownloadModal, setFileDownloadModal] = useState<{ url: string; name: string } | null>(null);
     const [reportMsgTarget, setReportMsgTarget] = useState<Message | null>(null);
-
+ 
     const { auth } = usePage<PageProps>().props;
     const me = auth.user;
-
+ 
     const [convos, setConvos] = useState<ConversationSummary[]>(initConvos);
     const [activeConvo, setActiveConvo] = useState<ConversationSummary | null>(initActive);
     const [messages, setMessages] = useState<Message[]>(initMsgs);
     const [body, setBody] = useState('');
     const [sending, setSending] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
-    const [tab, setTab] = useState<'all' | 'archived'>('all');
+    const [tab, setTab] = useState<'all' | 'archived'>(showArchived ? 'archived' : 'all');
     const [mobileView, setMobileView] = useState<'list' | 'chat'>(initActiveId ? 'chat' : 'list');
     const [loadingConvo, setLoadingConvo] = useState(false);
     const [showNewMsg, setShowNewMsg] = useState(false);
