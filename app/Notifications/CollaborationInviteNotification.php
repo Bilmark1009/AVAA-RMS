@@ -30,7 +30,7 @@ class CollaborationInviteNotification extends Notification
         return [
             'message' => "{$name} invited you to collaborate on \"{$this->job->title}\".",
             'job_id'  => $this->job->id,
-            'link'    => route('employer.jobs.show', $this->job->id),
+            'link'    => route('employer.jobs.invitations'),
         ];
     }
 }

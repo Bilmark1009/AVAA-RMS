@@ -2,6 +2,7 @@ import { Head, router } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
 
 /* ── Types ── */
 interface JobListing {
@@ -74,6 +75,8 @@ interface JobFormData {
     work_arrangement: string;
 }
 
+const EMPTY_COLLABORATORS: Collaborator[] = [];
+
 /* ── Constants ── */
 const SKILL_OPTIONS = ['JavaScript', 'TypeScript', 'Python', 'React', 'Vue', 'Angular', 'Node.js', 'Laravel', 'PHP', 'SQL', 'PostgreSQL', 'MySQL', 'Tailwind CSS', 'DevOps', 'Docker', 'AWS', 'UI/UX', 'Figma', 'Project Management', 'Data Analysis', 'Excel', 'GraphQL', 'REST API'];
 const EMPLOYMENT_TYPES = ['Full-time', 'Part-time', 'Contract', 'Freelance', 'Internship'];
@@ -81,6 +84,14 @@ const WORK_ARRANGEMENTS = ['On-site', 'Remote', 'Hybrid'];
 const EXPERIENCE_LEVELS = ['Entry Level', 'Mid Level', 'Senior Level', 'Lead', 'Manager', 'Executive'];
 const CURRENCIES = ['USD', 'PHP', 'EUR', 'GBP', 'SGD', 'AUD'];
 const STATUS_OPTIONS = ['active', 'inactive', 'draft'] as const;
+const ALLOWED_IMAGE_TYPES = new Set([
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'image/gif',
+    'image/svg+xml',
+    'image/avif',
+]);
 
 const inp = "w-full rounded-xl border border-gray-200 bg-gray-50 text-gray-800 text-sm px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#6D9886] focus:border-transparent transition-all placeholder-gray-400";
 const lbl = "block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide";
@@ -148,13 +159,31 @@ function buildForm(job: JobListing | undefined, companyName: string): JobFormDat
     };
 }
 
+function getInitials(name: string, fallback = 'NA') {
+    const trimmed = name.trim();
+    if (!trimmed) return fallback;
+
+    const initials = trimmed
+        .split(/\s+/)
+        .map(part => part[0] ?? '')
+        .join('')
+        .slice(0, 2)
+        .toUpperCase();
+
+    return initials || fallback;
+}
+
 /* ── Logo upload area ── */
 function LogoUpload({
     preview,
+    initials,
+    error,
     onChange,
     onClear,
 }: {
     preview: string | null;
+    initials: string;
+    error?: string;
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     onClear: () => void;
 }) {
@@ -163,20 +192,21 @@ function LogoUpload({
             <label className="relative group cursor-pointer block">
                 <div className="w-full h-24 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden group-hover:border-[#6D9886]/50 transition-all">
                     {preview ? (
-                        <img
+                        <ImageInitialsFallback
                             src={preview}
                             alt="Company logo"
-                            className="w-full h-full object-contain p-2"
-                            onError={onClear}
+                            initials={initials}
+                            className="w-full h-full"
+                            imgClassName="w-full h-full object-contain p-2"
+                            fallbackClassName="bg-[#6D9886] flex items-center justify-center"
+                            textClassName="text-white text-sm font-bold"
                         />
                     ) : (
-                        <div className="flex items-center gap-3 text-gray-400">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <rect x="3" y="3" width="18" height="18" rx="2" />
-                                <circle cx="8.5" cy="8.5" r="1.5" />
-                                <polyline points="21 15 16 10 5 21" />
-                            </svg>
-                            <span className="text-xs font-medium">Upload Company Logo (JPG, PNG)</span>
+                        <div className="flex items-center gap-3 text-gray-400 px-3">
+                            <div className="w-10 h-10 rounded-full bg-[#6D9886] text-white text-sm font-bold flex items-center justify-center">
+                                {initials}
+                            </div>
+                            <span className="text-xs font-medium">Upload Company Logo</span>
                         </div>
                     )}
                 </div>
@@ -194,11 +224,12 @@ function LogoUpload({
                     </button>
                 </div>
             )}
+            {error && <p className="text-xs text-red-500 mt-1 px-1">{error}</p>}
         </div>
     );
 }
 
-export default function CreateJob({ user, profile, companyName, mode = 'create', job, collaborators: initialCollaborators = [] }: Props) {
+export default function CreateJob({ user, profile, companyName, mode = 'create', job, collaborators: initialCollaborators = EMPTY_COLLABORATORS }: Props) {
     const isEdit = mode === 'edit' && !!job;
 
     const [form, setForm]               = useState<JobFormData>(() => buildForm(job, companyName));
@@ -213,6 +244,9 @@ export default function CreateJob({ user, profile, companyName, mode = 'create',
     const [saving, setSaving]           = useState(false);
     const [logoFile, setLogoFile]       = useState<File | null>(null);
     const [logoPreview, setLogoPreview] = useState<string | null>(job?.logo_path ?? null);
+    const logoObjectUrlRef = useRef<string | null>(null);
+    const [collaborators, setCollaborators] = useState<Collaborator[]>(initialCollaborators);
+    const [draftJobId, setDraftJobId] = useState<number | null>(isEdit && job ? job.id : null);
     const skillRef = useRef<HTMLDivElement>(null);
 
     // Collaborator search state
@@ -224,8 +258,21 @@ export default function CreateJob({ user, profile, companyName, mode = 'create',
     const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
+        if (logoObjectUrlRef.current) {
+            URL.revokeObjectURL(logoObjectUrlRef.current);
+            logoObjectUrlRef.current = null;
+        }
         setLogoPreview(job?.logo_path ?? null);
     }, [job?.logo_path]);
+
+    useEffect(() => {
+        return () => {
+            if (logoObjectUrlRef.current) {
+                URL.revokeObjectURL(logoObjectUrlRef.current);
+                logoObjectUrlRef.current = null;
+            }
+        };
+    }, []);
 
     useEffect(() => {
         const click = (e: MouseEvent) => {
@@ -236,39 +283,94 @@ export default function CreateJob({ user, profile, companyName, mode = 'create',
         return () => document.removeEventListener('mousedown', click);
     }, []);
 
+    useEffect(() => {
+        return () => {
+            if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+        };
+    }, []);
+
+    const ensureCollaboratorJobId = useCallback(async (): Promise<number | null> => {
+        if (isEdit && job) return job.id;
+        if (draftJobId) return draftJobId;
+
+        try {
+            const { data } = await axios.post(route('employer.jobs.drafts.store'));
+            const newDraftId = Number(data?.id);
+            if (!Number.isFinite(newDraftId) || newDraftId <= 0) return null;
+            setDraftJobId(newDraftId);
+            return newDraftId;
+        } catch {
+            return null;
+        }
+    }, [isEdit, job, draftJobId]);
+
     // Debounced collaborator search
     const handleCollabSearch = useCallback((q: string) => {
         setCollabSearch(q);
         if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
-        if (!isEdit || !job || q.trim().length < 2) {
+        if (q.trim().length < 2) {
             setCollabResults([]);
             return;
         }
         setCollabSearching(true);
         searchTimerRef.current = setTimeout(async () => {
             try {
-                const { data } = await axios.get(route('employer.jobs.collaborators.search', job.id), { params: { q } });
+                const collaboratorJobId = await ensureCollaboratorJobId();
+                if (!collaboratorJobId) {
+                    setCollabResults([]);
+                    return;
+                }
+                const { data } = await axios.get(route('employer.jobs.collaborators.search', collaboratorJobId), { params: { q } });
                 setCollabResults(data);
-            } catch { setCollabResults([]); }
-            setCollabSearching(false);
+            } catch {
+                setCollabResults([]);
+            } finally {
+                setCollabSearching(false);
+            }
         }, 300);
-    }, [isEdit, job]);
+    }, [ensureCollaboratorJobId]);
 
-    const handleInvite = (userId: number) => {
-        if (!isEdit || !job) return;
+    const handleInvite = async (userId: number) => {
+        const collaboratorJobId = await ensureCollaboratorJobId();
+        if (!collaboratorJobId) return;
+
         setCollabInviting(userId);
-        router.post(route('employer.jobs.collaborators.invite', job.id), { user_id: userId }, {
-            preserveScroll: true,
-            onSuccess: () => { setCollabInviting(null); setCollabSearch(''); setCollabResults([]); },
-            onError: () => setCollabInviting(null),
-        });
+        try {
+            await axios.post(route('employer.jobs.collaborators.invite', collaboratorJobId), { user_id: userId });
+
+            const invitedUser = collabResults.find(u => u.id === userId);
+            if (invitedUser) {
+                setCollaborators(prev => {
+                    if (prev.some(c => c.user_id === userId)) return prev;
+                    return [
+                        ...prev,
+                        {
+                            id: Date.now() + userId,
+                            user_id: invitedUser.id,
+                            first_name: invitedUser.first_name,
+                            last_name: invitedUser.last_name,
+                            email: invitedUser.email,
+                            avatar: invitedUser.avatar ?? null,
+                            role: 'Collaborator',
+                            status: 'pending',
+                        },
+                    ];
+                });
+            }
+
+            setCollabSearch('');
+            setCollabResults([]);
+        } finally {
+            setCollabInviting(null);
+        }
     };
 
-    const handleRemoveCollaborator = (collaboratorId: number) => {
-        if (!isEdit || !job) return;
-        router.delete(route('employer.jobs.collaborators.remove', { job: job.id, collaborator: collaboratorId }), {
-            preserveScroll: true,
-        });
+    const handleRemoveCollaborator = async (collaboratorId: number) => {
+        const collaboratorJobId = await ensureCollaboratorJobId();
+        if (!collaboratorJobId) return;
+
+        await axios.delete(route('employer.jobs.collaborators.remove', { job: collaboratorJobId, collaborator: collaboratorId }));
+        setCollaborators(prev => prev.filter(c => c.id !== collaboratorId));
     };
 
     const set = (k: keyof JobFormData, v: any) => {
@@ -299,16 +401,51 @@ export default function CreateJob({ user, profile, companyName, mode = 'create',
     };
 
     const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const input = e.target;
         const file = e.target.files?.[0];
-        if (file) {
-            setLogoFile(file);
-            setLogoPreview(URL.createObjectURL(file));
+        if (!file) return;
+
+        if (file.type && !ALLOWED_IMAGE_TYPES.has(file.type)) {
+            setErrors(prev => ({ ...prev, logo: 'Please upload a valid image (JPG, PNG, WEBP, GIF, SVG, or AVIF).' }));
+            input.value = '';
+            return;
         }
+
+        if (file.size > 5 * 1024 * 1024) {
+            setErrors(prev => ({ ...prev, logo: 'Image must be 5 MB or smaller.' }));
+            input.value = '';
+            return;
+        }
+
+        if (logoObjectUrlRef.current) {
+            URL.revokeObjectURL(logoObjectUrlRef.current);
+            logoObjectUrlRef.current = null;
+        }
+
+        const objectUrl = URL.createObjectURL(file);
+        logoObjectUrlRef.current = objectUrl;
+
+        setLogoFile(file);
+        setLogoPreview(objectUrl);
+        setErrors(prev => {
+            const next = { ...prev };
+            delete next.logo;
+            return next;
+        });
     };
 
     const handleLogoClear = () => {
+        if (logoObjectUrlRef.current) {
+            URL.revokeObjectURL(logoObjectUrlRef.current);
+            logoObjectUrlRef.current = null;
+        }
         setLogoFile(null);
         setLogoPreview(null);
+        setErrors(prev => {
+            const next = { ...prev };
+            delete next.logo;
+            return next;
+        });
     };
 
     const getError = (key: string) => (errors as any)?.[key] as string | undefined;
@@ -340,6 +477,21 @@ export default function CreateJob({ user, profile, companyName, mode = 'create',
         return e;
     };
 
+    const tabForField = (field: string): number => {
+        if (['title', 'company', 'location', 'salary_min', 'salary_max', 'salary_currency', 'employment_type', 'experience_level', 'skills_required', 'work_arrangement'].includes(field)) return 0;
+        if (['description', 'responsibilities', 'qualifications', 'requirements'].includes(field)) return 1;
+        if (['screener_questions'].includes(field)) return 3;
+        if (['application_limit', 'status', 'deadline', 'is_remote', 'industry'].includes(field)) return 4;
+        return 0;
+    };
+
+    const handleServerErrors = (errs: unknown) => {
+        const safeErrors = (errs && typeof errs === 'object') ? (errs as Record<string, string>) : {};
+        setErrors(safeErrors);
+        const firstField = Object.keys(safeErrors)[0];
+        if (firstField) setTab(tabForField(firstField));
+    };
+
     const validateStep = (step: number) => {
         const all = validate();
         // Only block navigation for required fields on the current step.
@@ -359,7 +511,12 @@ export default function CreateJob({ user, profile, companyName, mode = 'create',
 
     const handleSubmit = () => {
         const e = validate();
-        if (Object.keys(e).length) { setErrors(e); setTab(0); return; }
+        if (Object.keys(e).length) {
+            setErrors(e);
+            const firstField = Object.keys(e)[0];
+            if (firstField) setTab(tabForField(firstField));
+            return;
+        }
         setSaving(true);
 
         const data = new FormData();
@@ -388,20 +545,30 @@ export default function CreateJob({ user, profile, companyName, mode = 'create',
 
         if (logoFile) data.append('logo', logoFile);
 
-        if (isEdit) {
+        const targetJobId = isEdit && job ? job.id : draftJobId;
+
+        if (targetJobId) {
             data.append('_method', 'PUT');
-            router.post(route('employer.jobs.update', job.id), data as any, {
+            router.post(route('employer.jobs.update', targetJobId), data as any, {
                 preserveScroll: true,
                 forceFormData:  true,
-                onSuccess: () => setSaving(false),
-                onError:   (errs: any) => { setErrors(errs); setSaving(false); },
+                onSuccess: () => {
+                    if (!isEdit) {
+                        router.visit(route('employer.jobs.index'));
+                    }
+                },
+                onError:   (errs: any) => handleServerErrors(errs),
+                onFinish: () => setSaving(false),
             });
         } else {
             router.post(route('employer.jobs.store'), data as any, {
                 preserveScroll: true,
                 forceFormData:  true,
-                onSuccess: () => setSaving(false),
-                onError:   (errs: any) => { setErrors(errs); setSaving(false); },
+                onSuccess: () => {
+                    router.visit(route('employer.jobs.index'));
+                },
+                onError:   (errs: any) => handleServerErrors(errs),
+                onFinish: () => setSaving(false),
             });
         }
     };
@@ -409,6 +576,7 @@ export default function CreateJob({ user, profile, companyName, mode = 'create',
     const filteredSkills = SKILL_OPTIONS.filter(
         s => !form.skills_required.includes(s) && s.toLowerCase().includes(skillInput.toLowerCase()),
     );
+    const companyInitials = getInitials(form.company || companyName || `${user.first_name} ${user.last_name}`);
 
     return (
         <AppLayout
@@ -495,6 +663,8 @@ export default function CreateJob({ user, profile, companyName, mode = 'create',
 
                                     <LogoUpload
                                         preview={logoPreview}
+                                        initials={companyInitials}
+                                        error={errors.logo}
                                         onChange={handleLogoChange}
                                         onClear={handleLogoClear}
                                     />
@@ -684,114 +854,108 @@ export default function CreateJob({ user, profile, companyName, mode = 'create',
                                 <div className="space-y-4">
                                     <p className="text-sm text-gray-500">Invite other recruiters to collaborate on this job's applications.</p>
 
-                                    {!isEdit ? (
-                                        /* New job: must save first */
-                                        <div className="p-6 rounded-xl bg-gray-50 border border-dashed border-gray-200 text-center">
-                                            <svg className="mx-auto mb-2 text-gray-300" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" /></svg>
-                                            <p className="text-xs text-gray-400">Save the job listing first, then you can invite collaborators.</p>
-                                        </div>
-                                    ) : (
-                                        <>
-                                            {/* Search bar */}
-                                            <div ref={collabSearchRef} className="relative">
-                                                <label className={lbl}>Search Recruiters</label>
-                                                <div className="flex gap-2">
-                                                    <input
-                                                        value={collabSearch}
-                                                        onChange={e => handleCollabSearch(e.target.value)}
-                                                        placeholder="Search by name or email..."
-                                                        className={`${inp} flex-1`}
-                                                    />
-                                                    {collabSearching && (
-                                                        <div className="flex items-center px-2">
-                                                            <svg className="w-4 h-4 animate-spin text-gray-400" fill="none" viewBox="0 0 24 24">
-                                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                                                            </svg>
-                                                        </div>
-                                                    )}
+                                    {/* Search bar */}
+                                    <div ref={collabSearchRef} className="relative">
+                                        <label className={lbl}>Search Recruiters</label>
+                                        <div className="flex gap-2">
+                                            <input
+                                                value={collabSearch}
+                                                onChange={e => handleCollabSearch(e.target.value)}
+                                                placeholder="Search by name or email..."
+                                                className={`${inp} flex-1`}
+                                            />
+                                            {collabSearching && (
+                                                <div className="flex items-center px-2">
+                                                    <svg className="w-4 h-4 animate-spin text-gray-400" fill="none" viewBox="0 0 24 24">
+                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                                    </svg>
                                                 </div>
+                                            )}
+                                        </div>
 
-                                                {/* Search results dropdown */}
-                                                {collabResults.length > 0 && (
-                                                    <div className="absolute top-full left-0 right-0 mt-1 z-30 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
-                                                        {collabResults.map(u => (
-                                                            <div key={u.id} className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 transition-colors">
-                                                                <div className="w-8 h-8 rounded-full bg-[#6D9886] flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                                                                    {u.avatar ? (
-                                                                        <img src={u.avatar} alt="" className="w-full h-full rounded-full object-cover" />
-                                                                    ) : (
-                                                                        `${u.first_name[0]}${u.last_name[0]}`.toUpperCase()
-                                                                    )}
-                                                                </div>
-                                                                <div className="flex-1 min-w-0">
-                                                                    <p className="text-sm font-semibold text-gray-800 truncate">{u.first_name} {u.last_name}</p>
-                                                                    <p className="text-xs text-gray-400 truncate">{u.email}{u.company ? ` · ${u.company}` : ''}</p>
-                                                                </div>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => handleInvite(u.id)}
-                                                                    disabled={collabInviting === u.id}
-                                                                    className="px-3 py-1.5 bg-[#6D9886] hover:bg-[#5a8371] text-white text-xs font-semibold rounded-lg transition-colors disabled:opacity-50 flex-shrink-0"
-                                                                >
-                                                                    {collabInviting === u.id ? 'Inviting…' : 'Invite'}
-                                                                </button>
+                                        {/* Search results dropdown */}
+                                        {collabResults.length > 0 && (
+                                            <div className="absolute top-full left-0 right-0 mt-1 z-30 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                                                {collabResults.map(u => (
+                                                    <div key={u.id} className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 transition-colors">
+                                                        <ImageInitialsFallback
+                                                            src={u.avatar}
+                                                            alt={`${u.first_name} ${u.last_name}`}
+                                                            initials={getInitials(`${u.first_name} ${u.last_name}`)}
+                                                            className="w-8 h-8 rounded-full bg-[#6D9886] flex items-center justify-center text-white text-xs font-bold flex-shrink-0 overflow-hidden"
+                                                            fallbackClassName="bg-[#6D9886] flex items-center justify-center"
+                                                            textClassName="text-white text-xs font-bold"
+                                                            imgClassName="w-full h-full rounded-full object-cover"
+                                                        />
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-sm font-semibold text-gray-800 truncate">{u.first_name} {u.last_name}</p>
+                                                            <p className="text-xs text-gray-400 truncate">{u.email}{u.company ? ` · ${u.company}` : ''}</p>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleInvite(u.id)}
+                                                            disabled={collabInviting === u.id}
+                                                            className="px-3 py-1.5 bg-[#6D9886] hover:bg-[#5a8371] text-white text-xs font-semibold rounded-lg transition-colors disabled:opacity-50 flex-shrink-0"
+                                                        >
+                                                            {collabInviting === u.id ? 'Inviting…' : 'Invite'}
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {collabSearch.trim().length >= 2 && !collabSearching && collabResults.length === 0 && (
+                                            <p className="text-xs text-gray-400 mt-1.5">No recruiters found matching "{collabSearch}".</p>
+                                        )}
+                                    </div>
+
+                                    {/* Current collaborators list */}
+                                    <div>
+                                        <label className={lbl}>Team Members</label>
+                                        {collaborators.length > 0 ? (
+                                            <ul className="space-y-2">
+                                                {collaborators.map(c => {
+                                                    const statusCfg = {
+                                                        pending:  { dot: 'bg-amber-400', text: 'text-amber-700', bg: 'bg-amber-50', label: 'Pending' },
+                                                        accepted: { dot: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50', label: 'Accepted' },
+                                                        declined: { dot: 'bg-red-400', text: 'text-red-700', bg: 'bg-red-50', label: 'Declined' },
+                                                    }[c.status];
+                                                    return (
+                                                        <li key={c.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100 group">
+                                                            <ImageInitialsFallback
+                                                                src={c.avatar}
+                                                                alt={`${c.first_name} ${c.last_name}`}
+                                                                initials={getInitials(`${c.first_name} ${c.last_name}`)}
+                                                                className="w-9 h-9 rounded-full bg-[#6D9886] flex items-center justify-center text-white text-xs font-bold flex-shrink-0 overflow-hidden"
+                                                                fallbackClassName="bg-[#6D9886] flex items-center justify-center"
+                                                                textClassName="text-white text-xs font-bold"
+                                                                imgClassName="w-full h-full rounded-full object-cover"
+                                                            />
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-sm font-semibold text-gray-800 truncate">{c.first_name} {c.last_name}</p>
+                                                                <p className="text-xs text-gray-400 truncate">{c.email}</p>
                                                             </div>
-                                                        ))}
-                                                    </div>
-                                                )}
-
-                                                {collabSearch.trim().length >= 2 && !collabSearching && collabResults.length === 0 && (
-                                                    <p className="text-xs text-gray-400 mt-1.5">No recruiters found matching "{collabSearch}".</p>
-                                                )}
+                                                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusCfg.bg} ${statusCfg.text}`}>
+                                                                <span className={`w-1.5 h-1.5 rounded-full ${statusCfg.dot}`} />
+                                                                {statusCfg.label}
+                                                            </span>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleRemoveCollaborator(c.id)}
+                                                                className="text-gray-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 text-lg leading-none ml-1"
+                                                            >×</button>
+                                                        </li>
+                                                    );
+                                                })}
+                                            </ul>
+                                        ) : (
+                                            <div className="p-4 rounded-xl bg-gray-50 border border-dashed border-gray-200 text-center">
+                                                <svg className="mx-auto mb-2 text-gray-300" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" /></svg>
+                                                <p className="text-xs text-gray-400">No collaborators yet. Use the search above to invite recruiters.</p>
                                             </div>
-
-                                            {/* Current collaborators list */}
-                                            <div>
-                                                <label className={lbl}>Team Members</label>
-                                                {initialCollaborators.length > 0 ? (
-                                                    <ul className="space-y-2">
-                                                        {initialCollaborators.map(c => {
-                                                            const statusCfg = {
-                                                                pending:  { dot: 'bg-amber-400', text: 'text-amber-700', bg: 'bg-amber-50', label: 'Pending' },
-                                                                accepted: { dot: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50', label: 'Accepted' },
-                                                                declined: { dot: 'bg-red-400', text: 'text-red-700', bg: 'bg-red-50', label: 'Declined' },
-                                                            }[c.status];
-                                                            return (
-                                                                <li key={c.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100 group">
-                                                                    <div className="w-9 h-9 rounded-full bg-[#6D9886] flex items-center justify-center text-white text-xs font-bold flex-shrink-0 overflow-hidden">
-                                                                        {c.avatar ? (
-                                                                            <img src={c.avatar} alt="" className="w-full h-full rounded-full object-cover" />
-                                                                        ) : (
-                                                                            `${c.first_name[0]}${c.last_name[0]}`.toUpperCase()
-                                                                        )}
-                                                                    </div>
-                                                                    <div className="flex-1 min-w-0">
-                                                                        <p className="text-sm font-semibold text-gray-800 truncate">{c.first_name} {c.last_name}</p>
-                                                                        <p className="text-xs text-gray-400 truncate">{c.email}</p>
-                                                                    </div>
-                                                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusCfg.bg} ${statusCfg.text}`}>
-                                                                        <span className={`w-1.5 h-1.5 rounded-full ${statusCfg.dot}`} />
-                                                                        {statusCfg.label}
-                                                                    </span>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => handleRemoveCollaborator(c.id)}
-                                                                        className="text-gray-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 text-lg leading-none ml-1"
-                                                                    >×</button>
-                                                                </li>
-                                                            );
-                                                        })}
-                                                    </ul>
-                                                ) : (
-                                                    <div className="p-4 rounded-xl bg-gray-50 border border-dashed border-gray-200 text-center">
-                                                        <svg className="mx-auto mb-2 text-gray-300" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" /></svg>
-                                                        <p className="text-xs text-gray-400">No collaborators yet. Use the search above to invite recruiters.</p>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </>
-                                    )}
+                                        )}
+                                    </div>
                                 </div>
                             )}
 

@@ -55,7 +55,7 @@ class AdminSettingsController extends Controller
     public function uploadAvatar(Request $request)
     {
         $request->validate([
-            'avatar' => ['required', 'image', 'mimes:jpg,jpeg,png,webp,gif', 'max:5120'],
+            'avatar' => ['required', 'image', 'max:5120'],
         ]);
 
         $user = $request->user();

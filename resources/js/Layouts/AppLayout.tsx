@@ -471,7 +471,8 @@ function SidebarShell({
                         );
                     })}
                 </nav>
-                <div className="px-3 py-4 border-t border-gray-100">
+                <div className="px-3 py-4 border-t border-gray-100 space-y-1">
+                    {sidebarBottomExtra}
                     <button
                         onClick={handleLogout}
                         className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-semibold text-avaa-muted hover:bg-red-50 hover:text-red-500 transition-colors"
@@ -573,6 +574,25 @@ function AdminLayout({ children, activeNav, pageTitle, pageSubtitle, user, initi
    EMPLOYER LAYOUT
 ───────────────────────────────────────── */
 function EmployerLayout({ children, activeNav, pageTitle, pageSubtitle, user, initials }: AppLayoutProps & { user: any; initials: string }) {
+    const [collapsed, setCollapsed] = useState(false);
+
+    const employerBottomExtra = (
+        !collapsed ? (
+            <Link
+                href={safeRoute('employer.profile.show')}
+                className="flex items-center gap-3 px-3 py-2 mb-1 rounded-xl hover:bg-avaa-primary-light transition-colors group"
+            >
+                <div className="w-8 h-8 rounded-full bg-avaa-dark flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                    {initials}
+                </div>
+                <div className="min-w-0">
+                    <p className="text-xs font-semibold text-avaa-dark truncate">{user.first_name} {user.last_name}</p>
+                    <p className="text-[10px] text-avaa-muted truncate">Employer</p>
+                </div>
+            </Link>
+        ) : null
+    );
+
     return (
         <SidebarShell
             activeNav={activeNav}
@@ -582,6 +602,7 @@ function EmployerLayout({ children, activeNav, pageTitle, pageSubtitle, user, in
             initials={initials}
             sideNavItems={getEmployerSideNav()}
             logoLinkHref={safeRoute('employer.dashboard')}
+            sidebarBottomExtra={employerBottomExtra}
         >
             {children}
         </SidebarShell>
@@ -592,6 +613,25 @@ function EmployerLayout({ children, activeNav, pageTitle, pageSubtitle, user, in
    JOB SEEKER LAYOUT (new sidebar layout)
 ───────────────────────────────────────── */
 function JobSeekerLayout({ children, activeNav, pageTitle, pageSubtitle, user, initials }: AppLayoutProps & { user: any; initials: string }) {
+    const [collapsed, setCollapsed] = useState(false);
+
+    const jobSeekerBottomExtra = (
+        !collapsed ? (
+            <Link
+                href={safeRoute('job-seeker.profile.show')}
+                className="flex items-center gap-3 px-3 py-2 mb-1 rounded-xl hover:bg-avaa-primary-light transition-colors group"
+            >
+                <div className="w-8 h-8 rounded-full bg-avaa-dark flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                    {initials}
+                </div>
+                <div className="min-w-0">
+                    <p className="text-xs font-semibold text-avaa-dark truncate">{user.first_name} {user.last_name}</p>
+                    <p className="text-[10px] text-avaa-muted truncate">Job Seeker</p>
+                </div>
+            </Link>
+        ) : null
+    );
+
     // Minimalist top bar — no search bar, just page title / notifications / avatar
     return (
         <SidebarShell
@@ -602,6 +642,7 @@ function JobSeekerLayout({ children, activeNav, pageTitle, pageSubtitle, user, i
             initials={initials}
             sideNavItems={getJobSeekerSideNav()}
             logoLinkHref={safeRoute('job-seeker.jobs.browse')}
+            sidebarBottomExtra={jobSeekerBottomExtra}
         // No topBarExtras — keep the top bar minimal
         >
             {children}

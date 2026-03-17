@@ -84,6 +84,12 @@ function resolveIcon(type: string) {
 function resolveLink(notification: AppNotification, role: string): string {
     const { type, data } = notification;
 
+    // Collaboration invites should always go to the invitations queue,
+    // including older notifications that may contain stale job-detail links.
+    if (type.includes('CollaborationInvite') && role === 'employer') {
+        return safeRoute('employer.jobs.invitations');
+    }
+
     // If the backend explicitly sent a link, use it
     if (data.link) return data.link;
 
@@ -189,6 +195,10 @@ export default function NotificationDropdown() {
     const panelRef = useRef<HTMLDivElement>(null);
     const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+    useEffect(() => {
+        setUnreadCount(initialUnread);
+    }, [initialUnread]);
+
     /* ── Click-outside closes (button or panel = don't close) ── */
     useEffect(() => {
         const handler = (e: MouseEvent) => {
@@ -266,7 +276,7 @@ export default function NotificationDropdown() {
 
     /* ── Actions ── */
     const markRead = async (id: string) => {
-        await fetch(safeRoute('notifications.read', { id }), {
+        const res = await fetch(safeRoute('notifications.read', { id }), {
             method: 'PATCH',
             headers: {
                 'Accept': 'application/json',
@@ -274,14 +284,16 @@ export default function NotificationDropdown() {
                 'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '',
             },
             credentials: 'same-origin',
+            keepalive: true,
         });
+        if (!res.ok) return;
         setNotifications(prev => prev.map(n => n.id === id ? { ...n, read_at: new Date().toISOString() } : n));
         setUnreadCount(c => Math.max(0, c - 1));
     };
 
     const deleteOne = async (id: string) => {
         const wasUnread = !notifications.find(n => n.id === id)?.read_at;
-        await fetch(safeRoute('notifications.destroy', { id }), {
+        const res = await fetch(safeRoute('notifications.destroy', { id }), {
             method: 'DELETE',
             headers: {
                 'Accept': 'application/json',
@@ -289,13 +301,15 @@ export default function NotificationDropdown() {
                 'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '',
             },
             credentials: 'same-origin',
+            keepalive: true,
         });
+        if (!res.ok) return;
         setNotifications(prev => prev.filter(n => n.id !== id));
         if (wasUnread) setUnreadCount(c => Math.max(0, c - 1));
     };
 
     const markAllRead = async () => {
-        await fetch(safeRoute('notifications.mark-all-read'), {
+        const res = await fetch(safeRoute('notifications.mark-all-read'), {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
@@ -303,7 +317,9 @@ export default function NotificationDropdown() {
                 'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '',
             },
             credentials: 'same-origin',
+            keepalive: true,
         });
+        if (!res.ok) return;
         setNotifications(prev => prev.map(n => ({ ...n, read_at: new Date().toISOString() })));
         setUnreadCount(0);
     };
