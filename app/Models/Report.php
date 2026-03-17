@@ -12,7 +12,9 @@ class Report extends Model
         'reported_user_id',
         'conversation_id',
         'message_id',
+        'job_listing_id',
         'reason',
+        'description',
         'details',
         'evidence',
         'status',
@@ -47,6 +49,11 @@ class Report extends Model
     public function message(): BelongsTo
     {
         return $this->belongsTo(Message::class);
+    }
+
+    public function jobListing(): BelongsTo
+    {
+        return $this->belongsTo(JobListing::class);
     }
 
     public function actionBy(): BelongsTo

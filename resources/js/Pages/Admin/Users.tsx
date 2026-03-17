@@ -516,7 +516,7 @@ export default function AdminUsers({ users, filters }: Props) {
                                 return (
                                     <div key={user.id} className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition">
 
-                                        <div className="flex items-center gap-3 mb-3">
+                                        <div className="flex items-start gap-3 mb-3">
                                             <ImageInitialsFallback
                                                 src={user.avatar}
                                                 alt={initials}
@@ -525,11 +525,21 @@ export default function AdminUsers({ users, filters }: Props) {
                                                 textClassName="text-white text-sm font-bold flex items-center justify-center"
                                             />
 
-                                            <div>
-                                                <p className="font-semibold text-gray-800 text-sm">
-                                                    {user.first_name} {user.last_name}
+                                            <div className="min-w-0">
+                                                <div className="flex items-center gap-2">
+                                                    <p className="font-semibold text-gray-800 text-sm truncate">
+                                                        {user.first_name} {user.last_name}
+                                                    </p>
+                                                    <span className="text-[10px] font-semibold px-2 py-1 rounded-full bg-gray-100 text-gray-600 uppercase">
+                                                        {user.role === 'job_seeker' ? 'User' : user.role === 'employer' ? 'Employer' : user.role}
+                                                    </span>
+                                                </div>
+
+                                                <p className="text-xs text-gray-400 truncate mt-0.5">{user.email}</p>
+                                                <p className="mt-2 flex items-center gap-1 text-xs text-gray-400">
+                                                    <IcoCalendar />
+                                                    {new Date(user.created_at).toISOString().slice(0, 10)}
                                                 </p>
-                                                <p className="text-xs text-gray-400">{user.email}</p>
                                             </div>
                                         </div>
 

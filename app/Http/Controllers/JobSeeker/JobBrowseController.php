@@ -275,6 +275,57 @@ class JobBrowseController extends Controller
     }
 
     /* ─────────────────────────────────────────
+       Report a job listing
+    ───────────────────────────────────────── */
+    public function report(Request $request, JobListing $job)
+    {
+        $validated = $request->validate([
+            // Keep these in sync with the reports table enum values
+            'reason'      => 'required|string|in:spam,inappropriate_behavior,suspicious_job,identity_theft,other',
+            'description' => 'nullable|string|max:1000',
+        ]);
+
+        \App\Models\Report::create([
+            'job_listing_id' => $job->id,
+            'reporter_id'    => Auth::id(),
+            'reason'         => $validated['reason'],
+            'details'        => $validated['description'],
+            'status'         => 'pending',
+        ]);
+
+        return back()->with('success', 'Thank you! We have received your report and will review it shortly.');
+    }
+
+    /* ─────────────────────────────────────────
+       Share a job via email
+    ───────────────────────────────────────── */
+    public function share(Request $request, JobListing $job)
+    {
+        $validated = $request->validate([
+            'email'   => 'required|email',
+            'message' => 'nullable|string|max:500',
+        ]);
+
+        $currentUser = Auth::user();
+        $recipientEmail = $validated['email'];
+        $personalMessage = $validated['message'];
+
+        // Send email with job details
+        \Illuminate\Support\Facades\Mail::send('emails.share-job', [
+            'job'              => $job,
+            'senderName'       => "{$currentUser->first_name} {$currentUser->last_name}",
+            'senderEmail'      => $currentUser->email,
+            'personalMessage'  => $personalMessage,
+            'jobUrl'           => route('job-seeker.jobs.show', $job->id),
+        ], function ($message) use ($recipientEmail, $job) {
+            $message->to($recipientEmail)
+                    ->subject("Check out this job: {$job->title}");
+        });
+
+        return back()->with('success', 'Job shared successfully!');
+    }
+
+    /* ─────────────────────────────────────────
        Job history (hired placements)
     ───────────────────────────────────────── */
     public function history(Request $request)
