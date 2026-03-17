@@ -21,10 +21,10 @@ class ConversationController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
-        $showArchived = $request->query('archived', false);
+        $showArchived = (bool) $request->query('archived', false);
 
         return Inertia::render('Messaging/Index', [
-            'conversations' => $this->getConversations($user, $showArchived),
+            'conversations' => $this->getConversations($user),
             'activeConversationId' => null,
             'initialMessages' => [],
             'activeConversation' => null,
@@ -61,11 +61,16 @@ class ConversationController extends Controller
 
         $messages = $this->getMessages($conversation, $clearedAt);
 
+        // Check if this conversation is archived for the current user
+        $pivot = $conversation->participants->firstWhere('id', $user->id)?->pivot;
+        $isArchived = (bool) ($pivot?->is_archived ?? false);
+
         return Inertia::render('Messaging/Index', [
             'conversations' => $this->getConversations($user),
             'activeConversationId' => $conversation->id,
             'initialMessages' => $messages,
             'activeConversation' => $this->formatConversation($conversation, $user->id),
+            'showArchived' => $isArchived,
         ]);
     }
 
@@ -158,24 +163,39 @@ class ConversationController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:100',
-            'participant_ids' => 'required|array|min:1',
+            'participant_ids' => 'required|array|min:2',
             'participant_ids.*' => 'exists:users,id',
         ]);
+
+        // Validate participants are job seekers
+        $participants = User::whereIn('id', $request->participant_ids)
+            ->where('role', 'job_seeker')
+            ->get();
+
+        if ($participants->count() < 2) {
+            return back()->with('error', 'You must select at least 2 job seekers to create a group chat.');
+        }
+
+        // Filter out job seekers who have blocked the employer or were blocked by him
+        $validParticipantIds = $participants->filter(function ($u) use ($current) {
+            return $current->canMessage($u);
+        })->pluck('id')->all();
+
+        if (count($validParticipantIds) < 2) {
+            return back()->with('error', 'Group creation failed: Not enough eligible participants (respecting blocking logic).');
+        }
 
         $conversation = Conversation::create([
             'type' => 'group',
             'name' => $request->name,
+            'created_by' => $current->id,
         ]);
 
         // Attach the employer (creator)
         $conversation->participants()->attach($current->id);
 
-        // Attach selected participants (excluding self)
-        $participantIds = collect($request->participant_ids)
-            ->filter(fn($id) => (int) $id !== $current->id)
-            ->unique()
-            ->all();
-        $conversation->participants()->attach($participantIds);
+        // Attach selected participants
+        $conversation->participants()->attach($validParticipantIds);
 
         return redirect()->route('messages.show', $conversation->id);
     }
@@ -243,6 +263,26 @@ class ConversationController extends Controller
         return response()->json(['count' => $count]);
     }
 
+    /**
+     * Get total unread messages count for the current user (JSON).
+     * Excludes archived conversations.
+     */
+    public function unreadCount(Request $request): JsonResponse
+    {
+        $userId = $request->user()->id;
+
+        $conversations = Conversation::whereHas('participants', function ($q) use ($userId) {
+            $q->where('user_id', $userId)
+                ->where('is_archived', false);
+        })->get();
+
+        $totalUnread = $conversations->sum(fn($c) => $c->unreadCountFor($userId));
+
+        return response()->json([
+            'total' => $totalUnread,
+        ]);
+    }
+
     public function debug(Request $request): JsonResponse
     {
         $current = $request->user();
@@ -276,7 +316,7 @@ class ConversationController extends Controller
 
     /* ── Private helpers ───────────────────────────────────────────────── */
 
-    private function getConversations(User $user, bool $showArchived = false): array
+    private function getConversations(User $user): array
     {
         $userId = $user->id;
 
@@ -291,31 +331,26 @@ class ConversationController extends Controller
             ])
             ->orderByDesc('last_message_at')
             ->get()
-            ->filter(function (Conversation $c) use ($userId, $showArchived) {
+            ->filter(function (Conversation $c) use ($userId) {
                 $pivot = $c->participants->firstWhere('id', $userId)?->pivot;
                 $isArchived = (bool) ($pivot?->is_archived ?? false);
                 
-                // Filter based on archived status
-                if ($showArchived) {
-                    // For archived view, only check if archived, ignore cleared_at
-                    return $isArchived;
-                } else {
-                    // For normal view, exclude archived and check cleared_at
-                    if ($isArchived) return false;
-                    
-                    $clearedAt = $pivot?->cleared_at;
+                // Always include archived conversations - frontend will filter them into the Archived tab
+                if ($isArchived) return true;
+                
+                // For non-archived, still honor the cleared_at logic
+                $clearedAt = $pivot?->cleared_at;
 
-                    // If never cleared, always show
-                    if (!$clearedAt) return true;
+                // If never cleared, show
+                if (!$clearedAt) return true;
 
-                    // Show only if there are messages AFTER cleared_at
-                    return $c->messages()
-                        ->whereNull('deleted_at')
-                        ->where('created_at', '>', $clearedAt)
-                        ->exists();
-                }
+                // Show only if there are messages AFTER cleared_at
+                return $c->messages()
+                    ->whereNull('deleted_at')
+                    ->where('created_at', '>', $clearedAt)
+                    ->exists();
             })
-            ->map(fn($c) => $this->formatConversation($c, $userId))
+            ->map(fn(Conversation $c) => $this->formatConversation($c, $userId))
             ->values()
             ->all();
     }
@@ -417,6 +452,7 @@ class ConversationController extends Controller
         return [
             'id' => $c->id,
             'type' => $c->type,
+            'created_by' => $c->created_by,
             'name' => $c->type === 'group'
                 ? ($c->name ?? 'Group Chat')
                 : ($other ? "{$other->first_name} {$other->last_name}" : 'Unknown'),

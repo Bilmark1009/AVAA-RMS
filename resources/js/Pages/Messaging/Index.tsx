@@ -40,6 +40,7 @@ interface ConversationSummary {
     is_muted: boolean;
     is_blocked_by_other?: boolean;
     is_blocked?: boolean;
+    created_by?: number | null;
     last_message_at?: string | null;
     job_listing?: { id: number; title: string } | null;
 }
@@ -586,6 +587,55 @@ function NewMessageModal({ onClose, onStart }: {
 }
 
 /* ══════════════════════════════════════════════════════════
+   GROUP MEMBERS MODAL
+   ══════════════════════════════════════════════════════════ */
+function GroupMembersModal({ isOpen, onClose, participants }: {
+    isOpen: boolean; onClose: () => void; participants: any[];
+}) {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl shadow-xl w-full max-w-sm overflow-hidden flex flex-col max-h-[80vh]">
+                <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+                    <div>
+                        <h3 className="text-[15px] font-bold text-avaa-dark">Group Members</h3>
+                        <p className="text-[11px] text-avaa-muted">{participants.length} participants</p>
+                    </div>
+                    <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-avaa-muted transition-colors">
+                        <IcoClose />
+                    </button>
+                </div>
+                <div className="flex-1 overflow-y-auto py-2 custom-scrollbar">
+                    {participants.map(p => (
+                        <div key={p.id} className="flex items-center gap-3 px-6 py-3 hover:bg-gray-50 transition-colors">
+                            <Avatar src={p.avatar} initials={`${p.first_name[0]}${p.last_name[0]}`} size="md" />
+                            <div className="flex-1 min-w-0">
+                                <p className="text-[14px] font-semibold text-avaa-dark truncate">
+                                    {p.first_name} {p.last_name}
+                                </p>
+                                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full mt-0.5 inline-block
+                                    ${p.role === 'employer' ? 'bg-blue-50 text-blue-600' : 'bg-avaa-primary-light text-avaa-primary'}`}>
+                                    {p.role === 'job_seeker' ? 'Job Seeker' : 'Employer'}
+                                </span>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                <div className="px-6 py-4 border-t border-gray-100 flex-shrink-0">
+                    <button
+                        onClick={onClose}
+                        className="w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-avaa-dark text-[13.5px] font-semibold rounded-xl transition-colors"
+                    >
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+/* ══════════════════════════════════════════════════════════
    CONVERSATION ROW
 ══════════════════════════════════════════════════════════ */
 function ConvoRow({ convo, active, currentUserId, onClick }: {
@@ -600,14 +650,29 @@ function ConvoRow({ convo, active, currentUserId, onClick }: {
         <button
             onClick={onClick}
             className={`w-full flex items-start gap-3 px-3 py-3 text-left transition-all rounded-xl group
-                ${active ? 'bg-avaa-primary-light border border-avaa-primary/20' : 'hover:bg-gray-50 border border-transparent'}`}
+                ${active ? 'bg-avaa-primary-light border border-avaa-primary/20' : 'hover:bg-gray-50 border border-transparent'}
+                ${convo.is_blocked || convo.is_blocked_by_other ? 'opacity-75' : ''}`}
         >
-            <Avatar src={convo.avatar} initials={convo.initials} size="md" online={convo.type === 'direct'} />
+            <Avatar 
+                src={convo.avatar} 
+                initials={convo.initials} 
+                size="md" 
+                online={convo.type === 'direct' && !convo.is_blocked && !convo.is_blocked_by_other} 
+            />
             <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-1">
-                    <span className={`text-[13.5px] truncate ${active || convo.unread_count > 0 ? 'font-bold text-avaa-dark' : 'font-semibold text-gray-700'}`}>
-                        {convo.name}
-                    </span>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                        <span className={`text-[13.5px] truncate ${active || convo.unread_count > 0 ? 'font-bold text-avaa-dark' : 'font-semibold text-gray-700'}`}>
+                            {convo.name}
+                        </span>
+                        {(convo.is_blocked || convo.is_blocked_by_other) && (
+                            <span className="text-gray-400 flex-shrink-0" title="Blocked">
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+                                </svg>
+                            </span>
+                        )}
+                    </div>
                     {convo.latest_message?.created_at && (
                         <span className="text-[11px] text-avaa-muted flex-shrink-0 ml-1">
                             {timeAgo(convo.latest_message.created_at)}
@@ -616,7 +681,11 @@ function ConvoRow({ convo, active, currentUserId, onClick }: {
                 </div>
                 <div className="flex items-center justify-between gap-1 mt-0.5">
                     <p className={`text-[12px] truncate ${convo.unread_count > 0 ? 'text-avaa-dark font-medium' : 'text-avaa-muted'}`}>
-                        {preview}
+                        {convo.is_blocked ? (
+                            <span className="italic text-gray-400">User Blocked</span>
+                        ) : convo.is_blocked_by_other ? (
+                            <span className="italic text-gray-400">Conversation Restricted</span>
+                        ) : preview}
                     </p>
                     {convo.unread_count > 0 && (
                         <span className="flex-shrink-0 min-w-[18px] h-[18px] bg-avaa-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
@@ -654,9 +723,9 @@ function useToast() {
 /* ══════════════════════════════════════════════════════════
    CONTEXT MENU
 ══════════════════════════════════════════════════════════ */
-function ContextMenu({ onArchive, onUnarchive, onMute, onDelete, onDeleteGroup, onReport, onBlock, onClose, isMuted, isArchived, isGroup, isEmployer, showToast }: {
-    onArchive: () => void; onUnarchive: () => void; onMute: () => void; onDelete: () => void; onDeleteGroup: () => void; onReport: () => void; onBlock: () => void;
-    onClose: () => void; isMuted: boolean; isArchived: boolean; isGroup: boolean; isEmployer: boolean; showToast: (msg: string) => void;
+function ContextMenu({ onArchive, onUnarchive, onMute, onDelete, onDeleteGroup, onReport, onBlock, onViewMembers, onClose, isMuted, isArchived, isGroup, isCreator, showToast }: {
+    onArchive: () => void; onUnarchive: () => void; onMute: () => void; onDelete: () => void; onDeleteGroup: () => void; onReport: () => void; onBlock: () => void; onViewMembers: () => void;
+    onClose: () => void; isMuted: boolean; isArchived: boolean; isGroup: boolean; isCreator: boolean; showToast: (msg: string) => void;
 }) {
     const ref = useRef<HTMLDivElement>(null);
     useEffect(() => {
@@ -676,6 +745,7 @@ function ContextMenu({ onArchive, onUnarchive, onMute, onDelete, onDeleteGroup, 
                 },
                 { icon: <IcoBlock />, label: 'Block', action: () => { onBlock(); onClose(); } },
                 { icon: <IcoFlag />, label: 'Report', action: () => { onReport(); onClose(); } },
+                ...(isGroup ? [{ icon: <IcoUsers />, label: 'View Members', action: () => { onViewMembers(); onClose(); } }] : []),
             ].map(item => (
                 <button key={item.label} onClick={item.action}
                     className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-avaa-text hover:bg-avaa-primary-light transition-colors">
@@ -684,7 +754,7 @@ function ContextMenu({ onArchive, onUnarchive, onMute, onDelete, onDeleteGroup, 
                 </button>
             ))}
             <div className="border-t border-gray-100 mt-1 pt-1">
-                {isGroup && isEmployer && (
+                {isGroup && isCreator && (
                     <button onClick={() => { onDeleteGroup(); onClose(); }}
                         className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-red-500 hover:bg-red-50 transition-colors">
                         <IcoTrash /> Delete Group for Everyone
@@ -817,7 +887,7 @@ function NewGroupModal({ onClose, onCreated }: {
     };
 
     const handleCreate = () => {
-        if (!name.trim() || selected.length === 0) return;
+        if (!name.trim() || selected.length < 2) return;
         setCreating(true);
         router.post(
             route('messages.start-group'),
@@ -905,7 +975,7 @@ function NewGroupModal({ onClose, onCreated }: {
                         Cancel
                     </button>
                     <button onClick={handleCreate}
-                        disabled={!name.trim() || selected.length === 0 || creating}
+                        disabled={!name.trim() || selected.length < 2 || creating}
                         className="px-5 py-2 bg-avaa-primary hover:bg-avaa-dark disabled:opacity-40 text-white text-[13px] font-semibold rounded-xl transition-colors">
                         {creating ? <IcoSpinner /> : `Create Group (${selected.length})`}
                     </button>
@@ -949,12 +1019,14 @@ export default function MessagingIndex({
     initialMessages: initMsgs,
     activeConversation: initActive,
     unreadNotificationsCount,
+    showArchived = false,
 }: {
     conversations: ConversationSummary[];
     activeConversationId: number | null;
     initialMessages: Message[];
     activeConversation: ConversationSummary | null;
     unreadNotificationsCount: number;
+    showArchived?: boolean;
 }) {
 const [showBlockModal, setShowBlockModal] = useState(false);
     const [blocking, setBlocking] = useState(false);
@@ -963,21 +1035,22 @@ const [showBlockModal, setShowBlockModal] = useState(false);
     const [imageModal, setImageModal] = useState<{ url: string; name: string } | null>(null);
     const [fileDownloadModal, setFileDownloadModal] = useState<{ url: string; name: string } | null>(null);
     const [reportMsgTarget, setReportMsgTarget] = useState<Message | null>(null);
-
+ 
     const { auth } = usePage<PageProps>().props;
     const me = auth.user;
-
+ 
     const [convos, setConvos] = useState<ConversationSummary[]>(initConvos);
     const [activeConvo, setActiveConvo] = useState<ConversationSummary | null>(initActive);
     const [messages, setMessages] = useState<Message[]>(initMsgs);
     const [body, setBody] = useState('');
     const [sending, setSending] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
-    const [tab, setTab] = useState<'all' | 'archived'>('all');
+    const [tab, setTab] = useState<'all' | 'archived'>(showArchived ? 'archived' : 'all');
     const [mobileView, setMobileView] = useState<'list' | 'chat'>(initActiveId ? 'chat' : 'list');
     const [loadingConvo, setLoadingConvo] = useState(false);
     const [showNewMsg, setShowNewMsg] = useState(false);
     const [showNewGroup, setShowNewGroup] = useState(false);
+    const [showMembersModal, setShowMembersModal] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<UserResult[]>([]);
     const [searchLoading, setSearchLoading] = useState(false);
@@ -990,6 +1063,7 @@ const [showBlockModal, setShowBlockModal] = useState(false);
     const fileRef = useRef<HTMLInputElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+    const listPollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
     const lastMsgId = useRef<number>(initMsgs.length > 0 ? initMsgs[initMsgs.length - 1].id : 0);
 
     useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
@@ -1099,6 +1173,25 @@ const [showBlockModal, setShowBlockModal] = useState(false);
         return stopPolling;
     }, [activeConvo?.id]);
     useEffect(() => () => stopPolling(), []);
+
+    /* ── List Polling (for new convos / unread counts) ── */
+    useEffect(() => {
+        listPollTimer.current = setInterval(() => {
+            router.reload({ 
+                only: ['conversations'],
+                onSuccess: (page: any) => {
+                    const p = page.props as any;
+                    if (p.conversations) {
+                        setConvos(p.conversations);
+                    }
+                }
+            });
+        }, 10000); // Check for new convos every 10s
+
+        return () => {
+            if (listPollTimer.current) clearInterval(listPollTimer.current);
+        };
+    }, []);
 
     /* ── Open conversation ── */
     const openConvo = useCallback((convo: ConversationSummary) => {
@@ -1395,7 +1488,7 @@ const [showBlockModal, setShowBlockModal] = useState(false);
             ));
             
             // Resume polling
-            startPolling(activeConvo.id);
+            if (activeConvo) startPolling(activeConvo.id);
         } catch (err) {
             toast.show('Failed to unblock user');
         } finally {
@@ -1515,6 +1608,15 @@ const [showBlockModal, setShowBlockModal] = useState(false);
                 <NewGroupModal
                     onClose={() => setShowNewGroup(false)}
                     onCreated={handleGroupCreated}
+                />
+            )}
+
+            {/* Group Members Modal */}
+            {activeConvo && activeConvo.type === 'group' && (
+                <GroupMembersModal
+                    isOpen={showMembersModal}
+                    onClose={() => setShowMembersModal(false)}
+                    participants={activeConvo.participants}
                 />
             )}
 
@@ -1769,16 +1871,45 @@ const [showBlockModal, setShowBlockModal] = useState(false);
                                     className="md:hidden p-1 rounded-lg hover:bg-gray-100 text-avaa-muted transition-colors flex-shrink-0">
                                     <IcoBack />
                                 </button>
-                                <Avatar src={activeConvo.avatar} initials={activeConvo.initials} size="md" online />
+                                <Avatar 
+                                    src={activeConvo.avatar} 
+                                    initials={activeConvo.initials} 
+                                    size="md" 
+                                    online={!activeConvo.is_blocked && !activeConvo.is_blocked_by_other} 
+                                />
                                 <div className="flex-1 min-w-0">
                                     <p className="font-semibold text-[14px] text-avaa-dark truncate">{activeConvo.name}</p>
                                     {activeConvo.type === 'group' ? (
-                                        <p className="text-[11.5px] text-avaa-primary flex items-center gap-1 mt-0.5">
-                                            <IcoUsers /> {activeConvo.participants.length} members
-                                            {activeConvo.job_listing && ` · ${activeConvo.job_listing.title}`}
-                                        </p>
+                                        <div className="mt-0.5 flex items-center gap-1.5">
+                                            <button 
+                                                onClick={() => setShowMembersModal(true)}
+                                                className="text-[11.5px] text-avaa-primary font-medium hover:underline cursor-pointer"
+                                            >
+                                                {activeConvo.participants.length} members
+                                            </button>
+                                            <span className="text-avaa-muted text-[11px]">·</span>
+                                            <p className="text-[11.5px] text-avaa-muted truncate">
+                                                {activeConvo.participants.slice(0, 3).map(p => p.first_name).join(', ')}
+                                                {activeConvo.participants.length > 3 && '...'}
+                                                {activeConvo.job_listing && (
+                                                    <>
+                                                        <span className="mx-1">·</span>
+                                                        <span className="text-avaa-primary/80">{activeConvo.job_listing.title}</span>
+                                                    </>
+                                                )}
+                                            </p>
+                                        </div>
                                     ) : (
-                                        <p className="text-[11.5px] text-emerald-500 font-medium">● Online</p>
+                                        !activeConvo.is_blocked && !activeConvo.is_blocked_by_other ? (
+                                            <p className="text-[11.5px] text-emerald-500 font-medium">● Online</p>
+                                        ) : (
+                                            <p className="text-[11.5px] text-avaa-muted flex items-center gap-1">
+                                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+                                                </svg>
+                                                Blocked
+                                            </p>
+                                        )
                                     )}
                                 </div>
                                 <div className="relative">
@@ -1795,11 +1926,12 @@ const [showBlockModal, setShowBlockModal] = useState(false);
                                             onDeleteGroup={() => setConfirmDeleteGroup(activeConvo.id)}
                                             onReport={handleReportUser}
                                             onBlock={() => setShowBlockModal(true)}
+                                            onViewMembers={() => setShowMembersModal(true)}
                                             onClose={() => setShowMenu(false)}
                                             isMuted={activeConvo.is_muted}
                                             isArchived={activeConvo.is_archived}
                                             isGroup={activeConvo.type === 'group'}
-                                            isEmployer={me.role === 'employer'}
+                                            isCreator={activeConvo.created_by === me.id}
                                             showToast={toast.show}
                                         />
                                     )}
@@ -1843,15 +1975,38 @@ const [showBlockModal, setShowBlockModal] = useState(false);
                             <div className="px-4 py-3 bg-white border-t border-gray-100 flex-shrink-0">
                                 {activeConvo.is_blocked ? (
                                     <div className="w-full bg-yellow-50 border border-yellow-200 rounded-2xl px-4 py-3 text-center">
-                                        <p className="text-sm text-yellow-800">
-                                            You have blocked this user. You cannot send messages to them.
+                                        <p className="text-sm text-yellow-800 font-semibold mb-1">
+                                            You have blocked this user.
+                                        </p>
+                                        <p className="text-[12px] text-yellow-700 mb-3">
+                                            You won't receive messages from them, and you can't send messages until you unblock.
                                         </p>
                                         <button 
                                             onClick={() => setShowUnblockModal(true)}
-                                            className="mt-2 px-4 py-2 bg-yellow-100 hover:bg-yellow-200 text-yellow-800 text-sm font-medium rounded-lg transition-colors"
+                                            className="px-5 py-2 bg-yellow-500 hover:bg-yellow-600 text-white text-[13px] font-bold rounded-xl transition-colors shadow-sm"
                                         >
-                                            Unblock User
+                                            Unblock {activeConvo.name}
                                         </button>
+                                    </div>
+                                ) : activeConvo.is_blocked_by_other ? (
+                                    <div className="space-y-3">
+                                        <div className="flex items-end gap-2 bg-gray-100 border border-gray-200 rounded-2xl px-3 py-2.5 opacity-60 cursor-not-allowed">
+                                            <button disabled className="p-1.5 rounded-lg text-gray-400 flex-shrink-0 mb-0.5">
+                                                <IcoAttach />
+                                            </button>
+                                            <textarea
+                                                disabled
+                                                placeholder="You can't send messages to this user because they've blocked you."
+                                                className="flex-1 bg-transparent text-[13.5px] text-gray-500 placeholder-gray-400 outline-none border-0 resize-none leading-relaxed"
+                                                rows={1}
+                                            />
+                                            <button disabled className="flex-shrink-0 w-9 h-9 rounded-xl bg-gray-300 text-white flex items-center justify-center mb-0.5">
+                                                <IcoSend />
+                                            </button>
+                                        </div>
+                                        <p className="text-center text-[12px] text-avaa-muted">
+                                            If you think this is a mistake, you can <a href="#" className="text-avaa-primary hover:underline font-medium">contact support</a>.
+                                        </p>
                                     </div>
                                 ) : (
                                     <div className="flex items-end gap-2 bg-gray-50 border border-gray-200 rounded-2xl px-3 py-2.5
@@ -1888,7 +2043,7 @@ const [showBlockModal, setShowBlockModal] = useState(false);
                                         </button>
                                     </div>
                                 )}
-                                {!activeConvo.is_blocked && (
+                                {!activeConvo.is_blocked && !activeConvo.is_blocked_by_other && (
                                     <p className="text-[11px] text-avaa-muted mt-1.5 ml-1">
                                         Enter to send · Shift+Enter for new line
                                     </p>

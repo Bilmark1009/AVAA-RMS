@@ -35,6 +35,7 @@ class AdminReportController extends Controller
             'reportedUser.jobSeekerProfile',
             'message',
             'conversation',
+            'actionBy',
         ])
         ->whereIn('status', $dbStatuses)
         ->orderByDesc('created_at');
@@ -93,13 +94,20 @@ class AdminReportController extends Controller
                 'evidence'              => $evidenceUrls,
                 'message_content'       => $r->message?->content ?? null,
                 'status'                => $r->status,
-                // Approved / Declined metadata (empty for pending)
-                'action_taken'          => null,
+                'action_taken'          => $r->action_taken,
                 'employer_status'       => 'Active',
-                'approved_by'           => null,
-                'approved_date'         => null,
-                'declined_by'           => null,
-                'declined_date'         => null,
+                'approved_by'           => $r->status === 'resolved' && $r->actionBy
+                    ? "{$r->actionBy->first_name} {$r->actionBy->last_name}"
+                    : null,
+                'approved_date'         => $r->status === 'resolved' && $r->action_at
+                    ? $r->action_at->diffForHumans()
+                    : null,
+                'declined_by'           => $r->status === 'dismissed' && $r->actionBy
+                    ? "{$r->actionBy->first_name} {$r->actionBy->last_name}"
+                    : null,
+                'declined_date'         => $r->status === 'dismissed' && $r->action_at
+                    ? $r->action_at->diffForHumans()
+                    : null,
             ];
         });
 
@@ -122,7 +130,13 @@ class AdminReportController extends Controller
             'action_note' => 'nullable|string|max:500',
         ]);
 
-        $report->update(['status' => 'resolved']);
+        $report->update([
+            'status' => 'resolved',
+            'action_taken' => $request->action_note ?? 'Approved',
+            'action_by' => $request->user()->id,
+            'action_at' => now(),
+            'action_note' => $request->action_note,
+        ]);
 
         return redirect()->back()->with('success', 'Report approved and marked as resolved.');
     }
@@ -137,7 +151,13 @@ class AdminReportController extends Controller
             'decline_reason' => 'nullable|string|max:500',
         ]);
 
-        $report->update(['status' => 'dismissed']);
+        $report->update([
+            'status' => 'dismissed',
+            'action_taken' => 'Declined',
+            'action_by' => $request->user()->id,
+            'action_at' => now(),
+            'action_note' => $request->decline_reason,
+        ]);
 
         return redirect()->back()->with('success', 'Report declined and dismissed.');
     }
