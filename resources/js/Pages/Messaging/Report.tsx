@@ -50,8 +50,8 @@ const reasons = [
     },
 ];
 
-export default function ReportPage({ reportedUser, conversationId, unreadNotificationsCount }: PageProps) {
-    const { flash } = usePage<PageProps>().props;
+export default function ReportPage({ reportedUser, conversationId, unreadNotificationsCount }: ReportPageProps) {
+    const { flash } = usePage<ReportPageProps>().props;
     const [reason, setReason] = useState('');
     const [details, setDetails] = useState('');
     const [submitting, setSubmitting] = useState(false);

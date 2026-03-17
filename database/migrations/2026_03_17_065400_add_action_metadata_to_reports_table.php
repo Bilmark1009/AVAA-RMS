@@ -9,10 +9,18 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('reports', function (Blueprint $table) {
-            $table->string('action_taken')->nullable()->after('status');
-            $table->foreignId('action_by')->nullable()->constrained('users')->nullOnDelete()->after('action_taken');
-            $table->timestamp('action_at')->nullable()->after('action_by');
-            $table->text('action_note')->nullable()->after('action_at');
+            if (!Schema::hasColumn('reports', 'action_taken')) {
+                $table->string('action_taken')->nullable()->after('status');
+            }
+            if (!Schema::hasColumn('reports', 'action_by')) {
+                $table->foreignId('action_by')->nullable()->constrained('users')->nullOnDelete()->after('action_taken');
+            }
+            if (!Schema::hasColumn('reports', 'action_at')) {
+                $table->timestamp('action_at')->nullable()->after('action_by');
+            }
+            if (!Schema::hasColumn('reports', 'action_note')) {
+                $table->text('action_note')->nullable()->after('action_at');
+            }
         });
     }
 
