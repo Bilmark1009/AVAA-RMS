@@ -792,17 +792,19 @@ function Bubble({ msg, isOwn, showAvatar, onImageClick, onFileClick, onReport }:
         );
     }
     return (
-        <div className={`flex items-end gap-2 group/bubble ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
-            <div className="w-7 flex-shrink-0 mb-1">
-                {!isOwn && showAvatar && (
-                    <Avatar src={msg.sender.avatar} initials={`${msg.sender.first_name[0]}${msg.sender.last_name[0]}`} size="xs" />
-                )}
-            </div>
+        <div className={`w-full flex items-end gap-2 group/bubble ${isOwn ? 'justify-end' : 'justify-start'}`}>
+            {!isOwn && (
+                <div className="w-7 flex-shrink-0 mb-1">
+                    {showAvatar && (
+                        <Avatar src={msg.sender.avatar} initials={`${msg.sender.first_name[0]}${msg.sender.last_name[0]}`} size="xs" />
+                    )}
+                </div>
+            )}
             <div className={`max-w-[62%] flex flex-col gap-0.5 ${isOwn ? 'items-end' : 'items-start'}`}>
                 {!isOwn && showAvatar && (
                     <span className="text-[11px] text-avaa-muted ml-1">{msg.sender.first_name}</span>
                 )}
-                <div className={`relative flex items-end gap-1.5 ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
+                <div className="relative flex items-end gap-1.5">
                     <div className={`px-4 py-2.5 rounded-2xl text-[13.5px] leading-relaxed break-words
                         ${isOwn
                             ? 'bg-avaa-primary text-white rounded-br-sm'
