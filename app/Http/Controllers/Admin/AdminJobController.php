@@ -128,7 +128,7 @@ class AdminJobController extends Controller
             ->where('status', '!=', 'draft')
             ->with([
                 'user:id,first_name,last_name,email,phone,avatar',
-                'user.jobSeekerProfile:user_id,professional_title,current_job_title,current_company,city,state,country,skills,certifications,about,resume_path,linkedin_url,portfolio_url,highest_education',
+                'user.jobSeekerProfile:user_id,professional_title,current_job_title,current_company,city,state,country,skills,certifications,about,resume_path,linkedin_url,portfolio_url,highest_education,profile_frame',
                 'user.workExperiences',
             ])
             ->orderByDesc('created_at')
@@ -147,7 +147,9 @@ class AdminJobController extends Controller
                     'email' => $app->user->email,
                     'phone' => $app->user->phone,
                     'avatar' => $app->user->avatar,
+                    'profile_frame' => $app->user->jobSeekerProfile?->profile_frame ?? 'default',
                     'profile' => $app->user->jobSeekerProfile ? [
+                        'profile_frame' => $app->user->jobSeekerProfile->profile_frame ?? 'default',
                         'professional_title' => $app->user->jobSeekerProfile->professional_title,
                         'current_job_title' => $app->user->jobSeekerProfile->current_job_title,
                         'current_company' => $app->user->jobSeekerProfile->current_company,
