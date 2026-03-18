@@ -246,7 +246,7 @@ export function MessageDetailsModal({ report, onClose, onDecline, onSuspend, onB
                             <InfoRow label="Reason" value={report.reason_title} />
                         </div>
                         <div className="bg-orange-50 border border-orange-100 rounded-xl px-5 py-4">
-                            <p className="text-sm text-orange-600 leading-relaxed">The message contains offensive language that violates our community guidelines</p>
+                            <p className="text-sm text-orange-600 leading-relaxed">{report.reason_description || 'No additional details provided.'}</p>
                         </div>
                     </div>
 
@@ -612,6 +612,19 @@ export function BanModal({ report, onClose, onConfirm, tab }: {
     tab: string;
 }) {
     const isMessage = tab === 'messages';
+    const [submitting, setSubmitting] = useState(false);
+
+    const handleConfirm = async () => {
+        setSubmitting(true);
+        try {
+            await axios.patch(route('admin.reports.approve', report.id), { action_note: 'Banned account' });
+            onConfirm();
+        } catch {
+            onConfirm();
+        } finally {
+            setSubmitting(false);
+        }
+    };
 
     return (
         <ModalOverlay>
@@ -702,8 +715,8 @@ export function BanModal({ report, onClose, onConfirm, tab }: {
 
                     <div className="flex gap-3">
                         <button onClick={onClose} className="px-6 py-2.5 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors">Cancel</button>
-                        <button onClick={onConfirm} className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors flex items-center gap-2">
-                            <IcoCircleOff /> Confirm Ban
+                        <button onClick={handleConfirm} disabled={submitting} className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center gap-2">
+                            <IcoCircleOff /> {submitting ? 'Banning...' : 'Confirm Ban'}
                         </button>
                     </div>
                 </div>
