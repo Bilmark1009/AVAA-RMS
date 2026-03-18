@@ -1,7 +1,7 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import { AppNotification, PageProps } from '@/types';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 /* ─── Icons ───────────────────────────────────────────────────────────────── */
 const IcoBell = () => (
@@ -56,6 +56,27 @@ const IcoUnread = () => (
 /* ─── Helpers ─────────────────────────────────────────────────────────────── */
 function safeRoute(name: string, params?: Record<string, unknown>): string {
     try { return route(name, params); } catch { return '#'; }
+}
+
+function readCsrfMetaToken(): string {
+    return (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null)?.content ?? '';
+}
+
+function readXsrfCookieToken(): string {
+    const match = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/);
+    return match ? decodeURIComponent(match[1]) : '';
+}
+
+function buildCsrfHeaders(): Record<string, string> {
+    const csrf = readCsrfMetaToken();
+    const xsrf = readXsrfCookieToken();
+
+    return {
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        ...(csrf ? { 'X-CSRF-TOKEN': csrf } : {}),
+        ...(xsrf ? { 'X-XSRF-TOKEN': xsrf } : {}),
+    };
 }
 
 function resolveIcon(type: string) {
@@ -277,17 +298,18 @@ export default function NotificationsIndex({ notifications }: Props) {
     const [confirm, setConfirm] = useState<'delete-all' | null>(null);
     const [processing, setProcessing] = useState(false);
 
-    const unread = items.filter(n => !n.read_at).length;
+    // Keep local state in sync when server-provided data changes (e.g., pagination or revisit).
+    useEffect(() => {
+        setItems(notifications.data);
+    }, [notifications.data]);
 
-    const csrf = () =>
-        (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '';
+    const unread = items.filter(n => !n.read_at).length;
 
     async function apiPatch(url: string) {
         const res = await fetch(url, {
             method: 'PATCH',
-            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': csrf() },
+            headers: buildCsrfHeaders(),
             credentials: 'same-origin',
-            keepalive: true,
         });
 
         return res.ok;
@@ -295,9 +317,8 @@ export default function NotificationsIndex({ notifications }: Props) {
     async function apiPost(url: string) {
         const res = await fetch(url, {
             method: 'POST',
-            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': csrf() },
+            headers: buildCsrfHeaders(),
             credentials: 'same-origin',
-            keepalive: true,
         });
 
         return res.ok;
@@ -305,9 +326,8 @@ export default function NotificationsIndex({ notifications }: Props) {
     async function apiDelete(url: string) {
         const res = await fetch(url, {
             method: 'DELETE',
-            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': csrf() },
+            headers: buildCsrfHeaders(),
             credentials: 'same-origin',
-            keepalive: true,
         });
 
         return res.ok;
@@ -377,9 +397,9 @@ export default function NotificationsIndex({ notifications }: Props) {
                     <div className="flex items-center justify-between mb-4">
                         <div>
                             <p className="text-xs text-avaa-muted">
-                                {notifications.total === 0
+                                {items.length === 0
                                     ? 'No notifications'
-                                    : `${notifications.total} notification${notifications.total !== 1 ? 's' : ''}${unread > 0 ? ` · ${unread} unread` : ''}`}
+                                    : `${items.length} notification${items.length !== 1 ? 's' : ''}${unread > 0 ? ` · ${unread} unread` : ''}`}
                             </p>
                         </div>
 

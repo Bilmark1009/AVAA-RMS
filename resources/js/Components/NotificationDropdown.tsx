@@ -63,6 +63,27 @@ function safeRoute(name: string, params?: Record<string, unknown>): string {
     try { return route(name, params); } catch { return '#'; }
 }
 
+function readCsrfMetaToken(): string {
+    return (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null)?.content ?? '';
+}
+
+function readXsrfCookieToken(): string {
+    const match = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/);
+    return match ? decodeURIComponent(match[1]) : '';
+}
+
+function buildCsrfHeaders(): Record<string, string> {
+    const csrf = readCsrfMetaToken();
+    const xsrf = readXsrfCookieToken();
+
+    return {
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        ...(csrf ? { 'X-CSRF-TOKEN': csrf } : {}),
+        ...(xsrf ? { 'X-XSRF-TOKEN': xsrf } : {}),
+    };
+}
+
 /**
  * Maps a notification type class name to an icon + colour.
  * Add new types here as the codebase grows.
@@ -278,15 +299,13 @@ export default function NotificationDropdown() {
     const markRead = async (id: string) => {
         const res = await fetch(safeRoute('notifications.read', { id }), {
             method: 'PATCH',
-            headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '',
-            },
+            headers: buildCsrfHeaders(),
             credentials: 'same-origin',
-            keepalive: true,
         });
-        if (!res.ok) return;
+        if (!res.ok) {
+            await fetchNotifications();
+            return;
+        }
         setNotifications(prev => prev.map(n => n.id === id ? { ...n, read_at: new Date().toISOString() } : n));
         setUnreadCount(c => Math.max(0, c - 1));
     };
@@ -295,15 +314,13 @@ export default function NotificationDropdown() {
         const wasUnread = !notifications.find(n => n.id === id)?.read_at;
         const res = await fetch(safeRoute('notifications.destroy', { id }), {
             method: 'DELETE',
-            headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '',
-            },
+            headers: buildCsrfHeaders(),
             credentials: 'same-origin',
-            keepalive: true,
         });
-        if (!res.ok) return;
+        if (!res.ok) {
+            await fetchNotifications();
+            return;
+        }
         setNotifications(prev => prev.filter(n => n.id !== id));
         if (wasUnread) setUnreadCount(c => Math.max(0, c - 1));
     };
@@ -311,15 +328,13 @@ export default function NotificationDropdown() {
     const markAllRead = async () => {
         const res = await fetch(safeRoute('notifications.mark-all-read'), {
             method: 'POST',
-            headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '',
-            },
+            headers: buildCsrfHeaders(),
             credentials: 'same-origin',
-            keepalive: true,
         });
-        if (!res.ok) return;
+        if (!res.ok) {
+            await fetchNotifications();
+            return;
+        }
         setNotifications(prev => prev.map(n => ({ ...n, read_at: new Date().toISOString() })));
         setUnreadCount(0);
     };
