@@ -38,7 +38,7 @@ class AuthenticatedSessionController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect('/login')
+        return redirect()->route('home')
             ->withHeaders([
                 'Cache-Control' => 'no-cache, no-store, must-revalidate, max-age=0, private',
                 'Pragma' => 'no-cache',
