@@ -540,7 +540,9 @@ class JobListingController extends Controller
                     'email'      => $app->user->email,
                     'phone'      => $app->user->phone,
                     'avatar'     => $app->user->avatar,
+                    'profile_frame' => $app->user->jobSeekerProfile?->profile_frame ?? 'default',
                     'profile'    => $app->user->jobSeekerProfile ? [
+                        'profile_frame'      => $app->user->jobSeekerProfile->profile_frame ?? 'default',
                         'professional_title' => $app->user->jobSeekerProfile->professional_title,
                         'current_job_title'  => $app->user->jobSeekerProfile->current_job_title,
                         'current_company'    => $app->user->jobSeekerProfile->current_company,

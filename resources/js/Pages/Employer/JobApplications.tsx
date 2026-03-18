@@ -20,7 +20,9 @@ interface ApplicationUser {
     email: string;
     phone?: string | null;
     avatar?: string | null;
+    profile_frame?: 'default' | 'open_to_work' | 'not_open_to_work' | null;
     profile?: {
+        profile_frame?: 'default' | 'open_to_work' | 'not_open_to_work' | null;
         professional_title?: string;
         current_job_title?: string;
         current_company?: string;
@@ -52,6 +54,19 @@ interface Props {
 const AVATAR_COLORS = ['bg-avaa-dark', 'bg-teal-700', 'bg-emerald-700', 'bg-slate-600', 'bg-cyan-700', 'bg-stone-600'];
 function avatarColor(id: number) { return AVATAR_COLORS[id % AVATAR_COLORS.length]; }
 function getInitials(first: string, last: string) { return `${(first[0] ?? '')}${(last[0] ?? '')}`.toUpperCase(); }
+function getProfileFrame(frame?: string | null) {
+    return frame === 'open_to_work' || frame === 'not_open_to_work' ? frame : 'default';
+}
+function profileFrameRingClass(frame?: string | null) {
+    if (frame === 'open_to_work') return 'ring-2 ring-emerald-400';
+    if (frame === 'not_open_to_work') return 'ring-2 ring-red-400';
+    return '';
+}
+function profileFrameLabel(frame?: string | null) {
+    if (frame === 'open_to_work') return 'Open to Work';
+    if (frame === 'not_open_to_work') return 'Not Open to Work';
+    return null;
+}
 function timeAgo(dateStr: string) {
     const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
     if (diff < 3600) return `${Math.max(1, Math.floor(diff / 60))}m ago`;
@@ -107,6 +122,7 @@ function RejectModal({ app, jobId, onClose }: { app: Application; jobId: number;
     }, []);
 
     const fullName = `${app.user.first_name} ${app.user.last_name}`;
+    const frame = getProfileFrame(app.user.profile_frame ?? app.user.profile?.profile_frame);
 
     const handleSubmit = () => {
         if (!reason.trim()) return;
@@ -138,11 +154,12 @@ function RejectModal({ app, jobId, onClose }: { app: Application; jobId: number;
                         src={app.user.avatar}
                         alt={fullName}
                         initials={getInitials(app.user.first_name, app.user.last_name)}
-                        className={`w-16 h-16 rounded-2xl ring-4 ring-white shadow-md overflow-hidden ${app.user.avatar ? 'bg-white' : avatarColor(app.user.id)}`}
+                        className={`w-16 h-16 rounded-2xl ring-4 ring-white shadow-md overflow-hidden ${profileFrameRingClass(frame)} ${app.user.avatar ? 'bg-white' : avatarColor(app.user.id)}`}
                         textClassName="text-white text-xl font-bold flex items-center justify-center"
                     />
                     <div className="pb-1">
                         <h2 className="text-lg font-bold text-avaa-dark">{fullName}</h2>
+                        {profileFrameLabel(frame) && <p className="text-xs text-gray-500">{profileFrameLabel(frame)}</p>}
                         <p className="text-sm text-gray-500">{app.user.email}</p>
                     </div>
                 </div>
@@ -214,6 +231,7 @@ function ApproveModal({ app, jobId, employerAddress, onClose }: {
     }, []);
 
     const fullName = `${app.user.first_name} ${app.user.last_name}`;
+    const frame = getProfileFrame(app.user.profile_frame ?? app.user.profile?.profile_frame);
     const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
 
     const handleSubmit = () => {
@@ -247,11 +265,12 @@ function ApproveModal({ app, jobId, employerAddress, onClose }: {
                         src={app.user.avatar}
                         alt={fullName}
                         initials={getInitials(app.user.first_name, app.user.last_name)}
-                        className={`w-16 h-16 rounded-2xl ring-4 ring-white shadow-md overflow-hidden ${app.user.avatar ? 'bg-white' : avatarColor(app.user.id)}`}
+                        className={`w-16 h-16 rounded-2xl ring-4 ring-white shadow-md overflow-hidden ${profileFrameRingClass(frame)} ${app.user.avatar ? 'bg-white' : avatarColor(app.user.id)}`}
                         textClassName="text-white text-xl font-bold flex items-center justify-center"
                     />
                     <div className="pb-1">
                         <h2 className="text-lg font-bold text-avaa-dark">{fullName}</h2>
+                        {profileFrameLabel(frame) && <p className="text-xs text-gray-500">{profileFrameLabel(frame)}</p>}
                         <p className="text-sm text-gray-500">{app.user.email}</p>
                     </div>
                 </div>
@@ -420,6 +439,7 @@ function ApplicantModal({ app, jobId, onClose, onReject, onApprove }: {
     const ad = app.application_data;
     const fullName = (ad?.full_name) ?? `${u.first_name} ${u.last_name}`;
     const initials = getInitials(u.first_name, u.last_name);
+    const frame = getProfileFrame(u.profile_frame ?? u.profile?.profile_frame);
     const resumePath = (app.resume_path) ?? (u.profile?.resume_path) ?? (ad?.existing_resume);
     const resumeName = resumePath ? resumePath.split('/').pop() : null;
     const resumeViewUrl = resumePath ? route('applications.resume', { application: app.id }) : null;
@@ -440,11 +460,12 @@ function ApplicantModal({ app, jobId, onClose, onReject, onApprove }: {
                         src={u.avatar}
                         alt={fullName}
                         initials={initials}
-                        className={`w-20 h-20 rounded-2xl ring-4 ring-white shadow-md overflow-hidden ${u.avatar ? 'bg-white' : avatarColor(u.id)}`}
+                        className={`w-20 h-20 rounded-2xl ring-4 ring-white shadow-md overflow-hidden ${profileFrameRingClass(frame)} ${u.avatar ? 'bg-white' : avatarColor(u.id)}`}
                         textClassName="text-white text-2xl font-bold flex items-center justify-center"
                     />
                     <div className="pb-1">
                         <h2 className="text-lg font-bold text-avaa-dark">{fullName}</h2>
+                        {profileFrameLabel(frame) && <p className="text-xs text-gray-500 mt-1">{profileFrameLabel(frame)}</p>}
                         <AppStatusBadge status={app.status} jobId={jobId} appId={app.id} onReject={onReject} onApprove={onApprove} />
                     </div>
                 </div>
@@ -712,6 +733,7 @@ export default function JobApplications({ job, applications, employerAddress }: 
                             ) : filtered.map(app => {
                                 const fullName = `${app.user.first_name} ${app.user.last_name}`;
                                 const initials = getInitials(app.user.first_name, app.user.last_name);
+                                const frame = getProfileFrame(app.user.profile_frame ?? app.user.profile?.profile_frame);
                                 const subTitle = (app.application_data?.current_job_title) ?? (app.user.profile?.professional_title) ?? (app.user.profile?.current_job_title) ?? '';
                                 const resumePath = (app.resume_path) ?? (app.user.profile?.resume_path);
                                 const resumeUrl = resumePath ? route('applications.resume', { application: app.id }) : null;
@@ -726,7 +748,7 @@ export default function JobApplications({ job, applications, employerAddress }: 
                                                     src={app.user.avatar}
                                                     alt={fullName}
                                                     initials={initials}
-                                                    className={`w-9 h-9 rounded-full flex-shrink-0 overflow-hidden ${app.user.avatar ? 'bg-white' : avatarColor(app.user.id)}`}
+                                                    className={`w-9 h-9 rounded-full flex-shrink-0 overflow-hidden ${profileFrameRingClass(frame)} ${app.user.avatar ? 'bg-white' : avatarColor(app.user.id)}`}
                                                     textClassName="text-white text-xs font-bold flex items-center justify-center"
                                                 />
                                                 <div className="min-w-0">

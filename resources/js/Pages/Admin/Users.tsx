@@ -4,7 +4,10 @@ import AppLayout from '@/Layouts/AppLayout';
 import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
 
 /* ── Types ── */
-interface JobSeekerProfile { skills?: string | null }
+interface JobSeekerProfile {
+    skills?: string | null;
+    profile_frame?: 'default' | 'open_to_work' | 'not_open_to_work' | null;
+}
 interface EmployerProfile { company_name?: string | null }
 
 interface User {
@@ -112,6 +115,22 @@ function effectiveStatus(user: User): 'active' | 'inactive' {
     return user.status === 'active' ? 'active' : 'inactive';
 }
 
+function getProfileFrame(frame?: string | null) {
+    return frame === 'open_to_work' || frame === 'not_open_to_work' ? frame : 'default';
+}
+
+function profileFrameRingClass(frame?: string | null) {
+    if (frame === 'open_to_work') return 'ring-2 ring-emerald-400';
+    if (frame === 'not_open_to_work') return 'ring-2 ring-red-400';
+    return '';
+}
+
+function profileFrameLabel(frame?: string | null) {
+    if (frame === 'open_to_work') return 'Open to Work';
+    if (frame === 'not_open_to_work') return 'Not Open to Work';
+    return null;
+}
+
 /* ── Delete Confirm Modal ── */
 function DeleteModal({ user, onConfirm, onCancel }: {
     user: User;
@@ -158,6 +177,7 @@ function DeleteModal({ user, onConfirm, onCancel }: {
 function UserDetailsModal({ user, onClose }: { user: User; onClose: () => void }) {
     const initials = `${(user.first_name ?? '').charAt(0)}${(user.last_name ?? '').charAt(0)}`.toUpperCase();
     const skills = parseSkills(user.jobSeekerProfile?.skills);
+    const frame = getProfileFrame(user.jobSeekerProfile?.profile_frame);
     const isActive = effectiveStatus(user) === 'active';
     const roleLabel = user.role === 'job_seeker' ? 'Job Seeker' : user.role === 'employer' ? 'Employer' : user.role;
 
@@ -171,11 +191,12 @@ function UserDetailsModal({ user, onClose }: { user: User; onClose: () => void }
                             src={user.avatar}
                             alt={initials}
                             initials={initials}
-                            className={`w-12 h-12 rounded-full flex-shrink-0 overflow-hidden ${user.avatar ? 'bg-white border border-gray-200' : 'bg-[#3d9e9e]'}`}
+                            className={`w-12 h-12 rounded-full flex-shrink-0 overflow-hidden ${profileFrameRingClass(frame)} ${user.avatar ? 'bg-white border border-gray-200' : 'bg-[#3d9e9e]'}`}
                             textClassName="text-white text-sm font-bold flex items-center justify-center"
                         />
                         <div className="min-w-0">
                             <p className="font-bold text-gray-900 text-base truncate">{user.first_name} {user.last_name}</p>
+                            {user.role === 'job_seeker' && profileFrameLabel(frame) && <p className="text-xs text-gray-500 truncate">{profileFrameLabel(frame)}</p>}
                             <p className="text-sm text-gray-500 truncate">{user.email}</p>
                         </div>
                     </div>
@@ -395,6 +416,7 @@ export default function AdminUsers({ users, filters }: Props) {
                                     {users.data.map((user, i) => {
                                         const initials = `${(user.first_name ?? '').charAt(0)}${(user.last_name ?? '').charAt(0)}`.toUpperCase();
                                         const skills = parseSkills(user.jobSeekerProfile?.skills);
+                                        const frame = getProfileFrame(user.jobSeekerProfile?.profile_frame);
                                         const company = user.employerProfile?.company_name;
                                         const isActive = effectiveStatus(user) === 'active';
                                         const isDeleted = !!user.deleted_at;
@@ -410,7 +432,7 @@ export default function AdminUsers({ users, filters }: Props) {
                                                             src={user.avatar}
                                                             alt={initials}
                                                             initials={initials}
-                                                            className={`w-9 h-9 rounded-full flex-shrink-0 overflow-hidden ${user.avatar ? 'bg-white' : AVATAR_BG[i % AVATAR_BG.length]}`}
+                                                            className={`w-9 h-9 rounded-full flex-shrink-0 overflow-hidden ${profileFrameRingClass(frame)} ${user.avatar ? 'bg-white' : AVATAR_BG[i % AVATAR_BG.length]}`}
                                                             textClassName="text-white text-xs font-bold flex items-center justify-center"
                                                         />
 
@@ -421,6 +443,7 @@ export default function AdminUsers({ users, filters }: Props) {
                                                                     <span className="ml-2 text-[10px] font-bold text-red-400 bg-red-50 px-1.5 py-0.5 rounded-full">DELETED</span>
                                                                 )}
                                                             </p>
+                                                            {user.role === 'job_seeker' && profileFrameLabel(frame) && <p className="text-[11px] text-gray-500 truncate">{profileFrameLabel(frame)}</p>}
                                                             <p className="text-xs text-gray-400 truncate mt-0.5">{user.email}</p>
                                                         </div>
                                                     </div>
@@ -511,6 +534,7 @@ export default function AdminUsers({ users, filters }: Props) {
                         <div className="p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
                             {users.data.map((user, i) => {
                                 const initials = `${(user.first_name ?? '').charAt(0)}${(user.last_name ?? '').charAt(0)}`.toUpperCase();
+                                const frame = getProfileFrame(user.jobSeekerProfile?.profile_frame);
                                 const isActive = effectiveStatus(user) === 'active';
 
                                 return (
@@ -521,7 +545,7 @@ export default function AdminUsers({ users, filters }: Props) {
                                                 src={user.avatar}
                                                 alt={initials}
                                                 initials={initials}
-                                                className={`w-10 h-10 rounded-full overflow-hidden ${user.avatar ? 'bg-white' : AVATAR_BG[i % AVATAR_BG.length]}`}
+                                                className={`w-10 h-10 rounded-full overflow-hidden ${profileFrameRingClass(frame)} ${user.avatar ? 'bg-white' : AVATAR_BG[i % AVATAR_BG.length]}`}
                                                 textClassName="text-white text-sm font-bold flex items-center justify-center"
                                             />
 
@@ -536,6 +560,7 @@ export default function AdminUsers({ users, filters }: Props) {
                                                 </div>
 
                                                 <p className="text-xs text-gray-400 truncate mt-0.5">{user.email}</p>
+                                                {user.role === 'job_seeker' && profileFrameLabel(frame) && <p className="text-[11px] text-gray-500 truncate mt-0.5">{profileFrameLabel(frame)}</p>}
                                                 <p className="mt-2 flex items-center gap-1 text-xs text-gray-400">
                                                     <IcoCalendar />
                                                     {new Date(user.created_at).toISOString().slice(0, 10)}

@@ -17,6 +17,7 @@ interface WorkExp {
 }
 
 interface Profile {
+    profile_frame?: 'default' | 'open_to_work' | 'not_open_to_work' | null;
     professional_title?: string;
     current_job_title?: string;
     current_company?: string;
@@ -39,6 +40,7 @@ interface AppUser {
     email: string;
     phone?: string | null;
     avatar?: string | null;
+    profile_frame?: 'default' | 'open_to_work' | 'not_open_to_work' | null;
     profile?: Profile | null;
     work_experiences?: WorkExp[];
 }
@@ -68,6 +70,19 @@ interface Props { job: JobInfo; applications: Application[] }
 const AVATAR_COLORS = ['bg-[#3d9e9e]', 'bg-slate-700', 'bg-emerald-700', 'bg-slate-600', 'bg-cyan-700', 'bg-stone-600'];
 function avatarColor(id: number) { return AVATAR_COLORS[id % AVATAR_COLORS.length]; }
 function getInitials(first: string, last: string) { return `${first[0] ?? ''}${last[0] ?? ''}`.toUpperCase(); }
+function getProfileFrame(frame?: string | null) {
+    return frame === 'open_to_work' || frame === 'not_open_to_work' ? frame : 'default';
+}
+function profileFrameRingClass(frame?: string | null) {
+    if (frame === 'open_to_work') return 'ring-2 ring-emerald-400';
+    if (frame === 'not_open_to_work') return 'ring-2 ring-red-400';
+    return '';
+}
+function profileFrameLabel(frame?: string | null) {
+    if (frame === 'open_to_work') return 'Open to Work';
+    if (frame === 'not_open_to_work') return 'Not Open to Work';
+    return null;
+}
 
 const STATUS_CFG: Record<string, { dot: string; text: string; bg: string; label: string }> = {
     pending: { dot: 'bg-amber-400', text: 'text-amber-700', bg: 'bg-amber-50', label: 'Pending' },
@@ -154,6 +169,7 @@ function ApplicantProfile({ app, onClose }: { app: Application; onClose: () => v
     const about = p?.about ?? ad?.cover_letter;
     const coverLetter = app.cover_letter;
     const cfg = STATUS_CFG[app.status] ?? STATUS_CFG.pending;
+    const frame = getProfileFrame(u.profile_frame ?? p?.profile_frame);
 
     // ESC to close
     useEffect(() => {
@@ -184,7 +200,7 @@ function ApplicantProfile({ app, onClose }: { app: Application; onClose: () => v
                         src={u.avatar}
                         alt={fullName}
                         initials={getInitials(u.first_name, u.last_name)}
-                        className={`w-24 h-24 rounded-2xl ring-4 ring-white shadow-lg overflow-hidden ${u.avatar ? 'bg-white' : avatarColor(u.id)}`}
+                        className={`w-24 h-24 rounded-2xl ring-4 ring-white shadow-lg overflow-hidden ${profileFrameRingClass(frame)} ${u.avatar ? 'bg-white' : avatarColor(u.id)}`}
                         textClassName="text-white text-3xl font-bold flex items-center justify-center"
                     />
                     <div className="pb-1 flex-1 min-w-0">
@@ -192,6 +208,7 @@ function ApplicantProfile({ app, onClose }: { app: Application; onClose: () => v
                             <div>
                                 <h2 className="text-xl font-bold text-gray-900 leading-tight">{fullName}</h2>
                                 <p className="text-sm text-gray-500 mt-0.5">{title}</p>
+                                {profileFrameLabel(frame) && <p className="text-xs text-gray-500 mt-1">{profileFrameLabel(frame)}</p>}
                             </div>
                             <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${cfg.bg} ${cfg.text} flex-shrink-0 mt-1`}>
                                 <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
@@ -463,6 +480,7 @@ export default function AdminJobApplications({ job, applications }: Props) {
                             {filtered.map(app => {
                                 const fullName = `${app.user.first_name} ${app.user.last_name}`;
                                 const initials = getInitials(app.user.first_name, app.user.last_name);
+                                const frame = getProfileFrame(app.user.profile_frame ?? app.user.profile?.profile_frame);
                                 const subTitle = app.user.profile?.professional_title
                                     ?? app.user.profile?.current_job_title
                                     ?? app.application_data?.current_job_title
@@ -477,12 +495,13 @@ export default function AdminJobApplications({ job, applications }: Props) {
                                             src={app.user.avatar}
                                             alt={fullName}
                                             initials={initials}
-                                            className={`w-11 h-11 rounded-full flex-shrink-0 overflow-hidden ${app.user.avatar ? 'bg-white' : avatarColor(app.user.id)}`}
+                                            className={`w-11 h-11 rounded-full flex-shrink-0 overflow-hidden ${profileFrameRingClass(frame)} ${app.user.avatar ? 'bg-white' : avatarColor(app.user.id)}`}
                                             textClassName="text-white text-sm font-bold flex items-center justify-center"
                                         />
                                         {/* Name + sub */}
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm font-bold text-gray-800 leading-tight">{fullName}</p>
+                                            {profileFrameLabel(frame) && <p className="text-xs text-gray-500 mt-0.5 truncate">{profileFrameLabel(frame)}</p>}
                                             <p className="text-xs text-gray-400 mt-0.5 truncate">
                                                 {subTitle ? `${subTitle} ` : ''}{app.user.email}
                                                 {' · '}Applied {app.created_at}
