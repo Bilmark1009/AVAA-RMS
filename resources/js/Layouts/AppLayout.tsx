@@ -144,6 +144,8 @@ function safeRoute(name: string, params?: any): string {
 /** Programmatic logout: clears auth flags and replaces history so Back never returns to dashboard */
 function handleLogout(e: React.MouseEvent): void {
     e.preventDefault();
+    const currentSessionId = sessionStorage.getItem('auth_session_id') ?? '';
+    sessionStorage.setItem('auth_logged_out_session_id', currentSessionId);
     sessionStorage.removeItem('auth_logged_in');
     sessionStorage.removeItem('auth_dashboard');
     sessionStorage.removeItem('auth_user_id');
