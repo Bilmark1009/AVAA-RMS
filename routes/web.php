@@ -1,5 +1,5 @@
 <?php
-
+use App\Http\Controllers\JobSeeker\RecruiterProfileController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Employer\DashboardController as EmployerDashboardController;
@@ -34,7 +34,7 @@ use App\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-
+use App\Http\Controllers\Employer\ApplicantTimelineController;
 // Home — redirect authenticated users to their dashboard; show Welcome to guests
 Route::get('/', function () {
     if (Auth::check()) {
@@ -113,7 +113,7 @@ Route::middleware(['auth'])->prefix('messages')->name('messages.')->group(functi
 
 // Role-based dashboards
 Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
-
+ 
     // ── Notifications (shared across all roles) ────────────────────────────
     Route::prefix('notifications')->name('notifications.')->group(function () {
         Route::get('/', [NotificationController::class, 'index'])->name('index');
@@ -166,11 +166,15 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
     // ─────────────────────────────────────────────────────────────────────────
 
     // ── Employer ─────────────────────────────────────────────────────────────
-    Route::middleware('role:employer')->prefix('employer')->name('employer.')->group(function () {
+   Route::middleware('role:employer')->prefix('employer')->name('employer.')->group(function () {
 
         Route::get('/dashboard', [EmployerDashboardController::class, 'index'])->name('dashboard');
-        Route::post('/profile/complete', [EmployerProfileController::class, 'complete'])->name('profile.complete');
+        
+        // Add it here 👇
+        Route::get('/applicants/{user}/timeline', [ApplicantTimelineController::class, 'show'])->name('applicants.timeline');
 
+        Route::post('/profile/complete', [EmployerProfileController::class, 'complete'])->name('profile.complete');
+        
         // Employer Profile & Settings
         Route::get('/profile', [EmployerProfileController::class, 'show'])->name('profile.show');
         Route::get('/settings', [EmployerProfileController::class, 'settings'])->name('settings');
@@ -236,7 +240,7 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         Route::get('/profile', [JobSeekerProfileController::class, 'show'])->name('profile.show');
         Route::get('/profile/edit', [JobSeekerProfileController::class, 'edit'])->name('profile.edit');
         Route::match(['POST', 'PATCH'], '/profile', [JobSeekerProfileController::class, 'update'])->name('profile.update');
-
+        Route::get('/recruiter/{user}', [RecruiterProfileController::class, 'show'])->name('recruiter.profile');
         // Blocked Users
         Route::get('/settings/blocked-users', [JobSeekerBlockedUsersController::class, 'index'])->name('settings.blocked-users');
         Route::post('/settings/blocked-users/block', [JobSeekerBlockedUsersController::class, 'block'])->name('settings.blocked-users.block');
@@ -255,7 +259,8 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         // Application History
         Route::get('/applications', [JobApplicationController::class, 'index'])->name('applications.index');
         Route::patch('/applications/{application}/withdraw', [JobApplicationController::class, 'withdraw'])->name('applications.withdraw');
-    });
+        
+        });
     // ─────────────────────────────────────────────────────────────────────────
 
     // ── Admin ─────────────────────────────────────────────────────────────────
