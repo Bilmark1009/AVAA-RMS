@@ -57,7 +57,7 @@ class AdminJobController extends Controller
                     'skills_required' => $job->skills_required ?? [],
                     'industry' => $job->industry,
                     'applications_count' => $job->applications_count,
-                    'created_at' => $job->created_at->toDateString(),
+                    'created_at' => $job->created_at->toISOString(),
                     'company' => $job->employer?->employerProfile?->company_name
                         ?? ($job->employer ? "{$job->employer->first_name} {$job->employer->last_name}" : 'Unknown'),
                     'logo_url' => $logoUrl,
@@ -104,7 +104,7 @@ class AdminJobController extends Controller
                 'industry' => $job->industry,
                 'status' => $job->status,
                 'deadline' => $job->deadline?->toDateString(),
-                'created_at' => $job->created_at->toDateString(),
+                'created_at' => $job->created_at->toISOString(),
                 'company' => $job->employer?->employerProfile?->company_name
                     ?? ($job->employer ? "{$job->employer->first_name} {$job->employer->last_name}" : 'Unknown'),
                 'logo_url' => $logoUrl,
@@ -183,7 +183,7 @@ class AdminJobController extends Controller
                 'company' => $job->employer?->employerProfile?->company_name ?? 'Unknown',
                 'location' => $job->location,
                 'employment_type' => $job->employment_type,
-                'posted_date' => $job->created_at->toDateString(),
+                'posted_date' => $job->created_at->toISOString(),
             ],
             'applications' => $applications,
         ]);
