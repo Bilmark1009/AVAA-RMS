@@ -250,6 +250,8 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         Route::get('/jobs/saved', [JobBrowseController::class, 'saved'])->name('jobs.saved');
         Route::post('/jobs/{job}/save', [JobBrowseController::class, 'save'])->name('jobs.save');
         Route::delete('/jobs/{job}/unsave', [JobBrowseController::class, 'unsave'])->name('jobs.unsave');
+        Route::post('/jobs/{job}/report', [JobBrowseController::class, 'report'])->name('jobs.report');
+        Route::post('/jobs/{job}/share', [JobBrowseController::class, 'share'])->name('jobs.share');
         Route::get('/jobs/{job}/apply', [JobApplicationController::class, 'create'])->name('jobs.apply.form');
         Route::post('/jobs/{job}/apply', [JobApplicationController::class, 'store'])->name('jobs.apply');
         Route::post('/jobs/{job}/apply/draft', [JobApplicationController::class, 'saveDraft'])->name('jobs.apply.draft');

@@ -48,6 +48,8 @@ interface ApplicationItem {
         initials: string;
         logo_url?: string | null;
         size?: string | null;
+        industry?: string | null;
+        website?: string | null;
     };
 }
 

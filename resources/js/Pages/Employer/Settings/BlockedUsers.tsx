@@ -80,16 +80,16 @@ function BlockedUserCard({ user, onUnblock }: { user: BlockedUser; onUnblock: (i
     const handleUnblock = async () => {
         setIsUnblocking(true);
         try {
-            const response = await fetch(route('employer.settings.blocked-users.unblock'), {
+            const response = await fetch(route('settings.blocked-users.unblock'), {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || ''
                 },
                 body: JSON.stringify({ 
-                    user_id: user.id,
-                    _token: (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || ''
+                    user_id: user.id
                 }),
             });
             
@@ -162,7 +162,7 @@ function BlockJobSeekerForm({ onBlock }: { onBlock: (user: SearchResult & { reas
             setIsSearching(true);
             (async () => {
                 try {
-                    const response = await fetch(route('employer.settings.blocked-users.search') + '?q=' + encodeURIComponent(searchQuery), {
+                    const response = await fetch(route('settings.blocked-users.search') + '?q=' + encodeURIComponent(searchQuery), {
                         method: 'GET',
                         headers: {
                             'Content-Type': 'application/json',
@@ -196,17 +196,17 @@ function BlockJobSeekerForm({ onBlock }: { onBlock: (user: SearchResult & { reas
 
         setIsBlocking(true);
         try {
-            const response = await fetch(route('employer.settings.blocked-users.block'), {
+            const response = await fetch(route('settings.blocked-users.block'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || ''
                 },
                 body: JSON.stringify({
                     user_id: selectedUser.id,
                     reason: reason.trim() || undefined,
-                    _token: (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || ''
                 }),
             });
             

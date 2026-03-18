@@ -12,8 +12,9 @@ return new class extends Migration
    public function up(): void
 {
     Schema::table('job_listings', function (Blueprint $table) {
-        // Adding it as a string, usually after the 'status' or 'location' column
-        $table->string('work_arrangement')->nullable()->after('location');
+        if (!Schema::hasColumn('job_listings', 'work_arrangement')) {
+            $table->string('work_arrangement')->nullable()->after('location');
+        }
     });
 }
 
