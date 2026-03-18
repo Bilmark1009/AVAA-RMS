@@ -1,6 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import JobSeekerOnboarding from '@/Components/Modals/JobSeekerOnboarding';
+import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
 import { useState, useEffect, useRef } from 'react';
 
 /* ── Types ── */
@@ -9,6 +10,7 @@ interface JobListing {
     title: string;
     location: string;
     company: string;
+    logo_url?: string | null;
     employment_type?: string | null;
     salary_min?: number | null;
     salary_max?: number | null;
@@ -19,6 +21,7 @@ interface JobListing {
     experience_level?: string | null;
     is_remote?: boolean;
     has_applied?: boolean;
+    application_status?: string | null;
     industry?: string | null;
 }
 
@@ -57,22 +60,37 @@ function formatSalary(min?: number | null, max?: number | null, currency = 'USD'
 
 /* ─────────────────────────────────────────
    JOB CARD
-   Card padding: 24px | Avatar: 56px | Title: 16px bold
-   Meta text: 14px | Skill pills: 12px | Buttons: 14px/36px tall
 ───────────────────────────────────────── */
 function JobCard({ job, saved, onSave, onApply, onView }: {
     job: JobListing; saved: boolean;
     onSave: () => void; onApply: () => void; onView: () => void;
 }) {
     const salary = formatSalary(job.salary_min, job.salary_max, job.salary_currency);
+    const status = (job.application_status || '').toLowerCase();
+    const isRejected = status === 'rejected';
+    const isEnded = status === 'contract_ended';
+    const isApplied = Boolean(job.has_applied);
+
+    const applyLabel = isRejected
+        ? 'Rejected'
+        : isEnded
+            ? 'Ended'
+            : isApplied
+                ? 'Applied ✓'
+                : 'Apply Now';
+
     return (
-        <div className="bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-md hover:border-gray-300 transition-all flex flex-col gap-4">
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-md hover:border-gray-300 transition-all flex flex-col gap-4 min-w-0 overflow-hidden">
 
             {/* Avatar + title */}
             <div className="flex items-start gap-4">
-                <div className={`w-14 h-14 rounded-full ${avatarColor(job.id)} flex items-center justify-center text-white text-base font-bold flex-shrink-0`}>
-                    {getInitials(job.company)}
-                </div>
+                <ImageInitialsFallback
+                    src={job.logo_url}
+                    alt={`${job.company} logo`}
+                    initials={getInitials(job.company)}
+                    className={`w-14 h-14 rounded-full border border-gray-200 flex-shrink-0 overflow-hidden ${job.logo_url ? 'bg-white' : avatarColor(job.id)}`}
+                    textClassName="text-white text-base font-bold flex items-center justify-center"
+                />
                 <div className="min-w-0 flex-1 pt-0.5">
                     <h3 className="text-[15px] font-bold text-avaa-dark leading-snug">{job.title}</h3>
                     <p className="text-sm text-gray-500 mt-0.5">{job.company}</p>
@@ -113,33 +131,39 @@ function JobCard({ job, saved, onSave, onApply, onView }: {
             )}
 
             {/* Footer: salary + actions */}
-            <div className="flex items-center justify-between pt-4 border-t border-gray-100 mt-auto">
-                <div className="flex items-center">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pt-4 border-t border-gray-100 mt-auto">
+                <div className="min-w-0 flex-shrink-0">
                     {salary ? (
                         <>
                             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-0.5">Salary Range</p>
-                            <p className="text-base font-extrabold text-avaa-dark ml-3">{salary}</p>
+                            <p className="text-base font-extrabold text-avaa-dark">{salary}</p>
                         </>
                     ) : (
                         <p className="text-sm text-gray-400 italic">Salary not disclosed</p>
                     )}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 min-w-0 flex-1 justify-end">
                     <button onClick={onSave}
-                        className={`p-2.5 rounded-xl border transition-all ${saved
+                        className={`p-2.5 rounded-xl border transition-all flex-shrink-0 ${saved
                             ? 'border-avaa-primary/30 bg-avaa-primary-light text-avaa-teal'
-                            : 'border-gray-200 text-gray-400 hover:border-avaa-primary/30 hover:text-avaa-teal hover:bg-avaa-primary-light'}`}>
+                            : 'border-gray-200 text-gray-400 hover:border-avaa-primary/30 hover:text-avaa-teal hover:bg-avaa-primary-light'}`}
+                        aria-label={saved ? 'Unsave job' : 'Save job'}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill={saved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
                         </svg>
                     </button>
                     <button onClick={onView}
-                        className="px-4 py-2 border border-gray-300 text-gray-700 hover:border-avaa-primary hover:text-avaa-teal text-sm font-semibold rounded-xl transition-colors whitespace-nowrap">
+                        className="px-3 py-2 sm:px-4 border border-gray-300 text-gray-700 hover:border-avaa-primary hover:text-avaa-teal text-sm font-semibold rounded-xl transition-colors min-w-0">
                         View Details
                     </button>
-                    <button onClick={onApply} disabled={job.has_applied}
-                        className="px-4 py-2 bg-avaa-primary hover:bg-avaa-primary-hover text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap">
-                        {job.has_applied ? 'Applied ✓' : 'Apply Now'}
+                    <button onClick={onApply} disabled={isApplied}
+                        className="px-3 py-2 sm:px-4 bg-avaa-primary hover:bg-avaa-primary-hover text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-60 disabled:cursor-not-allowed min-w-0">
+                        <span className="inline-flex items-center gap-1.5">
+                            {applyLabel}
+                            {isRejected && (
+                                <span aria-hidden="true" className="text-[12px] leading-none">✘</span>
+                            )}
+                        </span>
                     </button>
                 </div>
             </div>
@@ -147,15 +171,25 @@ function JobCard({ job, saved, onSave, onApply, onView }: {
     );
 }
 
-/* ── Filter Pill — 14px text, 36px tall ── */
+/* ── Filter Pill ── */
 function FilterPill({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
     return (
         <button onClick={onClick}
-            className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all whitespace-nowrap self-stretch ${active
+            className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all whitespace-nowrap ${active
                 ? 'bg-avaa-primary text-white border-avaa-primary shadow-sm'
                 : 'bg-white text-gray-600 border-gray-200 hover:border-avaa-primary/40 hover:text-avaa-teal'}`}>
             {label}
         </button>
+    );
+}
+
+/* ── Drawer Filter Section ── */
+function DrawerFilterSection({ title, children }: { title: string; children: React.ReactNode }) {
+    return (
+        <div>
+            <p className="text-xs font-bold text-avaa-dark uppercase tracking-wider mb-3">{title}</p>
+            {children}
+        </div>
     );
 }
 
@@ -168,6 +202,7 @@ export default function BrowseJobs({ jobs, savedJobIds, filters, availableSkills
     const [selectedSkills, setSelectedSkills] = useState<string[]>(filters.skills ?? []);
     const [selectedCompanies, setSelectedCompanies] = useState<string[]>(filters.companies ?? []);
     const [saved, setSaved] = useState<Set<number>>(new Set(savedJobIds));
+    const [drawerOpen, setDrawerOpen] = useState(false);
     const isFirstRender = useRef(true);
     const isFirstRenderSearch = useRef(true);
 
@@ -209,24 +244,164 @@ export default function BrowseJobs({ jobs, savedJobIds, filters, availableSkills
         { label: 'This Week', value: 'week' }, { label: 'This Month', value: 'month' },
     ];
 
+    const activeFilterCount =
+        (dateFilter !== 'all' ? 1 : 0) +
+        selectedSkills.length +
+        selectedCompanies.length;
+
     return (
         <>
             {!profileComplete && <JobSeekerOnboarding />}
             <AppLayout activeNav="Jobs" pageTitle="Browse Jobs">
                 <Head title="Browse Jobs" />
 
-                {/* Page heading */}
-                <div className="mb-8">
-                    <h1 className="text-3xl font-extrabold text-avaa-dark">Find Your Next Role</h1>
-                    <p className="text-base text-avaa-muted mt-2">Browse open positions from top companies</p>
+                {/* ── Mobile Filter Drawer ── */}
+                {/* Backdrop */}
+                <div
+                    className={`lg:hidden fixed inset-0 z-40 bg-black/40 backdrop-blur-sm transition-opacity duration-300 ${
+                        drawerOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+                    }`}
+                    onClick={() => setDrawerOpen(false)}
+                />
+                {/* Drawer panel */}
+                <div
+                    className={`lg:hidden fixed top-0 left-0 z-50 h-full w-[85vw] max-w-xs bg-white shadow-2xl flex flex-col transition-transform duration-300 ease-in-out ${
+                        drawerOpen ? 'translate-x-0' : '-translate-x-full'
+                    }`}
+                >
+                    {/* Drawer header */}
+                    <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                        <div className="flex items-center gap-2">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-avaa-teal">
+                                <line x1="4" y1="6" x2="20" y2="6" />
+                                <line x1="8" y1="12" x2="20" y2="12" />
+                                <line x1="12" y1="18" x2="20" y2="18" />
+                            </svg>
+                            <span className="text-base font-bold text-avaa-dark">Filters</span>
+                            {activeFilterCount > 0 && (
+                                <span className="ml-1 px-2 py-0.5 bg-avaa-primary text-white text-xs font-bold rounded-full">
+                                    {activeFilterCount}
+                                </span>
+                            )}
+                        </div>
+                        <button
+                            onClick={() => setDrawerOpen(false)}
+                            className="p-2 rounded-lg text-gray-400 hover:text-avaa-dark hover:bg-gray-100 transition-colors"
+                            aria-label="Close filters"
+                        >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    {/* Drawer body */}
+                    <div className="flex-1 overflow-y-auto px-5 py-5 space-y-6">
+                        {/* Date Posted */}
+                        <DrawerFilterSection title="Date Posted">
+                            <div className="flex flex-wrap gap-2">
+                                {DATE_FILTERS.map(f => (
+                                    <FilterPill key={f.value} label={f.label} active={dateFilter === f.value}
+                                        onClick={() => setDateFilter(f.value)} />
+                                ))}
+                            </div>
+                        </DrawerFilterSection>
+
+                        {/* Skills */}
+                        {availableSkills.length > 0 && (
+                            <DrawerFilterSection title="Skills">
+                                <div className="flex flex-wrap gap-2">
+                                    {availableSkills.map(s => (
+                                        <FilterPill key={s} label={s} active={selectedSkills.includes(s)}
+                                            onClick={() => setSelectedSkills(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])} />
+                                    ))}
+                                </div>
+                            </DrawerFilterSection>
+                        )}
+
+                        {/* Company */}
+                        {availableCompanies.length > 0 && (
+                            <DrawerFilterSection title="Company">
+                                <div className="space-y-3">
+                                    {availableCompanies.map(c => (
+                                        <label key={c} className="flex items-center gap-3 cursor-pointer group">
+                                            <input type="checkbox" checked={selectedCompanies.includes(c)}
+                                                onChange={() => setSelectedCompanies(prev => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c])}
+                                                className="w-4 h-4 rounded border-gray-300 accent-avaa-primary cursor-pointer" />
+                                            <span className="text-sm text-gray-600 group-hover:text-avaa-dark transition-colors">{c}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </DrawerFilterSection>
+                        )}
+                    </div>
+
+                    {/* Drawer footer */}
+                    {activeFilterCount > 0 && (
+                        <div className="px-5 py-4 border-t border-gray-100">
+                            <button
+                                onClick={() => {
+                                    setDateFilter('all');
+                                    setSelectedSkills([]);
+                                    setSelectedCompanies([]);
+                                }}
+                                className="w-full py-2.5 text-sm font-semibold text-avaa-teal border border-avaa-primary/30 rounded-xl hover:bg-avaa-primary-light transition-colors"
+                            >
+                                Clear All Filters
+                            </button>
+                        </div>
+                    )}
                 </div>
 
-                <div className="flex gap-8">
+                {/* Page heading */}
+                <div className="mb-6 sm:mb-8">
+                    <h1 className="text-2xl sm:text-3xl font-extrabold text-avaa-dark">Find Your Next Role</h1>
+                    <p className="text-sm sm:text-base text-avaa-muted mt-2">Browse open positions from top companies</p>
+                </div>
 
-                    {/* ── Sidebar — 288px wide ── */}
-                    <aside className="hidden lg:flex flex-col gap-7 w-72 flex-shrink-0">
+                {/* ── Mobile top bar: search + filter trigger (hidden on lg+) ── */}
+                <div className="lg:hidden mb-5 flex items-center gap-3">
+                    {/* Search */}
+                    <div className="flex-1 flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 h-11 shadow-sm focus-within:ring-2 focus-within:ring-avaa-primary/20 focus-within:border-avaa-primary transition-all">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-gray-400 flex-shrink-0">
+                            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                        </svg>
+                        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search Jobs"
+                            className="text-sm border-none focus:ring-0 p-0 bg-transparent text-avaa-dark placeholder-gray-400 focus:outline-none w-full min-w-0" />
+                        {search && (
+                            <button onClick={() => setSearch('')} className="text-gray-300 hover:text-gray-500 flex-shrink-0">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                                </svg>
+                            </button>
+                        )}
+                    </div>
+                    {/* Filter drawer trigger */}
+                    <button
+                        onClick={() => setDrawerOpen(true)}
+                        className="relative flex-shrink-0 flex items-center gap-2 px-4 h-11 bg-white border border-gray-200 rounded-xl shadow-sm text-sm font-semibold text-gray-700 hover:border-avaa-primary/40 hover:text-avaa-teal transition-colors"
+                        aria-label="Open filters"
+                    >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="4" y1="6" x2="20" y2="6" />
+                            <line x1="8" y1="12" x2="20" y2="12" />
+                            <line x1="12" y1="18" x2="20" y2="18" />
+                        </svg>
+                        Filters
+                        {activeFilterCount > 0 && (
+                            <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-avaa-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                                {activeFilterCount}
+                            </span>
+                        )}
+                    </button>
+                </div>
 
-                        {/* Search — 44px tall standard input */}
+                <div className="flex gap-8 min-w-0 overflow-x-hidden w-full max-w-full">
+
+                    {/* ── Sidebar (desktop only) ── */}
+                    <aside className="hidden lg:flex flex-col gap-7 w-72 flex-shrink-0 min-w-0 overflow-hidden">
+
+                        {/* Search */}
                         <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 h-11 shadow-sm focus-within:ring-2 focus-within:ring-avaa-primary/20 focus-within:border-avaa-primary transition-all">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-gray-400 flex-shrink-0">
                                 <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -243,9 +418,9 @@ export default function BrowseJobs({ jobs, savedJobIds, filters, availableSkills
                         </div>
 
                         {/* Date Posted */}
-                        <div>
+                        <div className="min-w-0">
                             <p className="text-sm font-bold text-avaa-dark mb-3">Date Posted</p>
-                            <div className="flex flex-wrap gap-2 items-stretch">
+                            <div className="flex flex-wrap gap-2">
                                 {DATE_FILTERS.map(f => (
                                     <FilterPill key={f.value} label={f.label} active={dateFilter === f.value} onClick={() => setDateFilter(f.value)} />
                                 ))}
@@ -284,7 +459,7 @@ export default function BrowseJobs({ jobs, savedJobIds, filters, availableSkills
                     </aside>
 
                     {/* ── Job Grid ── */}
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 w-full max-w-full overflow-hidden">
                         {jobs.length === 0 ? (
                             <div className="bg-white rounded-2xl border border-gray-200 p-20 text-center">
                                 <div className="w-16 h-16 rounded-2xl bg-avaa-primary-light flex items-center justify-center mx-auto mb-5 text-avaa-teal">
@@ -296,7 +471,7 @@ export default function BrowseJobs({ jobs, savedJobIds, filters, availableSkills
                                 <p className="text-base text-avaa-muted">Try adjusting your search or filters.</p>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                            <div className="grid grid-cols-1 xl:grid-cols-[repeat(2,minmax(0,1fr))] gap-5 w-full max-w-full">
                                 {jobs.map(job => (
                                     <JobCard key={job.id} job={job} saved={saved.has(job.id)}
                                         onSave={() => toggleSave(job.id)}

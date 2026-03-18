@@ -31,14 +31,16 @@ function StepIndicator({ current, total, labels }: StepIndicatorProps) {
                 <div key={i} className="flex items-center">
                     <div className="flex flex-col items-center">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
-                            i + 1 < current ? 'bg-indigo-600 text-white' :
-                            i + 1 === current ? 'bg-indigo-600 text-white ring-4 ring-indigo-100 dark:ring-indigo-900' :
-                            'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                            i + 1 < current
+                                ? 'bg-avaa-primary text-white'
+                                : i + 1 === current
+                                    ? 'bg-avaa-primary text-white ring-4 ring-avaa-primary/20'
+                                    : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
                         }`}>
                             {i + 1 < current ? '✓' : i + 1}
                         </div>
                         <span className={`text-xs mt-1 hidden sm:block ${
-                            i + 1 === current ? 'text-indigo-600 dark:text-indigo-400 font-medium' : 'text-gray-400'
+                            i + 1 === current ? 'text-avaa-primary font-medium' : 'text-gray-400'
                         }`}>
                             {label}
                         </span>
@@ -63,6 +65,8 @@ export default function EmployerOnboarding({ needsPhone = false }: Props) {
     const [step, setStep] = useState(1);
     const [logoPreview, setLogoPreview] = useState<string | null>(null);
     const fileRef = useRef<HTMLInputElement>(null);
+    const [stepWarning, setStepWarning] = useState<string | null>(null);
+    const [submitError, setSubmitError] = useState<string | null>(null);
 
     // When the user registered via Google they have no phone → add an extra step
     const totalSteps = needsPhone ? 4 : 3;
@@ -110,19 +114,52 @@ export default function EmployerOnboarding({ needsPhone = false }: Props) {
 
     const validateStep = (s: number): boolean => {
         clearErrors();
+        setStepWarning(null);
+
+        const fieldLabels: Record<string, string> = {
+            company_name: 'Company Name',
+            company_website: 'Company Website',
+            industry: 'Industry',
+            company_size: 'Company Size',
+            company_description: 'Company Description',
+            headquarters_address: 'Headquarters Address',
+            city: 'City',
+            state: 'State / Province',
+            country: 'Country',
+            postal_code: 'Postal Code',
+            fein_tax_id: 'FEIN / Tax ID',
+            phone: 'Phone Number'
+        };
+
+        let missingFields: string[] = [];
+
         if (s === 1) {
-            return !!(data.company_name && data.company_website && data.industry && data.company_size && data.company_description);
+            const required = ['company_name', 'company_website', 'industry', 'company_size', 'company_description'];
+            missingFields = required.filter(field => !data[field as keyof typeof data]);
+            
+            // Specific check for description length
+            if (data.company_description.length > 0 && data.company_description.length < 50) {
+                setStepWarning('Company Description must be at least 50 characters.');
+                return false;
+            }
+        } 
+        else if (s === 2) {
+            const required = ['headquarters_address', 'city', 'state', 'country', 'postal_code'];
+            missingFields = required.filter(field => !data[field as keyof typeof data]);
+        } 
+        else if (s === 3) {
+            if (!data.fein_tax_id) missingFields.push('fein_tax_id');
+        } 
+        else if (s === 4) {
+            if (!data.phone || data.phone.trim().length < 7) missingFields.push('phone');
         }
-        if (s === 2) {
-            return !!(data.headquarters_address && data.city && data.state && data.country && data.postal_code);
+
+        if (missingFields.length > 0) {
+            const names = missingFields.map(f => fieldLabels[f]).join(', ');
+            setStepWarning(`Please enter the following missing credentials: ${names}`);
+            return false;
         }
-        if (s === 3) {
-            return !!(data.fein_tax_id);
-        }
-        // Step 4 (phone) — only reached when needsPhone is true
-        if (s === 4) {
-            return !!(data.phone && data.phone.trim().length >= 7);
-        }
+
         return true;
     };
 
@@ -132,30 +169,46 @@ export default function EmployerOnboarding({ needsPhone = false }: Props) {
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
+        setSubmitError(null);
+        if (!validateStep(step)) return;
+
         post(route('employer.profile.complete'), {
             forceFormData: true,
-            onError: (errors) => {
-                console.error('Profile submission errors:', errors);
+            onError: () => {
+                setSubmitError('There was a problem saving your company profile. Please review the highlighted fields and try again.');
             },
         });
     };
 
-    const inputClass = "mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent";
+    const inputClass =
+        "mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-avaa-primary/60 focus:border-transparent";
     const labelClass = "block text-sm font-medium text-gray-700 dark:text-gray-300";
 
     return (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
                 <div className="p-6 sm:p-8">
                     {/* Header */}
-                    <div className="text-center mb-6">
-                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                    <div className="text-center mb-4 sm:mb-6">
+                        <h2 className="text-2xl font-bold text-avaa-dark dark:text-white">
                             Complete Your Company Profile
                         </h2>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                             This helps job seekers learn about your company
                         </p>
                     </div>
+
+                    {/* Global error / warning banners */}
+                    {submitError && (
+                        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                            {submitError}
+                        </div>
+                    )}
+                    {stepWarning && !submitError && (
+                        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs sm:text-sm text-red-700">
+                            {stepWarning}
+                        </div>
+                    )}
 
                     <StepIndicator
                         current={step}

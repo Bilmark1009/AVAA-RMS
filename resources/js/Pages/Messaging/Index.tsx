@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Head, router, usePage } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
+import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
 import { PageProps, User } from '@/types';
 import axios from 'axios';
 
@@ -22,6 +23,17 @@ interface Message {
     type: 'text' | 'file' | 'image' | 'system';
     attachment_url?: string | null;
     attachment_name?: string | null;
+    has_attachments?: boolean;
+    attachments?: Array<{
+        id: number;
+        file_url: string;
+        original_name: string;
+        mime_type: string;
+        file_size: number;
+        file_size_formatted: string;
+        is_image: boolean;
+        file_extension: string;
+    }>;
     created_at: string;
     sender: Sender;
 }
@@ -37,6 +49,9 @@ interface ConversationSummary {
     unread_count: number;
     is_archived: boolean;
     is_muted: boolean;
+    is_blocked_by_other?: boolean;
+    is_blocked?: boolean;
+    created_by?: number | null;
     last_message_at?: string | null;
     job_listing?: { id: number; title: string } | null;
 }
@@ -54,9 +69,88 @@ interface MessagingIndexPageProps extends PageProps {
     activeConversationId: number | null;
     initialMessages: Message[];
     activeConversation: ConversationSummary | null;
-auth: { user: any; session_id: string };
+    auth: { user: any; session_id: string };
     unreadNotificationsCount: number;
     [key: string]: any;
+}
+
+/* ══════════════════════════════════════════════════════════
+   ATTACHMENT COMPONENTS
+══════════════════════════════════════════════════════════ */
+
+interface AttachmentProps {
+    attachment: {
+        id: number;
+        file_url: string;
+        original_name: string;
+        mime_type: string;
+        file_size: number;
+        file_size_formatted: string;
+        is_image: boolean;
+        file_extension: string;
+    };
+    isOwn: boolean;
+    onImageClick?: (url: string, name: string) => void;
+    onFileClick?: (url: string, name: string) => void;
+}
+
+function AttachmentDisplay({ attachment, isOwn, onImageClick, onFileClick }: AttachmentProps) {
+    if (attachment.is_image) {
+        return (
+            <div className="mt-2">
+                <img 
+                    src={attachment.file_url} 
+                    alt={attachment.original_name} 
+                    className="max-w-[220px] rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
+                    onClick={() => onImageClick?.(attachment.file_url, attachment.original_name)}
+                />
+                <p className={`text-xs mt-1 ${isOwn ? 'text-white/70' : 'text-gray-500'}`}>
+                    {attachment.original_name} • {attachment.file_size_formatted}
+                </p>
+            </div>
+        );
+    }
+
+    return (
+        <button
+            onClick={() => onFileClick?.(attachment.file_url, attachment.original_name)}
+            className={`flex items-center gap-2 mt-2 underline underline-offset-2 ${isOwn ? 'text-white/90' : 'text-avaa-primary'} hover:opacity-80 transition-opacity`}
+        >
+            <IcoAttach />
+            <span className="text-sm">{attachment.original_name}</span>
+            <span className={`text-xs ${isOwn ? 'text-white/70' : 'text-gray-500'}`}>
+                • {attachment.file_size_formatted}
+            </span>
+        </button>
+    );
+}
+
+function AttachmentsList({ 
+    attachments, 
+    isOwn, 
+    onImageClick, 
+    onFileClick 
+}: { 
+    attachments: any[], 
+    isOwn: boolean, 
+    onImageClick?: (url: string, name: string) => void, 
+    onFileClick?: (url: string, name: string) => void 
+}) {
+    if (!attachments || attachments.length === 0) return null;
+
+    return (
+        <div className="mt-2 space-y-2">
+            {attachments.map((attachment) => (
+                <AttachmentDisplay
+                    key={attachment.id}
+                    attachment={attachment}
+                    isOwn={isOwn}
+                    onImageClick={onImageClick}
+                    onFileClick={onFileClick}
+                />
+            ))}
+        </div>
+    );
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -183,9 +277,13 @@ function Avatar({ src, initials, size = 'md', online }: {
     const sz = { xs: 'w-6 h-6 text-[10px]', sm: 'w-8 h-8 text-xs', md: 'w-10 h-10 text-sm', lg: 'w-12 h-12 text-base' }[size];
     return (
         <div className="relative flex-shrink-0">
-            <div className={`${sz} rounded-full bg-avaa-dark flex items-center justify-center text-white font-bold overflow-hidden`}>
-                {src ? <img src={src} alt="" className="w-full h-full object-cover" /> : initials}
-            </div>
+            <ImageInitialsFallback
+                src={src}
+                alt="Avatar"
+                initials={initials}
+                className={`${sz} rounded-full bg-avaa-dark overflow-hidden`}
+                textClassName="text-white font-bold flex items-center justify-center"
+            />
             {online && <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-white" />}
         </div>
     );
@@ -234,6 +332,219 @@ function BlockUserModal({ isOpen, onClose, onConfirm, userName, isProcessing }: 
                         {isProcessing ? 'Blocking...' : 'Block User'}
                     </button>
                 </div>
+            </div>
+        </div>
+    );
+}
+
+/* ══════════════════════════════════════════════════════════
+   REPORT MESSAGE MODAL
+══════════════════════════════════════════════════════════ */
+const REPORT_REASONS = [
+    { value: 'inappropriate_behavior', label: 'Inappropriate Behavior', desc: 'Unprofessional language, harassment, or offensive communication.' },
+    { value: 'spam', label: 'Spam', desc: 'Unsolicited marketing, bots, or repetitive messages.' },
+    { value: 'suspicious_job', label: 'Suspicious Job Offer or Scam', desc: 'Asking for bank details, external payments, or "get rich quick" schemes.' },
+    { value: 'identity_theft', label: 'Identity Theft / Fake Profile', desc: "Fake name, photo, or impersonating a company they don't represent." },
+    { value: 'other', label: 'Other', desc: 'None of the above matches my specific concern.' },
+];
+
+function ReportMessageModal({ messageId, senderName, onClose }: {
+    messageId: number;
+    senderName: string;
+    onClose: () => void;
+}) {
+    const [reason, setReason] = useState('');
+    const [details, setDetails] = useState('');
+    const [images, setImages] = useState<File[]>([]);
+    const [previews, setPreviews] = useState<string[]>([]);
+    const [submitting, setSubmitting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState(false);
+
+    const handleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files) return;
+        const files = Array.from(e.target.files);
+        setImages(prev => [...prev, ...files].slice(0, 5));
+        const newPreviews = files.map(f => URL.createObjectURL(f));
+        setPreviews(prev => [...prev, ...newPreviews].slice(0, 5));
+    };
+
+    const removeImage = (i: number) => {
+        setImages(imgs => imgs.filter((_, idx) => idx !== i));
+        setPreviews(ps => ps.filter((_, idx) => idx !== i));
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!reason) return;
+        setSubmitting(true);
+        setError(null);
+        try {
+            const fd = new FormData();
+            fd.append('reason', reason);
+            if (details.trim()) fd.append('details', details.trim());
+            images.forEach(img => fd.append('evidence[]', img));
+
+            const csrfToken = (document.cookie.match(/XSRF-TOKEN=([^;]+)/))?.[1];
+            const res = await fetch(`/messages/report/message/${messageId}`, {
+                method: 'POST',
+                headers: {
+                    'X-XSRF-TOKEN': csrfToken ? decodeURIComponent(csrfToken) : '',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json',
+                },
+                body: fd,
+                credentials: 'same-origin',
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                setError(data.error ?? 'Something went wrong. Please try again.');
+            } else {
+                setSuccess(true);
+                setTimeout(onClose, 1800);
+            }
+        } catch {
+            setError('Network error. Please try again.');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    // Backdrop click
+    const backdropRef = useRef<HTMLDivElement>(null);
+
+    return (
+        <div
+            ref={backdropRef}
+            onClick={e => { if (e.target === backdropRef.current) onClose(); }}
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+        >
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                {/* Header */}
+                <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+                    <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-orange-50 flex items-center justify-center text-orange-400">
+                            <IcoFlag />
+                        </div>
+                        <div>
+                            <h3 className="text-[15px] font-bold text-avaa-dark">Report Message</h3>
+                            <p className="text-[12px] text-avaa-muted">From: {senderName}</p>
+                        </div>
+                    </div>
+                    <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-avaa-muted transition-colors">
+                        <IcoClose />
+                    </button>
+                </div>
+
+                {success ? (
+                    <div className="px-6 py-14 flex flex-col items-center text-center gap-3">
+                        <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-500 text-2xl">✓</div>
+                        <p className="text-[15px] font-bold text-avaa-dark">Report Submitted</p>
+                        <p className="text-[13px] text-avaa-muted">Our trust & safety team will review it within 24 hours.</p>
+                    </div>
+                ) : (
+                    <form onSubmit={handleSubmit}>
+                        {/* Reason */}
+                        <div className="px-6 py-5">
+                            <p className="text-[13.5px] font-semibold text-avaa-dark mb-3">What's the reason for this report?</p>
+                            <div className="space-y-2">
+                                {REPORT_REASONS.map(r => (
+                                    <label
+                                        key={r.value}
+                                        className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${
+                                            reason === r.value
+                                                ? 'border-avaa-primary bg-avaa-primary/5 shadow-sm'
+                                                : 'border-gray-200 hover:border-avaa-primary/30 hover:bg-gray-50'
+                                        }`}
+                                    >
+                                        <input
+                                            type="radio" name="reason" value={r.value}
+                                            checked={reason === r.value}
+                                            onChange={() => setReason(r.value)}
+                                            className="mt-0.5 w-3.5 h-3.5 accent-avaa-primary"
+                                        />
+                                        <div>
+                                            <p className="text-[13px] font-semibold text-avaa-dark">{r.label}</p>
+                                            <p className="text-[11.5px] text-avaa-muted mt-0.5 leading-relaxed">{r.desc}</p>
+                                        </div>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Evidence Upload */}
+                        <div className="px-6 pb-5">
+                            <p className="text-[13.5px] font-semibold text-avaa-dark mb-1">
+                                Attach Evidence <span className="text-avaa-muted font-normal">(Optional, up to 5 images)</span>
+                            </p>
+                            {previews.length > 0 && (
+                                <div className="flex flex-wrap gap-2 mb-3">
+                                    {previews.map((src, i) => (
+                                        <div key={i} className="relative w-16 h-16 rounded-xl overflow-hidden border border-gray-200 group">
+                                            <img src={src} className="w-full h-full object-cover" alt="preview" />
+                                            <button
+                                                type="button"
+                                                onClick={() => removeImage(i)}
+                                                className="absolute top-0.5 right-0.5 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow text-[10px] font-bold"
+                                            >×</button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            {images.length < 5 && (
+                                <label className="flex items-center gap-2 border border-dashed border-gray-300 rounded-xl px-4 py-3 cursor-pointer hover:border-avaa-primary/50 hover:bg-gray-50 transition-all">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-avaa-primary">
+                                        <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                                    </svg>
+                                    <span className="text-[13px] text-avaa-muted">
+                                        {images.length === 0 ? 'Upload screenshots' : `Add more (${5 - images.length} remaining)`}
+                                    </span>
+                                    <input type="file" multiple accept="image/*" className="hidden" onChange={handleFiles} />
+                                </label>
+                            )}
+                        </div>
+
+                        {/* Details */}
+                        <div className="px-6 pb-5">
+                            <p className="text-[13.5px] font-semibold text-avaa-dark mb-2">
+                                Additional Details <span className="text-avaa-muted font-normal">(Optional)</span>
+                            </p>
+                            <textarea
+                                value={details}
+                                onChange={e => setDetails(e.target.value)}
+                                rows={3}
+                                maxLength={1000}
+                                placeholder="Provide more context to help our team investigate..."
+                                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-[13px] text-avaa-dark placeholder-avaa-muted outline-none resize-none focus:border-avaa-primary/50 focus:bg-white transition-all"
+                            />
+                        </div>
+
+                        {error && (
+                            <div className="mx-6 mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-[12.5px] text-red-600 font-medium">
+                                {error}
+                            </div>
+                        )}
+
+                        {/* Actions */}
+                        <div className="px-6 pb-5 flex justify-end gap-3 border-t border-gray-100 pt-4">
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="px-5 py-2.5 text-[13px] font-semibold text-avaa-muted hover:text-avaa-dark transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={!reason || submitting}
+                                className="px-6 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-[13px] font-semibold rounded-xl transition-colors flex items-center gap-2"
+                            >
+                                <IcoFlag />
+                                {submitting ? 'Submitting...' : 'Submit Report'}
+                            </button>
+                        </div>
+                    </form>
+                )}
             </div>
         </div>
     );
@@ -366,6 +677,55 @@ function NewMessageModal({ onClose, onStart }: {
 }
 
 /* ══════════════════════════════════════════════════════════
+   GROUP MEMBERS MODAL
+   ══════════════════════════════════════════════════════════ */
+function GroupMembersModal({ isOpen, onClose, participants }: {
+    isOpen: boolean; onClose: () => void; participants: any[];
+}) {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl shadow-xl w-full max-w-sm overflow-hidden flex flex-col max-h-[80vh]">
+                <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+                    <div>
+                        <h3 className="text-[15px] font-bold text-avaa-dark">Group Members</h3>
+                        <p className="text-[11px] text-avaa-muted">{participants.length} participants</p>
+                    </div>
+                    <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-avaa-muted transition-colors">
+                        <IcoClose />
+                    </button>
+                </div>
+                <div className="flex-1 overflow-y-auto py-2 custom-scrollbar">
+                    {participants.map(p => (
+                        <div key={p.id} className="flex items-center gap-3 px-6 py-3 hover:bg-gray-50 transition-colors">
+                            <Avatar src={p.avatar} initials={`${p.first_name[0]}${p.last_name[0]}`} size="md" />
+                            <div className="flex-1 min-w-0">
+                                <p className="text-[14px] font-semibold text-avaa-dark truncate">
+                                    {p.first_name} {p.last_name}
+                                </p>
+                                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full mt-0.5 inline-block
+                                    ${p.role === 'employer' ? 'bg-blue-50 text-blue-600' : 'bg-avaa-primary-light text-avaa-primary'}`}>
+                                    {p.role === 'job_seeker' ? 'Job Seeker' : 'Employer'}
+                                </span>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                <div className="px-6 py-4 border-t border-gray-100 flex-shrink-0">
+                    <button
+                        onClick={onClose}
+                        className="w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-avaa-dark text-[13.5px] font-semibold rounded-xl transition-colors"
+                    >
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+/* ══════════════════════════════════════════════════════════
    CONVERSATION ROW
 ══════════════════════════════════════════════════════════ */
 function ConvoRow({ convo, active, currentUserId, onClick }: {
@@ -380,14 +740,29 @@ function ConvoRow({ convo, active, currentUserId, onClick }: {
         <button
             onClick={onClick}
             className={`w-full flex items-start gap-3 px-3 py-3 text-left transition-all rounded-xl group
-                ${active ? 'bg-avaa-primary-light border border-avaa-primary/20' : 'hover:bg-gray-50 border border-transparent'}`}
+                ${active ? 'bg-avaa-primary-light border border-avaa-primary/20' : 'hover:bg-gray-50 border border-transparent'}
+                ${convo.is_blocked || convo.is_blocked_by_other ? 'opacity-75' : ''}`}
         >
-            <Avatar src={convo.avatar} initials={convo.initials} size="md" online={convo.type === 'direct'} />
+            <Avatar 
+                src={convo.avatar} 
+                initials={convo.initials} 
+                size="md" 
+                online={convo.type === 'direct' && !convo.is_blocked && !convo.is_blocked_by_other} 
+            />
             <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-1">
-                    <span className={`text-[13.5px] truncate ${active || convo.unread_count > 0 ? 'font-bold text-avaa-dark' : 'font-semibold text-gray-700'}`}>
-                        {convo.name}
-                    </span>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                        <span className={`text-[13.5px] truncate ${active || convo.unread_count > 0 ? 'font-bold text-avaa-dark' : 'font-semibold text-gray-700'}`}>
+                            {convo.name}
+                        </span>
+                        {(convo.is_blocked || convo.is_blocked_by_other) && (
+                            <span className="text-gray-400 flex-shrink-0" title="Blocked">
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+                                </svg>
+                            </span>
+                        )}
+                    </div>
                     {convo.latest_message?.created_at && (
                         <span className="text-[11px] text-avaa-muted flex-shrink-0 ml-1">
                             {timeAgo(convo.latest_message.created_at)}
@@ -396,7 +771,11 @@ function ConvoRow({ convo, active, currentUserId, onClick }: {
                 </div>
                 <div className="flex items-center justify-between gap-1 mt-0.5">
                     <p className={`text-[12px] truncate ${convo.unread_count > 0 ? 'text-avaa-dark font-medium' : 'text-avaa-muted'}`}>
-                        {preview}
+                        {convo.is_blocked ? (
+                            <span className="italic text-gray-400">User Blocked</span>
+                        ) : convo.is_blocked_by_other ? (
+                            <span className="italic text-gray-400">Conversation Restricted</span>
+                        ) : preview}
                     </p>
                     {convo.unread_count > 0 && (
                         <span className="flex-shrink-0 min-w-[18px] h-[18px] bg-avaa-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
@@ -434,9 +813,9 @@ function useToast() {
 /* ══════════════════════════════════════════════════════════
    CONTEXT MENU
 ══════════════════════════════════════════════════════════ */
-function ContextMenu({ onArchive, onMute, onDelete, onDeleteGroup, onReport, onBlock, onClose, isMuted, isGroup, isEmployer, showToast }: {
-    onArchive: () => void; onMute: () => void; onDelete: () => void; onDeleteGroup: () => void; onReport: () => void; onBlock: () => void;
-    onClose: () => void; isMuted: boolean; isGroup: boolean; isEmployer: boolean; showToast: (msg: string) => void;
+function ContextMenu({ onArchive, onUnarchive, onMute, onDelete, onDeleteGroup, onReport, onBlock, onViewMembers, onClose, isMuted, isArchived, isGroup, isCreator, showToast }: {
+    onArchive: () => void; onUnarchive: () => void; onMute: () => void; onDelete: () => void; onDeleteGroup: () => void; onReport: () => void; onBlock: () => void; onViewMembers: () => void;
+    onClose: () => void; isMuted: boolean; isArchived: boolean; isGroup: boolean; isCreator: boolean; showToast: (msg: string) => void;
 }) {
     const ref = useRef<HTMLDivElement>(null);
     useEffect(() => {
@@ -449,9 +828,14 @@ function ContextMenu({ onArchive, onMute, onDelete, onDeleteGroup, onReport, onB
         <div ref={ref} className="absolute right-0 top-full mt-1 w-52 bg-white rounded-2xl border border-gray-200 shadow-lg z-50 py-1.5 overflow-hidden">
             {[
                 { icon: <IcoMute />, label: isMuted ? 'Unmute Notification' : 'Mute Notification', action: () => { onMute(); onClose(); } },
-                { icon: <IcoArchive />, label: 'Archive Conversation', action: () => { onArchive(); onClose(); } },
+                { 
+                    icon: <IcoArchive />, 
+                    label: isArchived ? 'Unarchive Conversation' : 'Archive Conversation', 
+                    action: () => { isArchived ? onUnarchive() : onArchive(); onClose(); } 
+                },
                 { icon: <IcoBlock />, label: 'Block', action: () => { onBlock(); onClose(); } },
                 { icon: <IcoFlag />, label: 'Report', action: () => { onReport(); onClose(); } },
+                ...(isGroup ? [{ icon: <IcoUsers />, label: 'View Members', action: () => { onViewMembers(); onClose(); } }] : []),
             ].map(item => (
                 <button key={item.label} onClick={item.action}
                     className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-avaa-text hover:bg-avaa-primary-light transition-colors">
@@ -460,7 +844,7 @@ function ContextMenu({ onArchive, onMute, onDelete, onDeleteGroup, onReport, onB
                 </button>
             ))}
             <div className="border-t border-gray-100 mt-1 pt-1">
-                {isGroup && isEmployer && (
+                {isGroup && isCreator && (
                     <button onClick={() => { onDeleteGroup(); onClose(); }}
                         className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-red-500 hover:bg-red-50 transition-colors">
                         <IcoTrash /> Delete Group for Everyone
@@ -480,12 +864,13 @@ function ContextMenu({ onArchive, onMute, onDelete, onDeleteGroup, onReport, onB
 /* ══════════════════════════════════════════════════════════
    MESSAGE BUBBLE
 ══════════════════════════════════════════════════════════ */
-function Bubble({ msg, isOwn, showAvatar, onImageClick, onFileClick }: { 
+function Bubble({ msg, isOwn, showAvatar, onImageClick, onFileClick, onReport }: { 
     msg: Message; 
     isOwn: boolean; 
     showAvatar: boolean;
     onImageClick: (url: string, name: string) => void;
     onFileClick: (url: string, name: string) => void;
+    onReport?: (msg: Message) => void;
 }) {
     if (msg.type === 'system') {
         return (
@@ -497,37 +882,60 @@ function Bubble({ msg, isOwn, showAvatar, onImageClick, onFileClick }: {
         );
     }
     return (
-        <div className={`flex items-end gap-2 ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
-            <div className="w-7 flex-shrink-0 mb-1">
-                {!isOwn && showAvatar && (
-                    <Avatar src={msg.sender.avatar} initials={`${msg.sender.first_name[0]}${msg.sender.last_name[0]}`} size="xs" />
-                )}
-            </div>
+        <div className={`w-full flex items-end gap-2 group/bubble ${isOwn ? 'justify-end' : 'justify-start'}`}>
+            {!isOwn && (
+                <div className="w-7 flex-shrink-0 mb-1">
+                    {showAvatar && (
+                        <Avatar src={msg.sender.avatar} initials={`${msg.sender.first_name[0]}${msg.sender.last_name[0]}`} size="xs" />
+                    )}
+                </div>
+            )}
             <div className={`max-w-[62%] flex flex-col gap-0.5 ${isOwn ? 'items-end' : 'items-start'}`}>
                 {!isOwn && showAvatar && (
                     <span className="text-[11px] text-avaa-muted ml-1">{msg.sender.first_name}</span>
                 )}
-                <div className={`px-4 py-2.5 rounded-2xl text-[13.5px] leading-relaxed break-words
-                    ${isOwn
-                        ? 'bg-avaa-primary text-white rounded-br-sm'
-                        : 'bg-white text-avaa-dark border border-gray-100 shadow-sm rounded-bl-sm'
-                    }`}>
-                    {msg.type === 'image' && msg.attachment_url ? (
-                        <img 
-                            src={msg.attachment_url} 
-                            alt="attachment" 
-                            className="max-w-[220px] rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
-                            onClick={() => onImageClick(msg.attachment_url!, msg.attachment_name || 'Image')}
+                <div className="relative flex items-end gap-1.5">
+                    <div className={`px-4 py-2.5 rounded-2xl text-[13.5px] leading-relaxed break-words
+                        ${isOwn
+                            ? 'bg-avaa-primary text-white rounded-br-sm'
+                            : 'bg-white text-avaa-dark border border-gray-100 shadow-sm rounded-bl-sm'
+                        }`}>
+                        {/* Legacy attachment handling for backward compatibility */}
+                        {msg.type === 'image' && msg.attachment_url && !msg.attachments?.length ? (
+                            <img 
+                                src={msg.attachment_url} 
+                                alt="attachment" 
+                                className="max-w-[220px] rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
+                                onClick={() => onImageClick(msg.attachment_url!, msg.attachment_name || 'Image')}
+                            />
+                        ) : msg.type === 'file' && msg.attachment_url && !msg.attachments?.length ? (
+                            <button
+                                onClick={() => onFileClick(msg.attachment_url!, msg.attachment_name || 'File')}
+                                className={`flex items-center gap-2 underline underline-offset-2 ${isOwn ? 'text-white/90' : 'text-avaa-primary'} hover:opacity-80 transition-opacity`}
+                            >
+                                <IcoAttach />
+                                {msg.attachment_name ?? 'Download'}
+                            </button>
+                        ) : msg.body}
+                        
+                        {/* New multiple attachments handling */}
+                        <AttachmentsList 
+                            attachments={msg.attachments || []}
+                            isOwn={isOwn}
+                            onImageClick={onImageClick}
+                            onFileClick={onFileClick}
                         />
-                    ) : msg.type === 'file' && msg.attachment_url ? (
+                    </div>
+                    {/* Flag button — only on others' messages */}
+                    {!isOwn && onReport && (
                         <button
-                            onClick={() => onFileClick(msg.attachment_url!, msg.attachment_name || 'File')}
-                            className={`flex items-center gap-2 underline underline-offset-2 ${isOwn ? 'text-white/90' : 'text-avaa-primary'} hover:opacity-80 transition-opacity`}
+                            onClick={() => onReport(msg)}
+                            title="Report this message"
+                            className="opacity-0 group-hover/bubble:opacity-100 transition-opacity p-1 rounded-lg text-gray-300 hover:text-orange-400 hover:bg-orange-50 flex-shrink-0 mb-0.5"
                         >
-                            <IcoAttach />
-                            {msg.attachment_name ?? 'Download'}
+                            <IcoFlag />
                         </button>
-                    ) : msg.body}
+                    )}
                 </div>
                 <span className="text-[10.5px] text-avaa-muted">{msgTime(msg.created_at)}</span>
             </div>
@@ -578,7 +986,7 @@ function NewGroupModal({ onClose, onCreated }: {
     };
 
     const handleCreate = () => {
-        if (!name.trim() || selected.length === 0) return;
+        if (!name.trim() || selected.length < 2) return;
         setCreating(true);
         router.post(
             route('messages.start-group'),
@@ -666,7 +1074,7 @@ function NewGroupModal({ onClose, onCreated }: {
                         Cancel
                     </button>
                     <button onClick={handleCreate}
-                        disabled={!name.trim() || selected.length === 0 || creating}
+                        disabled={!name.trim() || selected.length < 2 || creating}
                         className="px-5 py-2 bg-avaa-primary hover:bg-avaa-dark disabled:opacity-40 text-white text-[13px] font-semibold rounded-xl transition-colors">
                         {creating ? <IcoSpinner /> : `Create Group (${selected.length})`}
                     </button>
@@ -710,32 +1118,38 @@ export default function MessagingIndex({
     initialMessages: initMsgs,
     activeConversation: initActive,
     unreadNotificationsCount,
+    showArchived = false,
 }: {
     conversations: ConversationSummary[];
     activeConversationId: number | null;
     initialMessages: Message[];
     activeConversation: ConversationSummary | null;
     unreadNotificationsCount: number;
+    showArchived?: boolean;
 }) {
 const [showBlockModal, setShowBlockModal] = useState(false);
     const [blocking, setBlocking] = useState(false);
+    const [showUnblockModal, setShowUnblockModal] = useState(false);
+    const [unblocking, setUnblocking] = useState(false);
     const [imageModal, setImageModal] = useState<{ url: string; name: string } | null>(null);
     const [fileDownloadModal, setFileDownloadModal] = useState<{ url: string; name: string } | null>(null);
-
+    const [reportMsgTarget, setReportMsgTarget] = useState<Message | null>(null);
+ 
     const { auth } = usePage<PageProps>().props;
     const me = auth.user;
-
+ 
     const [convos, setConvos] = useState<ConversationSummary[]>(initConvos);
     const [activeConvo, setActiveConvo] = useState<ConversationSummary | null>(initActive);
     const [messages, setMessages] = useState<Message[]>(initMsgs);
     const [body, setBody] = useState('');
     const [sending, setSending] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
-    const [tab, setTab] = useState<'all' | 'archived'>('all');
+    const [tab, setTab] = useState<'all' | 'archived'>(showArchived ? 'archived' : 'all');
     const [mobileView, setMobileView] = useState<'list' | 'chat'>(initActiveId ? 'chat' : 'list');
     const [loadingConvo, setLoadingConvo] = useState(false);
     const [showNewMsg, setShowNewMsg] = useState(false);
     const [showNewGroup, setShowNewGroup] = useState(false);
+    const [showMembersModal, setShowMembersModal] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<UserResult[]>([]);
     const [searchLoading, setSearchLoading] = useState(false);
@@ -748,12 +1162,59 @@ const [showBlockModal, setShowBlockModal] = useState(false);
     const fileRef = useRef<HTMLInputElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+    const listPollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
     const lastMsgId = useRef<number>(initMsgs.length > 0 ? initMsgs[initMsgs.length - 1].id : 0);
 
     useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
     useEffect(() => {
         if (messages.length > 0) lastMsgId.current = messages[messages.length - 1].id;
     }, [messages]);
+    
+    // Process initial messages for blocked user notifications
+    useEffect(() => {
+        if (initMsgs.length > 0) {
+            const processedInitialMsgs = initMsgs.map(msg => {
+                if (msg.body.includes('[BLOCKED_USER_MESSAGE]')) {
+                    return {
+                        ...msg,
+                        body: 'You cannot message this person.',
+                        type: 'system' as const,
+                        sender: {
+                            id: 0,
+                            first_name: 'System',
+                            last_name: '',
+                            avatar: null,
+                            role: 'system'
+                        }
+                    };
+                }
+                return msg;
+            });
+            
+            // Add blocked system message if active conversation is blocked by other user
+            let finalMsgs = processedInitialMsgs;
+            if (initActive && (initActive as any).is_blocked_by_other && processedInitialMsgs.length === 0) {
+                const blockedSystemMessage: Message = {
+                    id: Date.now(),
+                    conversation_id: initActive.id,
+                    sender_id: 0, // system message
+                    body: 'You cannot message this person.',
+                    type: 'system',
+                    created_at: new Date().toISOString(),
+                    sender: {
+                        id: 0,
+                        first_name: 'System',
+                        last_name: '',
+                        avatar: null,
+                        role: 'system'
+                    }
+                };
+                finalMsgs = [blockedSystemMessage];
+            }
+            
+            setMessages(finalMsgs);
+        }
+    }, []);
 
     /* ── Polling ── */
     const startPolling = useCallback((convoId: number) => {
@@ -768,7 +1229,28 @@ const [showBlockModal, setShowBlockModal] = useState(false);
                     setMessages(prev => {
                         const ids = new Set(prev.map(m => m.id));
                         const fresh = newMsgs.filter(m => !ids.has(m.id));
-                        return fresh.length > 0 ? [...prev, ...fresh] : prev;
+                        
+                        // Check for blocked user messages and add system notification
+                        const processedMessages = fresh.map(msg => {
+                            if (msg.body.includes('[BLOCKED_USER_MESSAGE]')) {
+                                // Replace with user-friendly system message
+                                return {
+                                    ...msg,
+                                    body: 'You cannot message this person.',
+                                    type: 'system' as const,
+                                    sender: {
+                                        id: 0,
+                                        first_name: 'System',
+                                        last_name: '',
+                                        avatar: null,
+                                        role: 'system'
+                                    }
+                                };
+                            }
+                            return msg;
+                        });
+                        
+                        return processedMessages.length > 0 ? [...prev, ...processedMessages] : prev;
                     });
                     const last = newMsgs[newMsgs.length - 1];
                     setConvos(prev => prev.map(c =>
@@ -791,6 +1273,25 @@ const [showBlockModal, setShowBlockModal] = useState(false);
     }, [activeConvo?.id]);
     useEffect(() => () => stopPolling(), []);
 
+    /* ── List Polling (for new convos / unread counts) ── */
+    useEffect(() => {
+        listPollTimer.current = setInterval(() => {
+            router.reload({ 
+                only: ['conversations'],
+                onSuccess: (page: any) => {
+                    const p = page.props as any;
+                    if (p.conversations) {
+                        setConvos(p.conversations);
+                    }
+                }
+            });
+        }, 10000); // Check for new convos every 10s
+
+        return () => {
+            if (listPollTimer.current) clearInterval(listPollTimer.current);
+        };
+    }, []);
+
     /* ── Open conversation ── */
     const openConvo = useCallback((convo: ConversationSummary) => {
         if (activeConvo?.id === convo.id) { setMobileView('chat'); return; }
@@ -801,16 +1302,80 @@ const [showBlockModal, setShowBlockModal] = useState(false);
             preserveState: true,
             onSuccess: (page: any) => {
                 const p = page.props as any;
-                setMessages(p.initialMessages ?? []);
+                let initialMsgs = p.initialMessages ?? [];
+                
+                // Check for blocked user messages in initial messages
+                initialMsgs = initialMsgs.map((msg: Message) => {
+                    if (msg.body.includes('[BLOCKED_USER_MESSAGE]')) {
+                        return {
+                            ...msg,
+                            body: 'You cannot message this person.',
+                            type: 'system' as const,
+                            sender: {
+                                id: 0,
+                                first_name: 'System',
+                                last_name: '',
+                                avatar: null,
+                                role: 'system'
+                            }
+                        };
+                    }
+                    return msg;
+                });
+                
+                // Check if conversation has blocked status and add system message if needed
+                if ((p.activeConversation as any)?.is_blocked_by_other) {
+                    const blockedSystemMessage: Message = {
+                        id: Date.now() + Math.random(), // unique ID
+                        conversation_id: convo.id,
+                        sender_id: 0, // system message
+                        body: 'You cannot message this person.',
+                        type: 'system',
+                        created_at: new Date().toISOString(),
+                        sender: {
+                            id: 0,
+                            first_name: 'System',
+                            last_name: '',
+                            avatar: null,
+                            role: 'system'
+                        }
+                    };
+                    initialMsgs = [...initialMsgs, blockedSystemMessage];
+                }
+                
+                setMessages(initialMsgs);
                 setActiveConvo(p.activeConversation ?? null);
                 setConvos(p.conversations ?? convos);
-                lastMsgId.current = p.initialMessages?.length > 0
-                    ? p.initialMessages[p.initialMessages.length - 1].id : 0;
+                lastMsgId.current = initialMsgs?.length > 0
+                    ? initialMsgs[initialMsgs.length - 1].id : 0;
                 setConvos(prev => prev.map(c => c.id === convo.id ? { ...c, unread_count: 0 } : c));
                 setMobileView('chat');
                 setLoadingConvo(false);
             },
-            onError: () => setLoadingConvo(false),
+            onError: (error: any) => {
+                // Handle 403 when opening conversation (user is blocked)
+                if (error.response?.status === 403) {
+                    const blockedSystemMessage: Message = {
+                        id: Date.now(),
+                        conversation_id: convo.id,
+                        sender_id: 0, // system message
+                        body: 'You cannot message this person.',
+                        type: 'system',
+                        created_at: new Date().toISOString(),
+                        sender: {
+                            id: 0,
+                            first_name: 'System',
+                            last_name: '',
+                            avatar: null,
+                            role: 'system'
+                        }
+                    };
+                    setMessages([blockedSystemMessage]);
+                    setActiveConvo(convo);
+                    toast.show('You cannot message this person');
+                }
+                setLoadingConvo(false);
+            },
         });
     }, [activeConvo?.id, convos, stopPolling]);
 
@@ -862,7 +1427,14 @@ const [showBlockModal, setShowBlockModal] = useState(false);
         try {
             const fd = new FormData();
             if (body.trim()) fd.append('body', body.trim());
-            if (fileRef.current?.files?.[0]) fd.append('attachment', fileRef.current.files[0]);
+            
+            // Handle multiple file attachments
+            if (fileRef.current?.files?.length) {
+                Array.from(fileRef.current.files).forEach((file, index) => {
+                    fd.append(`attachments[${index}]`, file);
+                });
+            }
+            
             const res = await axios.post(route('messages.send', activeConvo.id), fd, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
@@ -885,7 +1457,30 @@ const [showBlockModal, setShowBlockModal] = useState(false);
                 if (!exists) return [updated, ...prev];
                 return prev.map(c => c.id === activeConvo.id ? updated : c);
             });
-        } catch { /* handle error */ }
+        } catch (error: any) {
+            // Handle 403 Forbidden - user is blocked
+            if (error.response?.status === 403) {
+                const blockedSystemMessage: Message = {
+                    id: Date.now(), // temporary ID
+                    conversation_id: activeConvo.id,
+                    sender_id: 0, // system message
+                    body: 'You cannot message this person.',
+                    type: 'system',
+                    created_at: new Date().toISOString(),
+                    sender: {
+                        id: 0,
+                        first_name: 'System',
+                        last_name: '',
+                        avatar: null,
+                        role: 'system'
+                    }
+                };
+                setMessages(prev => [...prev, blockedSystemMessage]);
+                toast.show('You cannot message this person');
+            } else {
+                toast.show('Failed to send message');
+            }
+        }
         finally { setSending(false); }
     }, [activeConvo, body, me.id]);
 
@@ -896,6 +1491,13 @@ const [showBlockModal, setShowBlockModal] = useState(false);
     const archiveConvo = async (id: number) => {
         await axios.post(route('messages.archive', id));
         setConvos(prev => prev.map(c => c.id === id ? { ...c, is_archived: true } : c));
+        if (activeConvo?.id === id) setActiveConvo(prev => prev ? { ...prev, is_archived: true } : prev);
+    };
+    const unarchiveConvo = async (id: number) => {
+        await axios.post(route('messages.unarchive', id));
+        setConvos(prev => prev.map(c => c.id === id ? { ...c, is_archived: false } : c));
+        if (activeConvo?.id === id) setActiveConvo(prev => prev ? { ...prev, is_archived: false } : prev);
+        toast.show('Conversation unarchived');
     };
     const muteConvo = async (id: number) => {
         try {
@@ -931,21 +1533,73 @@ const [showBlockModal, setShowBlockModal] = useState(false);
         if (!activeConvo?.other_user) return;
         setBlocking(true);
         try {
-            // Replace with your actual backend block route
             await axios.post(route('messages.block', activeConvo.other_user.id));
             toast.show(`${activeConvo.name} has been blocked`);
             
-            // Clean up: Remove the convo from the sidebar and clear chat
-            const blockedId = activeConvo.id;
-            setActiveConvo(null);
-            setMessages([]);
-            setConvos(prev => prev.filter(c => c.id !== blockedId));
+            // Add system message to conversation
+            const blockSystemMessage: Message = {
+                id: Date.now(), // temporary ID
+                conversation_id: activeConvo.id,
+                sender_id: 0, // system message
+                body: `You have blocked ${activeConvo.name}. You will no longer receive messages from them.`,
+                type: 'system',
+                created_at: new Date().toISOString(),
+                sender: {
+                    id: 0,
+                    first_name: 'System',
+                    last_name: '',
+                    avatar: null,
+                    role: 'system'
+                }
+            };
+            
+            setMessages(prev => [...prev, blockSystemMessage]);
+            
+            // Update conversation to mark as blocked instead of removing it
+            setConvos(prev => prev.map(c => 
+                c.id === activeConvo.id 
+                    ? { ...c, is_blocked: true }
+                    : c
+            ));
+            setActiveConvo(prev => prev ? { ...prev, is_blocked: true } : prev);
+            
+            // Stop polling for this conversation since it's blocked
             stopPolling();
         } catch (err) {
             toast.show('Failed to block user');
         } finally {
             setBlocking(false);
             setShowBlockModal(false);
+        }
+    };
+
+    const handleUnblockConfirm = async () => {
+        if (!activeConvo?.other_user) return;
+        setUnblocking(true);
+        try {
+            await axios.delete(route('messages.unblock', activeConvo.other_user.id));
+            toast.show(`${activeConvo.name} has been unblocked`);
+            
+            // Update conversation to remove blocked status
+            setConvos(prev => prev.map(c => 
+                c.id === activeConvo.id 
+                    ? { ...c, is_blocked: false }
+                    : c
+            ));
+            setActiveConvo(prev => prev ? { ...prev, is_blocked: false } : prev);
+            
+            // Remove the block system message
+            setMessages(prev => prev.filter(msg => 
+                msg.sender_id !== 0 || !msg.body.includes('You have blocked')
+            ));
+            
+            // Resume polling
+            if (activeConvo) startPolling(activeConvo.id);
+        } catch (err) {
+            toast.show('Failed to unblock user');
+        } finally {
+            setUnblocking(false);
+            setShowUnblockModal(false);
         }
     };
 
@@ -996,6 +1650,57 @@ const [showBlockModal, setShowBlockModal] = useState(false);
                 isProcessing={blocking}
             />
 
+            {/* Unblock User Modal */}
+            {showUnblockModal && (
+                <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden">
+                        <div className="px-6 py-5">
+                            <div className="w-12 h-12 rounded-2xl bg-green-50 flex items-center justify-center text-green-500 mb-4">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <path d="M4.93 4.93l14.14 14.14" strokeDasharray="2 2" />
+                                </svg>
+                            </div>
+                            <h3 className="text-[15px] font-bold text-avaa-dark mb-1">Unblock User?</h3>
+                            <p className="text-[13px] text-avaa-muted leading-relaxed">
+                                You will be able to send and receive messages from <span className="font-semibold text-avaa-dark">{activeConvo?.name}</span> again.
+                            </p>
+                        </div>
+                        <div className="px-6 pb-5 flex gap-2 justify-end">
+                            <button
+                                onClick={() => setShowUnblockModal(false)}
+                                disabled={unblocking}
+                                className="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleUnblockConfirm}
+                                disabled={unblocking}
+                                className="px-4 py-2 bg-green-500 hover:bg-green-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+                            >
+                                {unblocking && (
+                                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                    </svg>
+                                )}
+                                Unblock
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Report Message Modal */}
+            {reportMsgTarget && (
+                <ReportMessageModal
+                    messageId={reportMsgTarget.id}
+                    senderName={`${reportMsgTarget.sender.first_name} ${reportMsgTarget.sender.last_name}`}
+                    onClose={() => setReportMsgTarget(null)}
+                />
+            )}
+
             {/* New Message Modal */}
             {showNewMsg && (
                 <NewMessageModal
@@ -1009,6 +1714,15 @@ const [showBlockModal, setShowBlockModal] = useState(false);
                 <NewGroupModal
                     onClose={() => setShowNewGroup(false)}
                     onCreated={handleGroupCreated}
+                />
+            )}
+
+            {/* Group Members Modal */}
+            {activeConvo && activeConvo.type === 'group' && (
+                <GroupMembersModal
+                    isOpen={showMembersModal}
+                    onClose={() => setShowMembersModal(false)}
+                    participants={activeConvo.participants}
                 />
             )}
 
@@ -1263,16 +1977,45 @@ const [showBlockModal, setShowBlockModal] = useState(false);
                                     className="md:hidden p-1 rounded-lg hover:bg-gray-100 text-avaa-muted transition-colors flex-shrink-0">
                                     <IcoBack />
                                 </button>
-                                <Avatar src={activeConvo.avatar} initials={activeConvo.initials} size="md" online />
+                                <Avatar 
+                                    src={activeConvo.avatar} 
+                                    initials={activeConvo.initials} 
+                                    size="md" 
+                                    online={!activeConvo.is_blocked && !activeConvo.is_blocked_by_other} 
+                                />
                                 <div className="flex-1 min-w-0">
                                     <p className="font-semibold text-[14px] text-avaa-dark truncate">{activeConvo.name}</p>
                                     {activeConvo.type === 'group' ? (
-                                        <p className="text-[11.5px] text-avaa-primary flex items-center gap-1 mt-0.5">
-                                            <IcoUsers /> {activeConvo.participants.length} members
-                                            {activeConvo.job_listing && ` · ${activeConvo.job_listing.title}`}
-                                        </p>
+                                        <div className="mt-0.5 flex items-center gap-1.5">
+                                            <button 
+                                                onClick={() => setShowMembersModal(true)}
+                                                className="text-[11.5px] text-avaa-primary font-medium hover:underline cursor-pointer"
+                                            >
+                                                {activeConvo.participants.length} members
+                                            </button>
+                                            <span className="text-avaa-muted text-[11px]">·</span>
+                                            <p className="text-[11.5px] text-avaa-muted truncate">
+                                                {activeConvo.participants.slice(0, 3).map(p => p.first_name).join(', ')}
+                                                {activeConvo.participants.length > 3 && '...'}
+                                                {activeConvo.job_listing && (
+                                                    <>
+                                                        <span className="mx-1">·</span>
+                                                        <span className="text-avaa-primary/80">{activeConvo.job_listing.title}</span>
+                                                    </>
+                                                )}
+                                            </p>
+                                        </div>
                                     ) : (
-                                        <p className="text-[11.5px] text-emerald-500 font-medium">● Online</p>
+                                        !activeConvo.is_blocked && !activeConvo.is_blocked_by_other ? (
+                                            <p className="text-[11.5px] text-emerald-500 font-medium">● Online</p>
+                                        ) : (
+                                            <p className="text-[11.5px] text-avaa-muted flex items-center gap-1">
+                                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+                                                </svg>
+                                                Blocked
+                                            </p>
+                                        )
                                     )}
                                 </div>
                                 <div className="relative">
@@ -1283,15 +2026,18 @@ const [showBlockModal, setShowBlockModal] = useState(false);
                                     {showMenu && (
                                         <ContextMenu
                                             onArchive={() => archiveConvo(activeConvo.id)}
+                                            onUnarchive={() => unarchiveConvo(activeConvo.id)}
                                             onMute={() => muteConvo(activeConvo.id)}
                                             onDelete={() => deleteConvo(activeConvo.id)}
                                             onDeleteGroup={() => setConfirmDeleteGroup(activeConvo.id)}
                                             onReport={handleReportUser}
                                             onBlock={() => setShowBlockModal(true)}
+                                            onViewMembers={() => setShowMembersModal(true)}
                                             onClose={() => setShowMenu(false)}
                                             isMuted={activeConvo.is_muted}
+                                            isArchived={activeConvo.is_archived}
                                             isGroup={activeConvo.type === 'group'}
-                                            isEmployer={me.role === 'employer'}
+                                            isCreator={activeConvo.created_by === me.id}
                                             showToast={toast.show}
                                         />
                                     )}
@@ -1323,6 +2069,7 @@ const [showBlockModal, setShowBlockModal] = useState(false);
                                                     showAvatar={!group.items[idx - 1] || group.items[idx - 1].sender_id !== msg.sender_id}
                                                     onImageClick={(url, name) => setImageModal({ url, name })}
                                                     onFileClick={(url, name) => setFileDownloadModal({ url, name })}
+                                                    onReport={msg.sender_id !== me.id ? (m) => setReportMsgTarget(m) : undefined}
                                                 />
                                             ))}
                                         </div>
@@ -1332,42 +2079,89 @@ const [showBlockModal, setShowBlockModal] = useState(false);
                             </div>
 
                             <div className="px-4 py-3 bg-white border-t border-gray-100 flex-shrink-0">
-                                <div className="flex items-end gap-2 bg-gray-50 border border-gray-200 rounded-2xl px-3 py-2.5
-                                    focus-within:border-avaa-primary/50 focus-within:bg-white focus-within:shadow-sm transition-all">
-                                    <button onClick={() => fileRef.current?.click()}
-                                        className="p-1.5 rounded-lg text-avaa-muted hover:text-avaa-primary transition-colors flex-shrink-0 mb-0.5"
-                                        title="Attach file">
-                                        <IcoAttach />
-                                    </button>
-                                    <input ref={fileRef} type="file" className="hidden" accept="image/*,.pdf,.doc,.docx"
-                                        onChange={() => {
-                                            const f = fileRef.current?.files?.[0];
-                                            if (f && !body.trim()) setBody(f.name);
-                                        }} />
-                                    <textarea
-                                        ref={textareaRef}
-                                        value={body}
-                                        onChange={e => setBody(e.target.value)}
-                                        onKeyDown={onKeyDown}
-                                        placeholder="Write a message..."
-                                        rows={1}
-                                        className="flex-1 bg-transparent text-[13.5px] text-avaa-dark placeholder-avaa-muted outline-none border-0 resize-none leading-relaxed overflow-y-auto"
-                                        style={{ minHeight: '22px', maxHeight: '120px' }}
-                                        onInput={e => {
-                                            const t = e.currentTarget;
-                                            t.style.height = 'auto';
-                                            t.style.height = Math.min(t.scrollHeight, 120) + 'px';
-                                        }}
-                                    />
-                                    <button onClick={sendMsg}
-                                        disabled={sending || (!body.trim() && !fileRef.current?.files?.length)}
-                                        className="flex-shrink-0 w-9 h-9 rounded-xl bg-avaa-primary hover:bg-avaa-dark disabled:opacity-40 disabled:cursor-not-allowed text-white flex items-center justify-center transition-colors mb-0.5">
-                                        {sending ? <IcoSpinner /> : <IcoSend />}
-                                    </button>
-                                </div>
-                                <p className="text-[11px] text-avaa-muted mt-1.5 ml-1">
-                                    Enter to send · Shift+Enter for new line
-                                </p>
+                                {activeConvo.is_blocked ? (
+                                    <div className="w-full bg-yellow-50 border border-yellow-200 rounded-2xl px-4 py-3 text-center">
+                                        <p className="text-sm text-yellow-800 font-semibold mb-1">
+                                            You have blocked this user.
+                                        </p>
+                                        <p className="text-[12px] text-yellow-700 mb-3">
+                                            You won't receive messages from them, and you can't send messages until you unblock.
+                                        </p>
+                                        <button 
+                                            onClick={() => setShowUnblockModal(true)}
+                                            className="px-5 py-2 bg-yellow-500 hover:bg-yellow-600 text-white text-[13px] font-bold rounded-xl transition-colors shadow-sm"
+                                        >
+                                            Unblock {activeConvo.name}
+                                        </button>
+                                    </div>
+                                ) : activeConvo.is_blocked_by_other ? (
+                                    <div className="space-y-3">
+                                        <div className="flex items-end gap-2 bg-gray-100 border border-gray-200 rounded-2xl px-3 py-2.5 opacity-60 cursor-not-allowed">
+                                            <button disabled className="p-1.5 rounded-lg text-gray-400 flex-shrink-0 mb-0.5">
+                                                <IcoAttach />
+                                            </button>
+                                            <textarea
+                                                disabled
+                                                placeholder="You can't send messages to this user because they've blocked you."
+                                                className="flex-1 bg-transparent text-[13.5px] text-gray-500 placeholder-gray-400 outline-none border-0 resize-none leading-relaxed"
+                                                rows={1}
+                                            />
+                                            <button disabled className="flex-shrink-0 w-9 h-9 rounded-xl bg-gray-300 text-white flex items-center justify-center mb-0.5">
+                                                <IcoSend />
+                                            </button>
+                                        </div>
+                                        <p className="text-center text-[12px] text-avaa-muted">
+                                            If you think this is a mistake, you can <a href="#" className="text-avaa-primary hover:underline font-medium">contact support</a>.
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-end gap-2 bg-gray-50 border border-gray-200 rounded-2xl px-3 py-2.5
+                                        focus-within:border-avaa-primary/50 focus-within:bg-white focus-within:shadow-sm transition-all">
+                                        <button onClick={() => fileRef.current?.click()}
+                                            className="p-1.5 rounded-lg text-avaa-muted hover:text-avaa-primary transition-colors flex-shrink-0 mb-0.5"
+                                            title="Attach file">
+                                            <IcoAttach />
+                                        </button>
+                                        <input ref={fileRef} type="file" className="hidden" multiple accept="image/*,.pdf,.doc,.docx,.txt,.xlsx,.xls,.ppt,.pptx"
+                                            onChange={() => {
+                                                const files = fileRef.current?.files;
+                                                if (files && files.length > 0) {
+                                                    if (!body.trim()) {
+                                                        if (files.length === 1) {
+                                                            setBody(files[0].name);
+                                                        } else {
+                                                            setBody(`${files.length} files attached`);
+                                                        }
+                                                    }
+                                                }
+                                            }} />
+                                        <textarea
+                                            ref={textareaRef}
+                                            value={body}
+                                            onChange={e => setBody(e.target.value)}
+                                            onKeyDown={onKeyDown}
+                                            placeholder="Write a message..."
+                                            rows={1}
+                                            className="flex-1 bg-transparent text-[13.5px] text-avaa-dark placeholder-avaa-muted outline-none border-0 resize-none leading-relaxed overflow-y-auto"
+                                            style={{ minHeight: '22px', maxHeight: '120px' }}
+                                            onInput={e => {
+                                                const t = e.currentTarget;
+                                                t.style.height = 'auto';
+                                                t.style.height = Math.min(t.scrollHeight, 120) + 'px';
+                                            }}
+                                        />
+                                        <button onClick={sendMsg}
+                                            disabled={sending || (!body.trim() && !fileRef.current?.files?.length)}
+                                            className="flex-shrink-0 w-9 h-9 rounded-xl bg-avaa-primary hover:bg-avaa-dark disabled:opacity-40 disabled:cursor-not-allowed text-white flex items-center justify-center transition-colors mb-0.5">
+                                            {sending ? <IcoSpinner /> : <IcoSend />}
+                                        </button>
+                                    </div>
+                                )}
+                                {!activeConvo.is_blocked && !activeConvo.is_blocked_by_other && (
+                                    <p className="text-[11px] text-avaa-muted mt-1.5 ml-1">
+                                        Enter to send · Shift+Enter for new line
+                                    </p>
+                                )}
                             </div>
                         </>
                     ) : (

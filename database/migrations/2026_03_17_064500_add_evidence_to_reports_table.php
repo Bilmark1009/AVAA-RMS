@@ -6,24 +6,19 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::table('reports', function (Blueprint $table) {
-            $table->foreignId('message_id')->nullable()->after('conversation_id')->constrained('messages')->nullOnDelete();
+            if (!Schema::hasColumn('reports', 'evidence')) {
+                $table->json('evidence')->nullable()->after('details');
+            }
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::table('reports', function (Blueprint $table) {
-            $table->dropForeign(['message_id']);
-            $table->dropColumn('message_id');
+            $table->dropColumn('evidence');
         });
     }
 };

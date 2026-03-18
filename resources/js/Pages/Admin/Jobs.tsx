@@ -1,12 +1,14 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
+import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
 
 /* ── Types ── */
 interface Job {
     id: number;
     title: string;
     company: string;
+    logo_url?: string | null;
     location: string;
     employment_type: string;
     is_remote: boolean;
@@ -120,9 +122,14 @@ function JobCard({ job }: { job: Job }) {
             {/* Header */}
             <div className="flex items-start justify-between gap-2 mb-3">
                 <div className="flex items-start gap-3">
-                    <div className={`w-10 h-10 rounded-xl ${AVATAR_BG[bgIdx]} flex items-center justify-center text-white text-sm font-bold flex-shrink-0`}>
-                        {initials}
-                    </div>
+                    <ImageInitialsFallback
+                        src={job.logo_url}
+                        alt={job.company}
+                        initials={initials}
+                        className={`w-10 h-10 rounded-xl overflow-hidden flex-shrink-0 ${job.logo_url ? 'bg-white border border-gray-200' : AVATAR_BG[bgIdx]}`}
+                        imgClassName="w-full h-full object-cover"
+                        textClassName="text-white text-sm font-bold flex items-center justify-center"
+                    />
                     <div>
                         <h3 className="font-bold text-gray-900 text-sm group-hover:text-[#3d9e9e] transition-colors leading-tight">{job.title}</h3>
                         <p className="text-xs text-gray-400 mt-0.5">{job.company}</p>

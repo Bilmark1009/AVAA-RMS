@@ -1,6 +1,8 @@
 import { Link, usePage, router } from '@inertiajs/react';
 import { useState, ReactNode, useRef, useEffect } from 'react';
+import axios from 'axios';
 import NotificationDropdown from '@/Components/NotificationDropdown';
+import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
 import { PageProps } from '@/types';
 import { usePreventAuthBack } from '@/hooks/usePreventAuthBack';
 
@@ -80,6 +82,14 @@ const IcoShield = () => (
         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
     </svg>
 );
+const IcoFlag = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        {/* The Flagpole */}
+        <line x1="4" y1="22" x2="4" y2="4" />
+        {/* The Flag Banner */}
+        <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V5s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+    </svg>
+);
 const IcoJobsAdmin = () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" />
@@ -145,7 +155,7 @@ function handleLogout(e: React.MouseEvent): void {
 /* ─────────────────────────────────────────
    NAV ITEM TYPES
 ───────────────────────────────────────── */
-interface NavItem { label: string; href: string; icon: ReactNode }
+interface NavItem { label: string; href: string; icon: ReactNode; badge?: number }
 
 /* ─────────────────────────────────────────
    JOB SEEKER SIDEBAR NAV ITEMS
@@ -166,8 +176,8 @@ function getAdminSideNav(): NavItem[] {
         { label: 'Users', href: safeRoute('admin.users.index'), icon: <IcoUsersAdmin /> },
         { label: 'Jobs', href: safeRoute('admin.jobs.index'), icon: <IcoJobsAdmin /> },
         { label: 'Verifications', href: safeRoute('admin.verifications'), icon: <IcoShield /> },
+        { label: 'Report View', href: route('admin.reports.index'), icon: <IcoFlag /> },
         { label: 'Settings', href: safeRoute('admin.settings'), icon: <IcoSettings /> },
-        { label: 'Messages', href: safeRoute('messages.index'), icon: <IcoMsg /> },
     ];
 }
 
@@ -215,20 +225,26 @@ function AvatarDropdown({ initials, avatar, name, email, role }: AvatarDropdownP
                            ring-2 ring-avaa-primary/30 hover:ring-avaa-primary/60
                            overflow-hidden flex-shrink-0"
             >
-                {avatar
-                    ? <img src={avatar} alt={name} className="w-full h-full object-cover" />
-                    : initials
-                }
+                <ImageInitialsFallback
+                    src={avatar}
+                    alt={name}
+                    initials={initials}
+                    className="w-full h-full"
+                    textClassName="text-white text-sm font-bold"
+                />
             </button>
 
             {open && (
                 <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl border border-gray-200 shadow-lg shadow-black/5 z-50 overflow-hidden">
                     <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full bg-avaa-dark flex items-center justify-center text-white text-xs font-bold flex-shrink-0 overflow-hidden">
-                            {avatar
-                                ? <img src={avatar} alt={name} className="w-full h-full object-cover" />
-                                : initials
-                            }
+                            <ImageInitialsFallback
+                                src={avatar}
+                                alt={name}
+                                initials={initials}
+                                className="w-full h-full"
+                                textClassName="text-white text-xs font-bold"
+                            />
                         </div>
                         <div className="min-w-0">
                             <p className="text-sm font-semibold text-avaa-dark truncate">{name}</p>
@@ -337,7 +353,7 @@ function SidebarShell({
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
     return (
-        <div className="min-h-screen bg-[#e8efef] flex">
+        <div className="h-screen bg-[#e8efef] flex overflow-hidden">
 
             {/* ── Sidebar (desktop) ── */}
             <aside
@@ -397,6 +413,12 @@ function SidebarShell({
                                     {item.icon}
                                 </span>
                                 {!collapsed && <span className="truncate">{item.label}</span>}
+                                {item.badge !== undefined && item.badge > 0 && (
+                                    <span className={`flex-shrink-0 ml-auto min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 border-2 border-white
+                                        ${collapsed ? 'absolute top-1 right-1' : ''}`}>
+                                        {item.badge > 99 ? '99+' : item.badge}
+                                    </span>
+                                )}
                             </Link>
                         );
                     })}
@@ -451,12 +473,18 @@ function SidebarShell({
                                     }`}
                             >
                                 <span className={active ? 'text-white' : 'text-avaa-muted'}>{item.icon}</span>
-                                {item.label}
+                                <span className="flex-1">{item.label}</span>
+                                {item.badge !== undefined && item.badge > 0 && (
+                                    <span className="flex-shrink-0 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+                                        {item.badge > 99 ? '99+' : item.badge}
+                                    </span>
+                                )}
                             </Link>
                         );
                     })}
                 </nav>
-                <div className="px-3 py-4 border-t border-gray-100">
+                <div className="px-3 py-4 border-t border-gray-100 space-y-1">
+                    {sidebarBottomExtra}
                     <button
                         onClick={handleLogout}
                         className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-semibold text-avaa-muted hover:bg-red-50 hover:text-red-500 transition-colors"
@@ -468,7 +496,7 @@ function SidebarShell({
             </aside>
 
             {/* ── Main area (top bar + content) ── */}
-            <div className="flex-1 flex flex-col min-w-0">
+            <div className="flex-1 flex flex-col min-w-0 h-screen">
 
                 {/* Top Bar */}
                 <header className="bg-white border-b border-gray-200 sticky top-0 z-20">
@@ -510,7 +538,7 @@ function SidebarShell({
                 </header>
 
                 {/* Page Content */}
-                <main className="flex-1 px-4 sm:px-6 lg:px-8 py-8">
+                <main className="flex-1 px-4 sm:px-6 lg:px-8 py-8 overflow-y-auto overflow-x-hidden min-w-0">
                     {children}
                 </main>
             </div>
@@ -521,7 +549,7 @@ function SidebarShell({
 /* ─────────────────────────────────────────
    ADMIN LAYOUT
 ───────────────────────────────────────── */
-function AdminLayout({ children, activeNav, pageTitle, pageSubtitle, user, initials }: AppLayoutProps & { user: any; initials: string }) {
+function AdminLayout({ children, activeNav, pageTitle, pageSubtitle, user, initials, sideNavItems }: AppLayoutProps & { user: any; initials: string; sideNavItems: NavItem[] }) {
     const [collapsed, setCollapsed] = useState(false);
 
     const adminBottomExtra = (
@@ -545,7 +573,7 @@ function AdminLayout({ children, activeNav, pageTitle, pageSubtitle, user, initi
             pageSubtitle={pageSubtitle}
             user={user}
             initials={initials}
-            sideNavItems={getAdminSideNav()}
+            sideNavItems={sideNavItems}
             logoLinkHref={safeRoute('admin.dashboard')}
             sidebarBottomExtra={adminBottomExtra}
         >
@@ -557,7 +585,26 @@ function AdminLayout({ children, activeNav, pageTitle, pageSubtitle, user, initi
 /* ─────────────────────────────────────────
    EMPLOYER LAYOUT
 ───────────────────────────────────────── */
-function EmployerLayout({ children, activeNav, pageTitle, pageSubtitle, user, initials }: AppLayoutProps & { user: any; initials: string }) {
+function EmployerLayout({ children, activeNav, pageTitle, pageSubtitle, user, initials, sideNavItems }: AppLayoutProps & { user: any; initials: string; sideNavItems: NavItem[] }) {
+    const [collapsed, setCollapsed] = useState(false);
+
+    const employerBottomExtra = (
+        !collapsed ? (
+            <Link
+                href={safeRoute('employer.profile.show')}
+                className="flex items-center gap-3 px-3 py-2 mb-1 rounded-xl hover:bg-avaa-primary-light transition-colors group"
+            >
+                <div className="w-8 h-8 rounded-full bg-avaa-dark flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                    {initials}
+                </div>
+                <div className="min-w-0">
+                    <p className="text-xs font-semibold text-avaa-dark truncate">{user.first_name} {user.last_name}</p>
+                    <p className="text-[10px] text-avaa-muted truncate">Employer</p>
+                </div>
+            </Link>
+        ) : null
+    );
+
     return (
         <SidebarShell
             activeNav={activeNav}
@@ -565,8 +612,9 @@ function EmployerLayout({ children, activeNav, pageTitle, pageSubtitle, user, in
             pageSubtitle={pageSubtitle}
             user={user}
             initials={initials}
-            sideNavItems={getEmployerSideNav()}
+            sideNavItems={sideNavItems}
             logoLinkHref={safeRoute('employer.dashboard')}
+            sidebarBottomExtra={employerBottomExtra}
         >
             {children}
         </SidebarShell>
@@ -576,7 +624,26 @@ function EmployerLayout({ children, activeNav, pageTitle, pageSubtitle, user, in
 /* ─────────────────────────────────────────
    JOB SEEKER LAYOUT (new sidebar layout)
 ───────────────────────────────────────── */
-function JobSeekerLayout({ children, activeNav, pageTitle, pageSubtitle, user, initials }: AppLayoutProps & { user: any; initials: string }) {
+function JobSeekerLayout({ children, activeNav, pageTitle, pageSubtitle, user, initials, sideNavItems }: AppLayoutProps & { user: any; initials: string; sideNavItems: NavItem[] }) {
+    const [collapsed, setCollapsed] = useState(false);
+
+    const jobSeekerBottomExtra = (
+        !collapsed ? (
+            <Link
+                href={safeRoute('job-seeker.profile.show')}
+                className="flex items-center gap-3 px-3 py-2 mb-1 rounded-xl hover:bg-avaa-primary-light transition-colors group"
+            >
+                <div className="w-8 h-8 rounded-full bg-avaa-dark flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                    {initials}
+                </div>
+                <div className="min-w-0">
+                    <p className="text-xs font-semibold text-avaa-dark truncate">{user.first_name} {user.last_name}</p>
+                    <p className="text-[10px] text-avaa-muted truncate">Job Seeker</p>
+                </div>
+            </Link>
+        ) : null
+    );
+
     // Minimalist top bar — no search bar, just page title / notifications / avatar
     return (
         <SidebarShell
@@ -585,8 +652,9 @@ function JobSeekerLayout({ children, activeNav, pageTitle, pageSubtitle, user, i
             pageSubtitle={pageSubtitle}
             user={user}
             initials={initials}
-            sideNavItems={getJobSeekerSideNav()}
+            sideNavItems={sideNavItems}
             logoLinkHref={safeRoute('job-seeker.jobs.browse')}
+            sidebarBottomExtra={jobSeekerBottomExtra}
         // No topBarExtras — keep the top bar minimal
         >
             {children}
@@ -602,13 +670,54 @@ export default function AppLayout({ children, activeNav, pageTitle, pageSubtitle
     const { auth } = usePage<PageProps>().props;
     const user = auth.user;
 
+    const [unreadTotal, setUnreadTotal] = useState(0);
+
+    useEffect(() => {
+        if (!user) return;
+
+        const fetchUnread = async () => {
+            try {
+                const res = await axios.get(route('messages.unread-total'));
+                setUnreadTotal(res.data.total);
+            } catch (err) {
+                console.error("Failed to fetch unread total", err);
+            }
+        };
+
+        fetchUnread();
+        const timer = setInterval(fetchUnread, 5000);
+        return () => clearInterval(timer);
+    }, [user?.id]);
+
     if (!user) return null;
 
     const initials = `${user.first_name[0] ?? ''}${user.last_name[0] ?? ''}`.toUpperCase();
 
+    const applyBadges = (items: NavItem[]) => {
+        return items.map(item => {
+            if (item.label === 'Messages') {
+                return { ...item, badge: unreadTotal };
+            }
+            return item;
+        });
+    };
+
+    const sideNavItems = user.role === 'employer' 
+        ? applyBadges(getEmployerSideNav())
+        : user.role === 'job_seeker'
+            ? applyBadges(getJobSeekerSideNav())
+            : applyBadges(getAdminSideNav());
+
     if (user.role === 'admin') {
         return (
-            <AdminLayout activeNav={activeNav} pageTitle={pageTitle} pageSubtitle={pageSubtitle} user={user} initials={initials}>
+            <AdminLayout 
+                activeNav={activeNav} 
+                pageTitle={pageTitle} 
+                pageSubtitle={pageSubtitle} 
+                user={user} 
+                initials={initials}
+                sideNavItems={sideNavItems}
+            >
                 {children}
             </AdminLayout>
         );
@@ -616,7 +725,14 @@ export default function AppLayout({ children, activeNav, pageTitle, pageSubtitle
 
     if (user.role === 'employer') {
         return (
-            <EmployerLayout activeNav={activeNav} pageTitle={pageTitle} pageSubtitle={pageSubtitle} user={user} initials={initials}>
+            <EmployerLayout 
+                activeNav={activeNav} 
+                pageTitle={pageTitle} 
+                pageSubtitle={pageSubtitle} 
+                user={user} 
+                initials={initials}
+                sideNavItems={sideNavItems}
+            >
                 {children}
             </EmployerLayout>
         );
@@ -624,7 +740,14 @@ export default function AppLayout({ children, activeNav, pageTitle, pageSubtitle
 
     if (user.role === 'job_seeker') {
         return (
-            <JobSeekerLayout activeNav={activeNav} pageTitle={pageTitle} pageSubtitle={pageSubtitle} user={user} initials={initials}>
+            <JobSeekerLayout 
+                activeNav={activeNav} 
+                pageTitle={pageTitle} 
+                pageSubtitle={pageSubtitle} 
+                user={user} 
+                initials={initials}
+                sideNavItems={sideNavItems}
+            >
                 {children}
             </JobSeekerLayout>
         );
@@ -632,7 +755,7 @@ export default function AppLayout({ children, activeNav, pageTitle, pageSubtitle
 
     // Fallback for any other roles — minimal top-nav layout
     return (
-        <div className="min-h-screen bg-[#e8efef]">
+        <div className="h-screen bg-[#e8efef] overflow-hidden">
             <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
                 <div className="w-full px-8 lg:px-16 h-20 flex items-center gap-6">
                     <Link href="/" className="flex items-center flex-shrink-0">
@@ -649,7 +772,7 @@ export default function AppLayout({ children, activeNav, pageTitle, pageSubtitle
                     />
                 </div>
             </header>
-            <main className="w-full px-4 sm:px-8 lg:px-16 py-10">
+            <main className="w-full px-4 sm:px-8 lg:px-16 py-10 overflow-y-auto overflow-x-hidden h-[calc(100vh-5rem)]">
                 {children}
             </main>
         </div>

@@ -1,6 +1,7 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import SettingsLayout from '@/Layouts/SettingsLayout';
+import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
 import { useState, useEffect } from 'react';
 import { PageProps } from '@/types';
 
@@ -61,20 +62,14 @@ function Avatar({ src, initials, size = 'md' }: { src?: string | null | undefine
         lg: 'w-12 h-12 text-base'
     };
 
-    if (src) {
-        return (
-            <img
-                src={src}
-                alt="Avatar"
-                className={`${sizeClasses[size]} rounded-full object-cover border border-gray-200`}
-            />
-        );
-    }
-
     return (
-        <div className={`${sizeClasses[size]} rounded-full bg-avaa-primary text-white flex items-center justify-center font-semibold border border-gray-200`}>
-            {initials}
-        </div>
+        <ImageInitialsFallback
+            src={src}
+            alt="Avatar"
+            initials={initials}
+            className={`${sizeClasses[size]} rounded-full overflow-hidden border border-gray-200 bg-avaa-primary`}
+            textClassName="text-white font-semibold flex items-center justify-center"
+        />
     );
 }
 
@@ -91,10 +86,10 @@ function BlockedUserCard({ user, onUnblock }: { user: BlockedUser; onUnblock: (i
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || ''
                 },
                 body: JSON.stringify({ 
-                    user_id: user.id,
-                    _token: (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || ''
+                    user_id: user.id
                 }),
             });
             
@@ -206,11 +201,11 @@ function BlockUserForm({ onBlock }: { onBlock: (user: SearchResult & { reason?: 
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || ''
                 },
                 body: JSON.stringify({
                     user_id: selectedUser.id,
                     reason: reason.trim() || undefined,
-                    _token: (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || ''
                 }),
             });
             
@@ -343,14 +338,6 @@ export default function BlockedUsers({ auth }: PageProps<{ auth: any }>) {
             
             <SettingsLayout title="Blocked Users" subtitle="Manage users you've blocked from contacting you.">
                 <div className="space-y-6">
-                    {/* Header */}
-                    <div>
-                        <h2 className="text-xl font-bold text-gray-900">Blocked Users</h2>
-                        <p className="text-sm text-gray-600 mt-1">
-                            Manage users you've blocked from contacting you.
-                        </p>
-                    </div>
-
                     {/* Block New User */}
                     <BlockUserForm onBlock={handleBlock} />
 
@@ -362,8 +349,7 @@ export default function BlockedUsers({ auth }: PageProps<{ auth: any }>) {
                         
                         {blockedUsersList.length === 0 ? (
                             <div className="text-center py-8 bg-white border border-gray-200 rounded-xl">
-                                <IcoBlock />
-                                <p className="text-sm text-gray-600 mt-2">No blocked users</p>
+                                <p className="text-sm text-gray-600">No blocked users</p>
                                 <p className="text-xs text-gray-400 mt-1">
                                     Users you block will appear here
                                 </p>

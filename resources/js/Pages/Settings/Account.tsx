@@ -151,7 +151,7 @@ export default function AccountSettings({ mustVerifyEmail, status, user }: Props
 
     /* ── Personal info form ── */
     const { data: infoData, setData: setInfoData, patch: patchInfo, processing: infoProcessing,
-        errors: infoErrors, recentlySuccessful: infoSaved } = useForm({
+        errors: infoErrors, recentlySuccessful: infoSaved, reset: resetInfo } = useForm({
             first_name: user.first_name,
             last_name: user.last_name,
             email: user.email,
@@ -336,7 +336,7 @@ export default function AccountSettings({ mustVerifyEmail, status, user }: Props
 
                             <div className="flex items-center justify-end gap-3 pt-1 border-t border-gray-100">
                                 {infoSaved && <span className="text-xs text-avaa-teal font-medium">✓ Saved</span>}
-                                <button type="button"
+                                <button type="button" onClick={() => resetInfo()}
                                     className="px-4 py-2 text-sm font-medium text-gray-500 hover:text-avaa-dark rounded-xl hover:bg-gray-50 transition-colors">
                                     Discard
                                 </button>

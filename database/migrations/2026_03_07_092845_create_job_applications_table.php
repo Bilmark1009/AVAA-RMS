@@ -18,6 +18,12 @@ return new class extends Migration {
             $table->string('status')->default('pending');
             $table->text('cover_letter')->nullable();
             $table->string('resume_path')->nullable();
+            $table->json('application_data')->nullable();
+            $table->text('rejection_reason')->nullable();
+            $table->text('employer_notes')->nullable();
+            $table->timestamp('reviewed_at')->nullable();
+            $table->timestamp('hired_at')->nullable();
+            $table->timestamp('contract_ended_at')->nullable();
             $table->timestamps();
 
             $table->unique(['user_id', 'job_listing_id']);

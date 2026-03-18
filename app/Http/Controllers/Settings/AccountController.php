@@ -56,7 +56,7 @@ class AccountController extends Controller
     public function uploadAvatar(Request $request)
     {
         $request->validate([
-            'avatar' => ['required', 'image', 'mimes:jpg,jpeg,png,webp,gif', 'max:5120'], // 5 MB
+            'avatar' => ['required', 'image', 'max:5120'], // 5 MB
         ]);
 
         $user = $request->user();

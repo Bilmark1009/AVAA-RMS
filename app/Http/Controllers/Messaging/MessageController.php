@@ -33,6 +33,7 @@ class MessageController extends Controller
 
         $newMessages = $conversation->messages()
             ->with('sender:id,first_name,last_name,avatar,role')
+            ->with('attachments')
             ->whereNull('messages.deleted_at')
             ->where('id', '>', $afterId)
             ->when($clearedAt, fn($q) => $q->where('messages.created_at', '>', $clearedAt))
@@ -55,7 +56,7 @@ class MessageController extends Controller
 
     /**
      * Send a new message to a conversation.
-     * Supports plain text + optional file/image attachment.
+     * Supports plain text + optional multiple file/image attachments.
      *
      * POST /messages/{conversation}/send
      */
@@ -75,33 +76,106 @@ class MessageController extends Controller
             ], 403);
         }
 
-        $request->validate([
-            'body'       => 'required_without:attachment|nullable|string|max:5000',
-            'attachment' => 'nullable|file|max:10240', // 10 MB
-        ]);
-
-        $attachmentPath = null;
-        $attachmentName = null;
-        $attachmentMime = null;
-        $type = 'text';
-
-        if ($request->hasFile('attachment')) {
-            $file           = $request->file('attachment');
-            $attachmentPath = $file->store('messaging/attachments', 'public');
-            $attachmentName = $file->getClientOriginalName();
-            $attachmentMime = $file->getMimeType();
-            $type           = str_starts_with($attachmentMime, 'image/') ? 'image' : 'file';
+        try {
+            $request->validate([
+                'body'       => 'required_without:attachments|nullable|string|max:5000',
+                'attachments' => 'nullable|array|max:5', // Max 5 files per message
+                'attachments.*' => 'file|max:10240', // 10 MB per file
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'error' => 'Validation failed',
+                'messages' => $e->errors(),
+            ], 422);
         }
 
+        // Determine message type based on content
+        $hasAttachments = $request->hasFile('attachments');
+        $hasText = !empty($request->input('body'));
+        
+        if ($hasAttachments && !$hasText) {
+            $type = 'file'; // Will be updated to 'image' if all files are images
+        } elseif ($hasAttachments && $hasText) {
+            $type = 'text'; // Text with attachments
+        } else {
+            $type = 'text';
+        }
+
+        // Create the message first
         $message = Message::create([
             'conversation_id' => $conversation->id,
             'sender_id'       => $user->id,
             'body'            => $request->input('body', ''),
             'type'            => $type,
-            'attachment_path' => $attachmentPath,
-            'attachment_name' => $attachmentName,
-            'attachment_mime' => $attachmentMime,
         ]);
+
+        // Handle file attachments if present
+        $attachments = [];
+        if ($hasAttachments) {
+            $allImages = true;
+            $uploadedFiles = [];
+
+            foreach ($request->file('attachments') as $file) {
+                if (!$file->isValid()) {
+                    continue;
+                }
+
+                // Generate unique filename
+                $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                $path = $file->storeAs('messaging/attachments', $filename, 'public');
+
+                // Check if it's an image
+                $isImage = str_starts_with($file->getMimeType(), 'image/');
+                if (!$isImage) {
+                    $allImages = false;
+                }
+
+                // Calculate file hash for deduplication
+                $fileHash = hash_file('sha256', $file->getPathname());
+
+                // Prepare metadata
+                $metadata = [];
+                if ($isImage) {
+                    try {
+                        $imageInfo = getimagesize($file->getPathname());
+                        if ($imageInfo) {
+                            $metadata['width'] = $imageInfo[0];
+                            $metadata['height'] = $imageInfo[1];
+                        }
+                    } catch (\Exception $e) {
+                        // Ignore image dimension errors
+                    }
+                }
+
+                // Create attachment record
+                $attachment = $message->attachments()->create([
+                    'file_path' => $path,
+                    'original_name' => $file->getClientOriginalName(),
+                    'mime_type' => $file->getMimeType(),
+                    'file_size' => $file->getSize(),
+                    'file_hash' => $fileHash,
+                    'metadata' => $metadata,
+                ]);
+
+                $uploadedFiles[] = [
+                    'id' => $attachment->id,
+                    'file_url' => $attachment->file_url,
+                    'original_name' => $attachment->original_name,
+                    'mime_type' => $attachment->mime_type,
+                    'file_size' => $attachment->file_size,
+                    'file_size_formatted' => $attachment->file_size_formatted,
+                    'is_image' => $attachment->is_image,
+                    'file_extension' => $attachment->file_extension,
+                ];
+            }
+
+            // Update message type if all files are images
+            if ($allImages && !$hasText) {
+                $message->update(['type' => 'image']);
+            }
+
+            $attachments = $uploadedFiles;
+        }
 
         // Update the conversation's last_message_at for ordering
         $conversation->update(['last_message_at' => now()]);
@@ -119,9 +193,15 @@ class MessageController extends Controller
             ->where('is_archived', true)
             ->update(['is_archived' => false]);
 
+        // Load relationships for response
         $message->load('sender:id,first_name,last_name,avatar,role');
+        $message->load('attachments');
 
-        return response()->json($this->formatMessage($message), 201);
+        // Format response
+        $response = $this->formatMessage($message);
+        $response['attachments'] = $attachments;
+
+        return response()->json($response, 201);
     }
 
     /**
@@ -164,7 +244,7 @@ class MessageController extends Controller
      *
      * GET /messages/{conversation}/messages/{message}/download
      */
-    public function downloadAttachment(Request $request, Conversation $conversation, Message $message): \Illuminate\Http\Response
+    public function downloadAttachment(Request $request, Conversation $conversation, Message $message): \Symfony\Component\HttpFoundation\BinaryFileResponse
     {
         $this->authorizeParticipant($conversation, $request->user()->id);
 
@@ -201,6 +281,19 @@ class MessageController extends Controller
             'type'            => $m->type,
             'attachment_url'  => $m->attachment_url,
             'attachment_name' => $m->attachment_name,
+            'has_attachments' => $m->has_attachments,
+            'attachments'     => $m->attachments->map(function ($attachment) {
+                return [
+                    'id' => $attachment->id,
+                    'file_url' => $attachment->file_url,
+                    'original_name' => $attachment->original_name,
+                    'mime_type' => $attachment->mime_type,
+                    'file_size' => $attachment->file_size,
+                    'file_size_formatted' => $attachment->file_size_formatted,
+                    'is_image' => $attachment->is_image,
+                    'file_extension' => $attachment->file_extension,
+                ];
+            }),
             'created_at'      => $m->created_at->toISOString(),
             'sender'          => [
                 'id'         => $m->sender->id,

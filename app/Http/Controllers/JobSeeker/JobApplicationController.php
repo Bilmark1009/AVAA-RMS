@@ -11,6 +11,7 @@ use App\Notifications\ApplicationWithdrawnByApplicantNotification;
 use App\Notifications\ApplicantWithdrewApplicationNotification;
 use App\Notifications\NewApplicationNotification;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -20,6 +21,44 @@ use Inertia\Response;
 
 class JobApplicationController extends Controller
 {
+    public function resume(Request $request, JobApplication $application): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    {
+        $user = $request->user();
+
+        $application->loadMissing(['jobListing', 'user.jobSeekerProfile']);
+
+        $canAccess = false;
+
+        if ($user->id === $application->user_id) {
+            $canAccess = true;
+        } elseif ($user->isAdmin()) {
+            $canAccess = true;
+        } elseif ($user->isEmployer() && $application->jobListing && $application->jobListing->isAccessibleBy($user)) {
+            $canAccess = true;
+        }
+
+        abort_unless($canAccess, 403, 'You are not allowed to access this resume.');
+
+        $rawPath = $application->resume_path
+            ?? data_get($application->application_data, 'existing_resume')
+            ?? $application->user?->jobSeekerProfile?->resume_path;
+
+        $resolved = $this->resolveStoredResumePath($application->user_id, $rawPath);
+        abort_unless($resolved !== null, 404, 'Resume file not found.');
+
+        ['disk' => $disk, 'path' => $path] = $resolved;
+
+        $absolutePath = Storage::disk($disk)->path($path);
+        abort_unless(file_exists($absolutePath), 404, 'Resume file not found.');
+
+        $fileName = basename($path) ?: 'resume.pdf';
+        $disposition = $request->boolean('download') ? 'attachment' : 'inline';
+
+        return response()->file($absolutePath, [
+            'Content-Disposition' => $disposition . '; filename="' . $fileName . '"',
+        ]);
+    }
+
     /**
      * Job Seeker: Application History index.
      */
@@ -45,28 +84,7 @@ class JobApplicationController extends Controller
                 $company = $employer?->employerProfile?->company_name
                     ?? trim(($employer?->first_name ?? '').' '.($employer?->last_name ?? ''))
                     ?: 'Unknown Company';
-                $logoPath = $employer?->employerProfile?->logo_path;
-                $logoUrl = null;
-                if ($logoPath) {
-                    $relative = ltrim($logoPath, '/');
-
-                    // If it's already an absolute URL, keep it.
-                    if (str_starts_with($relative, 'http://') || str_starts_with($relative, 'https://')) {
-                        $logoUrl = $relative;
-                    } else {
-                        // Prefer public/ logos folder if present (your setup).
-                        $publicRelative = str_starts_with($relative, 'logos/')
-                            ? $relative
-                            : 'logos/'.$relative;
-
-                        if (file_exists(public_path($publicRelative))) {
-                            $logoUrl = '/'.$publicRelative;
-                        } else {
-                            // Fallback to storage disk (default Laravel behavior).
-                            $logoUrl = Storage::url($logoPath);
-                        }
-                    }
-                }
+                    $logoUrl = $this->resolveImageUrl($employer?->employerProfile?->logo_path);
 
                 $initials = collect(preg_split('/\s+/', trim($company)))
                     ->filter()
@@ -143,6 +161,32 @@ class JobApplicationController extends Controller
         ]);
     }
 
+        private function resolveImageUrl(?string $path): ?string
+        {
+            if (!is_string($path) || trim($path) === '') {
+                return null;
+            }
+
+            $trimmed = trim($path);
+
+            if (str_starts_with($trimmed, 'http://') || str_starts_with($trimmed, 'https://')) {
+                return $trimmed;
+            }
+
+            if (str_starts_with($trimmed, '/storage/') || str_starts_with($trimmed, '/logos/')) {
+                return $trimmed;
+            }
+
+            if (str_starts_with($trimmed, 'storage/') || str_starts_with($trimmed, 'logos/')) {
+                return '/'.$trimmed;
+            }
+
+            if (Storage::disk('public')->exists($trimmed)) {
+                return Storage::url($trimmed);
+            }
+
+            return '/'.ltrim($trimmed, '/');
+        }
     /**
      * Job Seeker: Withdraw a submitted application.
      */
@@ -184,6 +228,11 @@ class JobApplicationController extends Controller
         $existing = JobApplication::where('user_id', $user->id)
             ->where('job_listing_id', $job->id)
             ->first();
+
+        if ($existing && $existing->status === 'contract_ended') {
+            return redirect()->route('job-seeker.jobs.show', $job->id)
+                ->with('info', 'Reapplication is not allowed because your previous contract for this job has ended.');
+        }
 
         if ($existing && ! in_array($existing->status, ['draft', 'withdrawn'], true)) {
             return redirect()->route('job-seeker.jobs.show', $job->id)
@@ -271,6 +320,11 @@ class JobApplicationController extends Controller
             ->where('job_listing_id', $job->id)
             ->first();
 
+        if ($existing && $existing->status === 'contract_ended') {
+            return redirect()->route('job-seeker.jobs.show', $job->id)
+                ->with('info', 'Reapplication is not allowed because your previous contract for this job has ended.');
+        }
+
         if ($existing && ! in_array($existing->status, ['draft', 'withdrawn'], true)) {
             return redirect()->route('job-seeker.jobs.show', $job->id)
                 ->with('info', 'You have already applied to this job.');
@@ -301,7 +355,7 @@ class JobApplicationController extends Controller
         // Handle resume
         $resumePath = $validated['existing_resume'] ?? null;
         if ($request->hasFile('resume')) {
-            $resumePath = $request->file('resume')->store("resumes/{$user->id}", 'public');
+            $resumePath = $this->storeWithOriginalName($request->file('resume'), "resumes/{$user->id}", 'public', 'resume');
             $resumePath = '/storage/' . $resumePath;
         }
 
@@ -372,6 +426,10 @@ class JobApplicationController extends Controller
             ->where('job_listing_id', $job->id)
             ->first();
 
+        if ($existing && $existing->status === 'contract_ended') {
+            return back()->with('info', 'Reapplication is not allowed because your previous contract for this job has ended.');
+        }
+
         if ($existing && ! in_array($existing->status, ['draft', 'withdrawn'], true)) {
             return back()->with('info', 'You have already submitted this application.');
         }
@@ -393,7 +451,7 @@ class JobApplicationController extends Controller
         // Handle resume upload for draft too
         $resumePath = $request->input('existing_resume');
         if ($request->hasFile('resume')) {
-            $resumePath = $request->file('resume')->store("resumes/{$user->id}", 'public');
+            $resumePath = $this->storeWithOriginalName($request->file('resume'), "resumes/{$user->id}", 'public', 'resume');
             $resumePath = '/storage/' . $resumePath;
         }
 
@@ -413,5 +471,96 @@ class JobApplicationController extends Controller
         }
 
         return back()->with('status', 'draft-saved');
+    }
+
+    private function storeWithOriginalName(UploadedFile $file, string $directory, string $disk, string $fallbackBase): string
+    {
+        $originalBase = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+        $safeBase = preg_replace('/[^A-Za-z0-9_\- ]+/', '', $originalBase) ?: $fallbackBase;
+        $safeBase = trim(preg_replace('/\s+/', '_', $safeBase), '_') ?: $fallbackBase;
+
+        $extension = strtolower($file->getClientOriginalExtension());
+        $candidate = $extension !== '' ? "{$safeBase}.{$extension}" : $safeBase;
+        $counter = 1;
+
+        while (Storage::disk($disk)->exists("{$directory}/{$candidate}")) {
+            $candidate = $extension !== ''
+                ? "{$safeBase}_{$counter}.{$extension}"
+                : "{$safeBase}_{$counter}";
+            $counter++;
+        }
+
+        return $file->storeAs($directory, $candidate, $disk);
+    }
+
+    private function resolveStoredResumePath(int $userId, ?string $rawPath): ?array
+    {
+        $rawPath = trim((string) $rawPath);
+
+        if ($rawPath !== '') {
+            if (str_starts_with($rawPath, '/storage/')) {
+                $publicPath = ltrim(substr($rawPath, strlen('/storage/')), '/');
+                if (Storage::disk('public')->exists($publicPath)) {
+                    return ['disk' => 'public', 'path' => $publicPath];
+                }
+            }
+
+            if (str_starts_with($rawPath, 'storage/')) {
+                $publicPath = ltrim(substr($rawPath, strlen('storage/')), '/');
+                if (Storage::disk('public')->exists($publicPath)) {
+                    return ['disk' => 'public', 'path' => $publicPath];
+                }
+            }
+
+            if (Storage::disk('local')->exists($rawPath)) {
+                return ['disk' => 'local', 'path' => $rawPath];
+            }
+
+            if (Storage::disk('public')->exists($rawPath)) {
+                return ['disk' => 'public', 'path' => $rawPath];
+            }
+
+            $baseName = basename($rawPath);
+            if ($baseName !== '' && $baseName !== '.' && $baseName !== DIRECTORY_SEPARATOR) {
+                foreach (['public', 'local'] as $disk) {
+                    foreach (["resumes/{$userId}/{$baseName}", "documents/{$userId}/{$baseName}"] as $candidate) {
+                        if (Storage::disk($disk)->exists($candidate)) {
+                            return ['disk' => $disk, 'path' => $candidate];
+                        }
+                    }
+                }
+            }
+        }
+
+        $targetExt = strtolower(pathinfo((string) $rawPath, PATHINFO_EXTENSION));
+
+        foreach (['public', 'local'] as $disk) {
+            foreach (["resumes/{$userId}", "documents/{$userId}"] as $dir) {
+                $files = Storage::disk($disk)->files($dir);
+                if (empty($files)) {
+                    continue;
+                }
+
+                $sameExt = array_values(array_filter($files, function ($filePath) use ($targetExt) {
+                    if ($targetExt === '') {
+                        return true;
+                    }
+
+                    return strtolower(pathinfo($filePath, PATHINFO_EXTENSION)) === $targetExt;
+                }));
+
+                if (empty($sameExt)) {
+                    continue;
+                }
+
+                usort($sameExt, function ($a, $b) use ($disk) {
+                    return Storage::disk($disk)->lastModified($b) <=> Storage::disk($disk)->lastModified($a);
+                });
+
+                return ['disk' => $disk, 'path' => $sameExt[0]];
+            }
+        }
+
+        return null;
     }
 }

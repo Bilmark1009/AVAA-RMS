@@ -25,13 +25,7 @@ class BlockController extends Controller
 
         $block = $current->block($user, $request->reason);
 
-        // Archive any existing conversations between these users
-        $conversation = \App\Models\Conversation::findDirect($current->id, $user->id);
-        if ($conversation) {
-            $conversation->participants()->updateExistingPivot($current->id, [
-                'is_archived' => true,
-            ]);
-        }
+        $block = $current->block($user, $request->reason);
 
         return response()->json([
             'ok' => true,

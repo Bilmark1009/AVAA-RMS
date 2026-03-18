@@ -6,6 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\JobApplication;
 use App\Models\JobListing;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -20,37 +23,46 @@ class AdminJobController extends Controller
         $type = $request->input('type', 'all');   // all | full-time | part-time | contract | remote
 
         $jobs = JobListing::with('employer:id,first_name,last_name,employerProfile')
-            ->with('employer.employerProfile:user_id,company_name')
+            ->with('employer.employerProfile:user_id,company_name,logo_path')
             ->withCount('applications')
             ->when($search, fn($q) => $q->where(function ($inner) use ($search) {
                 $inner->where('title', 'like', "%{$search}%")
                     ->orWhere('location', 'like', "%{$search}%")
                     ->orWhere('industry', 'like', "%{$search}%");
             }))
-            ->when($type === 'full-time', fn($q) => $q->where('employment_type', 'Full Time'))
-            ->when($type === 'part-time', fn($q) => $q->where('employment_type', 'Part Time'))
-            ->when($type === 'contract', fn($q) => $q->where('employment_type', 'Contract'))
-            ->when($type === 'remote', fn($q) => $q->where('is_remote', true))
+            ->when($type === 'full-time', fn($q) => $q->whereRaw("LOWER(REPLACE(REPLACE(employment_type, '-', ' '), '_', ' ')) = ?", ['full time']))
+            ->when($type === 'part-time', fn($q) => $q->whereRaw("LOWER(REPLACE(REPLACE(employment_type, '-', ' '), '_', ' ')) = ?", ['part time']))
+            ->when($type === 'contract', fn($q) => $q->whereRaw("LOWER(REPLACE(REPLACE(employment_type, '-', ' '), '_', ' ')) = ?", ['contract']))
+            ->when($type === 'remote', fn($q) => $q->where(function ($inner) {
+                $inner->where('is_remote', true)
+                    ->orWhereRaw("LOWER(REPLACE(REPLACE(employment_type, '-', ' '), '_', ' ')) = ?", ['remote']);
+            }))
             ->orderByDesc('created_at')
             ->paginate(12)
             ->withQueryString()
-            ->through(fn($job) => [
-                'id' => $job->id,
-                'title' => $job->title,
-                'location' => $job->location,
-                'employment_type' => $job->employment_type,
-                'is_remote' => $job->is_remote,
-                'salary_min' => $job->salary_min,
-                'salary_max' => $job->salary_max,
-                'salary_currency' => $job->salary_currency ?? 'PHP',
-                'status' => $job->status,
-                'skills_required' => $job->skills_required ?? [],
-                'industry' => $job->industry,
-                'applications_count' => $job->applications_count,
-                'created_at' => $job->created_at->toDateString(),
-                'company' => $job->employer?->employerProfile?->company_name
-                    ?? ($job->employer ? "{$job->employer->first_name} {$job->employer->last_name}" : 'Unknown'),
-            ]);
+            ->through(function ($job) {
+                $logoUrl = $this->resolveImageUrl($job->logo_path)
+                    ?? $this->resolveImageUrl($job->employer?->employerProfile?->logo_path);
+
+                return [
+                    'id' => $job->id,
+                    'title' => $job->title,
+                    'location' => $job->location,
+                    'employment_type' => $job->employment_type,
+                    'is_remote' => $job->is_remote,
+                    'salary_min' => $job->salary_min,
+                    'salary_max' => $job->salary_max,
+                    'salary_currency' => $job->salary_currency ?? 'PHP',
+                    'status' => $job->status,
+                    'skills_required' => $job->skills_required ?? [],
+                    'industry' => $job->industry,
+                    'applications_count' => $job->applications_count,
+                    'created_at' => $job->created_at->toDateString(),
+                    'company' => $job->employer?->employerProfile?->company_name
+                        ?? ($job->employer ? "{$job->employer->first_name} {$job->employer->last_name}" : 'Unknown'),
+                    'logo_url' => $logoUrl,
+                ];
+            });
 
         return Inertia::render('Admin/Jobs', [
             'jobs' => $jobs,
@@ -63,12 +75,16 @@ class AdminJobController extends Controller
      */
     public function show(JobListing $job): Response
     {
-        $job->load('employer:id,first_name,last_name', 'employer.employerProfile:user_id,company_name');
+        $job->load('employer:id,first_name,last_name', 'employer.employerProfile:user_id,company_name,logo_path');
+
+        $logoUrl = $this->resolveImageUrl($job->logo_path)
+            ?? $this->resolveImageUrl($job->employer?->employerProfile?->logo_path);
 
         $appCounts = [
             'total' => $job->applications()->count(),
             'pending' => $job->applications()->where('status', 'pending')->count(),
-            'approved' => $job->applications()->where('status', 'approved')->count(),
+            // Treat downstream approved states as approved in admin insights.
+            'approved' => $job->applications()->whereIn('status', ['approved', 'hired', 'contract_ended'])->count(),
             'rejected' => $job->applications()->where('status', 'rejected')->count(),
         ];
 
@@ -91,6 +107,7 @@ class AdminJobController extends Controller
                 'created_at' => $job->created_at->toDateString(),
                 'company' => $job->employer?->employerProfile?->company_name
                     ?? ($job->employer ? "{$job->employer->first_name} {$job->employer->last_name}" : 'Unknown'),
+                'logo_url' => $logoUrl,
                 'employer' => $job->employer ? [
                     'id' => $job->employer->id,
                     'first_name' => $job->employer->first_name,
@@ -170,5 +187,34 @@ class AdminJobController extends Controller
             ],
             'applications' => $applications,
         ]);
+    }
+
+    private function resolveImageUrl(?string $path): ?string
+    {
+        if (!$path) {
+            return null;
+        }
+
+        if (Str::startsWith($path, ['http://', 'https://'])) {
+            return $path;
+        }
+
+        if (Str::startsWith($path, '/storage/')) {
+            return URL::to($path);
+        }
+
+        if (Str::startsWith($path, 'storage/')) {
+            return URL::to('/' . $path);
+        }
+
+        if (Str::startsWith($path, 'logos/')) {
+            return URL::to('/storage/' . $path);
+        }
+
+        if (Storage::disk('public')->exists($path)) {
+            return URL::to('/storage/' . ltrim($path, '/'));
+        }
+
+        return null;
     }
 }

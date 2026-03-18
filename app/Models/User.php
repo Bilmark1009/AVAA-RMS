@@ -8,12 +8,16 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Schema;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
     use HasFactory, Notifiable, SoftDeletes;
+
+    private static ?bool $blockedUsersTableAvailable = null;
 
 
     protected $fillable = [
@@ -83,6 +87,12 @@ class User extends Authenticatable implements MustVerifyEmail
     public function notificationSettings(): HasOne
     {
         return $this->hasOne(UserNotificationSettings::class);
+    }
+
+    /** Jobs this user has been invited to collaborate on. */
+    public function collaboratingJobs(): HasMany
+    {
+        return $this->hasMany(JobCollaborator::class);
     }
 
     public function blockedUsers(): HasMany
@@ -168,16 +178,32 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function hasBlocked(User $user): bool
     {
+        if (!$this->blockedUsersTableAvailable()) {
+            return false;
+        }
+
+        try {
         return $this->blockedUsers()
             ->where('blocked_user_id', $user->id)
             ->exists();
+        } catch (QueryException) {
+            return false;
+        }
     }
 
     public function isBlockedBy(User $user): bool
     {
+        if (!$this->blockedUsersTableAvailable()) {
+            return false;
+        }
+
+        try {
         return $this->blockedByUsers()
             ->where('blocker_id', $user->id)
             ->exists();
+        } catch (QueryException) {
+            return false;
+        }
     }
 
     public function canMessage(User $user): bool
@@ -193,5 +219,20 @@ class User extends Authenticatable implements MustVerifyEmail
         }
 
         return true;
+    }
+
+    private function blockedUsersTableAvailable(): bool
+    {
+        if (self::$blockedUsersTableAvailable !== null) {
+            return self::$blockedUsersTableAvailable;
+        }
+
+        try {
+            self::$blockedUsersTableAvailable = Schema::hasTable('blocked_users');
+        } catch (\Throwable) {
+            self::$blockedUsersTableAvailable = false;
+        }
+
+        return self::$blockedUsersTableAvailable;
     }
 }

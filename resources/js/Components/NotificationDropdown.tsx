@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, router, usePage } from '@inertiajs/react';
 import { PageProps, AppNotification } from '@/types';
 
@@ -42,6 +43,13 @@ const IcoUser = () => (
         <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" />
     </svg>
 );
+const IcoRejected = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="9" />
+        <line x1="8.5" y1="8.5" x2="15.5" y2="15.5" />
+        <line x1="15.5" y1="8.5" x2="8.5" y2="15.5" />
+    </svg>
+);
 const IcoBellOff = () => (
     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
@@ -60,6 +68,7 @@ function safeRoute(name: string, params?: Record<string, unknown>): string {
  * Add new types here as the codebase grows.
  */
 function resolveIcon(type: string) {
+    if (type.includes('Rejected')) return { icon: <IcoRejected />, color: 'bg-rose-100 text-rose-600' };
     if (type.includes('Interview')) return { icon: <IcoBriefcase />, color: 'bg-purple-100 text-purple-500' };
     if (type.includes('Application')) return { icon: <IcoBriefcase />, color: 'bg-blue-100 text-blue-500' };
     if (type.includes('Message')) return { icon: <IcoMsg />, color: 'bg-green-100 text-green-600' };
@@ -74,6 +83,12 @@ function resolveIcon(type: string) {
  */
 function resolveLink(notification: AppNotification, role: string): string {
     const { type, data } = notification;
+
+    // Collaboration invites should always go to the invitations queue,
+    // including older notifications that may contain stale job-detail links.
+    if (type.includes('CollaborationInvite') && role === 'employer') {
+        return safeRoute('employer.jobs.invitations');
+    }
 
     // If the backend explicitly sent a link, use it
     if (data.link) return data.link;
@@ -177,16 +192,31 @@ export default function NotificationDropdown() {
     const [unreadCount, setUnreadCount] = useState(initialUnread);
     const [loading, setLoading] = useState(false);
     const ref = useRef<HTMLDivElement>(null);
+    const panelRef = useRef<HTMLDivElement>(null);
     const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-    /* ── Click-outside closes ── */
+    useEffect(() => {
+        setUnreadCount(initialUnread);
+    }, [initialUnread]);
+
+    /* ── Click-outside closes (button or panel = don't close) ── */
     useEffect(() => {
         const handler = (e: MouseEvent) => {
-            if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+            const target = e.target as Node;
+            if (ref.current?.contains(target) || panelRef.current?.contains(target)) return;
+            setOpen(false);
         };
         document.addEventListener('mousedown', handler);
         return () => document.removeEventListener('mousedown', handler);
     }, []);
+
+    /* ── Any scroll closes the dropdown (all devices) ── */
+    useEffect(() => {
+        if (!open) return;
+        const onScroll = () => setOpen(false);
+        window.addEventListener('scroll', onScroll, true);
+        return () => window.removeEventListener('scroll', onScroll, true);
+    }, [open]);
 
     /* ── Fetch notifications from server ── */
     const fetchNotifications = useCallback(async () => {
@@ -246,7 +276,7 @@ export default function NotificationDropdown() {
 
     /* ── Actions ── */
     const markRead = async (id: string) => {
-        await fetch(safeRoute('notifications.read', { id }), {
+        const res = await fetch(safeRoute('notifications.read', { id }), {
             method: 'PATCH',
             headers: {
                 'Accept': 'application/json',
@@ -254,14 +284,16 @@ export default function NotificationDropdown() {
                 'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '',
             },
             credentials: 'same-origin',
+            keepalive: true,
         });
+        if (!res.ok) return;
         setNotifications(prev => prev.map(n => n.id === id ? { ...n, read_at: new Date().toISOString() } : n));
         setUnreadCount(c => Math.max(0, c - 1));
     };
 
     const deleteOne = async (id: string) => {
         const wasUnread = !notifications.find(n => n.id === id)?.read_at;
-        await fetch(safeRoute('notifications.destroy', { id }), {
+        const res = await fetch(safeRoute('notifications.destroy', { id }), {
             method: 'DELETE',
             headers: {
                 'Accept': 'application/json',
@@ -269,13 +301,15 @@ export default function NotificationDropdown() {
                 'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '',
             },
             credentials: 'same-origin',
+            keepalive: true,
         });
+        if (!res.ok) return;
         setNotifications(prev => prev.filter(n => n.id !== id));
         if (wasUnread) setUnreadCount(c => Math.max(0, c - 1));
     };
 
     const markAllRead = async () => {
-        await fetch(safeRoute('notifications.mark-all-read'), {
+        const res = await fetch(safeRoute('notifications.mark-all-read'), {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
@@ -283,7 +317,9 @@ export default function NotificationDropdown() {
                 'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '',
             },
             credentials: 'same-origin',
+            keepalive: true,
         });
+        if (!res.ok) return;
         setNotifications(prev => prev.map(n => ({ ...n, read_at: new Date().toISOString() })));
         setUnreadCount(0);
     };
@@ -307,71 +343,85 @@ export default function NotificationDropdown() {
                 )}
             </button>
 
-            {/* Dropdown */}
-            {open && (
-                <div className="absolute right-0 top-full mt-2 w-[340px] bg-white rounded-2xl border border-gray-200
-                    shadow-lg shadow-black/5 z-50 overflow-hidden">
-
-                    {/* Header */}
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-                        <div className="flex items-center gap-2">
-                            <h3 className="text-sm font-bold text-avaa-dark">Notifications</h3>
+            {/* Dropdown: portal; always opens from top bar (all devices) */}
+            {open && createPortal(
+                <>
+                    {/* Backdrop; tap to close */}
+                    <div
+                        className="fixed inset-0 z-[99] bg-black/30"
+                        onClick={() => setOpen(false)}
+                        aria-hidden
+                    />
+                    {/* Panel: top-aligned dropdown (mobile + desktop) */}
+                    <div
+                        ref={panelRef}
+                        className="fixed z-[100] top-20 left-3 right-3 max-h-[70vh]
+                            sm:left-auto sm:right-4 sm:w-[340px]
+                            bg-white border border-gray-200 shadow-xl
+                            flex flex-col overflow-hidden rounded-2xl"
+                    >
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 flex-shrink-0">
+                            <div className="flex items-center gap-2">
+                                <h3 className="text-sm font-bold text-avaa-dark">Notifications</h3>
+                                {unreadCount > 0 && (
+                                    <span className="bg-avaa-primary text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                                        {unreadCount}
+                                    </span>
+                                )}
+                            </div>
                             {unreadCount > 0 && (
-                                <span className="bg-avaa-primary text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                                    {unreadCount}
-                                </span>
+                                <button
+                                    onClick={markAllRead}
+                                    className="text-[11px] font-semibold text-avaa-teal hover:text-avaa-primary-hover transition-colors"
+                                >
+                                    Mark all read
+                                </button>
                             )}
                         </div>
-                        {unreadCount > 0 && (
-                            <button
-                                onClick={markAllRead}
-                                className="text-[11px] font-semibold text-avaa-teal hover:text-avaa-primary-hover transition-colors"
+
+                        {/* Body */}
+                        <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-gray-50">
+                            {loading ? (
+                                <div className="flex items-center justify-center py-8">
+                                    <svg className="animate-spin w-5 h-5 text-avaa-primary" viewBox="0 0 24 24" fill="none">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                                    </svg>
+                                </div>
+                            ) : notifications.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-10 gap-2 text-center px-4">
+                                    <span className="text-avaa-muted"><IcoBellOff /></span>
+                                    <p className="text-sm font-semibold text-avaa-dark">You're all caught up!</p>
+                                    <p className="text-xs text-avaa-muted">No notifications yet.</p>
+                                </div>
+                            ) : (
+                                notifications.map(notification => (
+                                    <NotificationItem
+                                        key={notification.id}
+                                        notification={notification}
+                                        role={role}
+                                        onMarkRead={markRead}
+                                        onDelete={deleteOne}
+                                        onClose={() => setOpen(false)}
+                                    />
+                                ))
+                            )}
+                        </div>
+
+                        {/* Footer */}
+                        <div className="border-t border-gray-100 px-4 py-2.5 flex-shrink-0 bg-white">
+                            <Link
+                                href={safeRoute('notifications.index')}
+                                onClick={() => setOpen(false)}
+                                className="block text-center text-xs font-semibold text-avaa-teal hover:text-avaa-primary-hover transition-colors py-0.5"
                             >
-                                Mark all read
-                            </button>
-                        )}
+                                View all notifications →
+                            </Link>
+                        </div>
                     </div>
-
-                    {/* Body */}
-                    <div className="max-h-[380px] overflow-y-auto divide-y divide-gray-50">
-                        {loading ? (
-                            <div className="flex items-center justify-center py-8">
-                                <svg className="animate-spin w-5 h-5 text-avaa-primary" viewBox="0 0 24 24" fill="none">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                                </svg>
-                            </div>
-                        ) : notifications.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-10 gap-2 text-center px-4">
-                                <span className="text-avaa-muted"><IcoBellOff /></span>
-                                <p className="text-sm font-semibold text-avaa-dark">You're all caught up!</p>
-                                <p className="text-xs text-avaa-muted">No notifications yet.</p>
-                            </div>
-                        ) : (
-                            notifications.map(notification => (
-                                <NotificationItem
-                                    key={notification.id}
-                                    notification={notification}
-                                    role={role}
-                                    onMarkRead={markRead}
-                                    onDelete={deleteOne}
-                                    onClose={() => setOpen(false)}
-                                />
-                            ))
-                        )}
-                    </div>
-
-                    {/* Footer */}
-                    <div className="border-t border-gray-100 px-4 py-2.5">
-                        <Link
-                            href={safeRoute('notifications.index')}
-                            onClick={() => setOpen(false)}
-                            className="block text-center text-xs font-semibold text-avaa-teal hover:text-avaa-primary-hover transition-colors py-0.5"
-                        >
-                            View all notifications →
-                        </Link>
-                    </div>
-                </div>
+                </>,
+                document.body
             )}
         </div>
     );

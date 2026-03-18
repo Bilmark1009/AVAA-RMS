@@ -30,8 +30,10 @@ class ApplicationRejectedNotification extends Notification
 
     public function toArray(object $notifiable): array
     {
+        $companyOrJob = $this->job->company_name ?: $this->job->title;
+
         return [
-            'message' => "Your application for \"{$this->job->title}\" was not selected at this time.",
+            'message' => "Your application for \"{$companyOrJob}\" has been rejected.",
             'job_id' => $this->job->id,
             'link' => route('job-seeker.jobs.browse'),
         ];

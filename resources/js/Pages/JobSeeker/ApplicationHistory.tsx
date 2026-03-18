@@ -1,5 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
+import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
+import Modal from '@/Components/Modal';
 import type { PageProps } from '@/types';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -46,6 +48,8 @@ interface ApplicationItem {
         initials: string;
         logo_url?: string | null;
         size?: string | null;
+        industry?: string | null;
+        website?: string | null;
     };
 }
 
@@ -64,7 +68,7 @@ const statusPill = (stage: Stage) => {
 
 const statusLabel = (stage: Stage) => {
     const s = (stage || '').toString().toLowerCase();
-    if (s === 'interviewing') return 'Interviewing';
+    if (s === 'interviewing') return 'For Interview';
     if (s === 'pending') return 'Pending';
     if (s === 'withdrawn') return 'Withdrawn';
     if (s === 'rejected') return 'Rejected';
@@ -140,30 +144,27 @@ function SegmentedTabs({ value, onChange, tabs }: {
     );
 }
 
-function ApplicationCard({ app, onView }: { app: ApplicationItem; onView: (app: ApplicationItem) => void }) {
+function ApplicationCard({
+    app,
+    onView,
+    onWithdraw,
+}: {
+    app: ApplicationItem;
+    onView: (app: ApplicationItem) => void;
+    onWithdraw: (app: ApplicationItem) => void;
+}) {
     const canWithdraw = app.can_withdraw && ['pending', 'interviewing', 'approved'].includes((app.stage || '').toString().toLowerCase());
-    const onWithdraw = () => {
-        const confirmed = window.confirm('Are you sure you want to withdraw this application? This action cannot be undone.');
-        if (!confirmed) return;
-
-        router.patch(route('job-seeker.applications.withdraw', app.id), {}, { preserveScroll: true });
-    };
 
     return (
         <div className="bg-white border border-gray-200 rounded-2xl px-5 sm:px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6">
             <div className="flex items-center gap-4 min-w-0">
-                {app.company.logo_url ? (
-                    <img
-                        src={app.company.logo_url}
-                        alt={`${app.company.name} logo`}
-                        className="w-12 h-12 rounded-xl object-cover border border-gray-200 bg-white flex-shrink-0"
-                        loading="lazy"
-                    />
-                ) : (
-                    <div className="w-12 h-12 rounded-xl bg-[#2f5f5f] text-white font-extrabold flex items-center justify-center flex-shrink-0">
-                        {app.company.initials}
-                    </div>
-                )}
+                <ImageInitialsFallback
+                    src={app.company.logo_url}
+                    alt={`${app.company.name} logo`}
+                    initials={app.company.initials}
+                    className={`w-12 h-12 rounded-xl border border-gray-200 flex-shrink-0 overflow-hidden ${app.company.logo_url ? 'bg-white' : 'bg-[#2f5f5f]'}`}
+                    textClassName="text-white font-extrabold flex items-center justify-center"
+                />
 
                 <div className="min-w-0">
                     <div className="flex items-center gap-2 min-w-0">
@@ -231,7 +232,7 @@ function ApplicationCard({ app, onView }: { app: ApplicationItem; onView: (app: 
                 {canWithdraw && (
                     <button
                         type="button"
-                        onClick={onWithdraw}
+                        onClick={() => onWithdraw(app)}
                         className="w-full sm:w-auto px-4 py-2 rounded-lg text-xs font-semibold border border-rose-200 text-rose-600 hover:bg-rose-50 transition"
                     >
                         Withdraw Application
@@ -245,34 +246,24 @@ function ApplicationCard({ app, onView }: { app: ApplicationItem; onView: (app: 
 function DemoApplicationCard({
     app,
     onView,
+    onWithdraw,
 }: {
     app: ApplicationItem;
     onView: (app: ApplicationItem) => void;
+    onWithdraw: (app: ApplicationItem) => void;
 }) {
-    const onWithdraw = () => {
-        const confirmed = window.confirm('Are you sure you want to withdraw this application? This action cannot be undone.');
-        if (!confirmed) return;
-
-        router.visit(route('job-seeker.applications.index'));
-    };
-
     const canWithdraw = app.can_withdraw && ['pending', 'interviewing', 'approved'].includes((app.stage || '').toString().toLowerCase());
 
     return (
         <div className="bg-white border border-gray-200 rounded-2xl px-5 sm:px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6">
             <div className="flex items-center gap-4 min-w-0">
-                {app.company.logo_url ? (
-                    <img
-                        src={app.company.logo_url}
-                        alt={`${app.company.name} logo`}
-                        className="w-12 h-12 rounded-xl object-cover border border-gray-200 bg-white flex-shrink-0"
-                        loading="lazy"
-                    />
-                ) : (
-                    <div className="w-12 h-12 rounded-xl bg-[#2f5f5f] text-white font-extrabold flex items-center justify-center flex-shrink-0">
-                        {app.company.initials}
-                    </div>
-                )}
+                <ImageInitialsFallback
+                    src={app.company.logo_url}
+                    alt={`${app.company.name} logo`}
+                    initials={app.company.initials}
+                    className={`w-12 h-12 rounded-xl border border-gray-200 flex-shrink-0 overflow-hidden ${app.company.logo_url ? 'bg-white' : 'bg-[#2f5f5f]'}`}
+                    textClassName="text-white font-extrabold flex items-center justify-center"
+                />
 
                 <div className="min-w-0">
                     <div className="flex items-center gap-2 min-w-0">
@@ -340,7 +331,7 @@ function DemoApplicationCard({
                 {canWithdraw && (
                     <button
                         type="button"
-                        onClick={onWithdraw}
+                        onClick={() => onWithdraw(app)}
                         className="w-full sm:w-auto px-4 py-2 rounded-lg text-xs font-semibold border border-rose-200 text-rose-600 hover:bg-rose-50 transition"
                     >
                         Withdraw Application
@@ -438,6 +429,7 @@ function ApplicationDetailsModal({
     const skills = app.job?.skills_required ?? [];
     const isPending = stage === 'pending';
     const isWithdrawn = stage === 'withdrawn';
+    const isRejected = stage === 'rejected';
     const isInterviewing = stage === 'interviewing' && !!app.interview;
 
     const statusHeading = isInterviewing
@@ -459,7 +451,7 @@ function ApplicationDetailsModal({
             : stage === 'withdrawn'
                 ? 'This application has been withdrawn.'
                 : stage === 'rejected'
-                    ? (app.rejection_reason || 'This application was not selected.')
+                    ? 'Sorry, you have been rejected.'
                     : stage === 'contract_ended'
                         ? 'Your contract ended.'
                     : 'Status has been updated.';
@@ -470,6 +462,8 @@ function ApplicationDetailsModal({
         ? (app.interview?.notes || 'Interview details have been shared. Please review the schedule and prepare accordingly.')
         : stage === 'withdrawn'
             ? 'Sorry, you have withdrawn your application. If this was a mistake or you wish to reapply, feel free to submit a new application to this job in the future.'
+            : stage === 'rejected'
+                ? 'We appreciate the time you invested in applying and encourage you to apply for future opportunities that match your skills.'
             : stage === 'contract_ended'
                 ? 'Thank you for joining us. Good luck on your future journey!'
             : (app.reviewer_notes || app.rejection_reason || 'Your application is in progress. You will receive updates when the hiring team reviews it.');
@@ -510,6 +504,7 @@ function ApplicationDetailsModal({
                                     </svg>
                                 }
                             />
+                            
                             <DetailTabButton
                                 active={tab === 'timeline'}
                                 onClick={() => setTab('timeline')}
@@ -553,7 +548,7 @@ function ApplicationDetailsModal({
                                 </div>
 
                                 <div className="border border-avaa-primary/40 bg-avaa-primary-light rounded-xl p-4 flex items-start gap-3">
-                                    <div className={`w-9 h-9 rounded-lg bg-white border flex items-center justify-center flex-shrink-0 ${isWithdrawn ? 'border-rose-300 text-rose-600' : 'border-avaa-primary/30 text-avaa-primary'}`}>
+                                    <div className={`w-9 h-9 rounded-lg bg-white border flex items-center justify-center flex-shrink-0 ${isWithdrawn || isRejected ? 'border-rose-300 text-rose-600' : 'border-avaa-primary/30 text-avaa-primary'}`}>
                                         {isWithdrawn ? (
                                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                                 <circle cx="12" cy="12" r="9" />
@@ -564,6 +559,12 @@ function ApplicationDetailsModal({
                                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                                 <circle cx="12" cy="12" r="9" />
                                                 <polyline points="12 7 12 12 15 14" />
+                                            </svg>
+                                        ) : isRejected ? (
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <circle cx="12" cy="12" r="9" />
+                                                <line x1="8.5" y1="8.5" x2="15.5" y2="15.5" />
+                                                <line x1="15.5" y1="8.5" x2="8.5" y2="15.5" />
                                             </svg>
                                         ) : (
                                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -637,16 +638,173 @@ function ApplicationDetailsModal({
                             </div>
                         )}
 
-                        {tab === 'timeline' && (
-                            <div className="py-12 text-center text-sm text-gray-500">
-                                Applied: {appliedDate} · Last Updated: {updatedDate}
-                                {isInterviewing && app.interview ? ` · Interview: ${app.interview.date_label ?? 'Date TBD'}${app.interview.time_label ? ` ${app.interview.time_label}` : ''}` : ''}
+                    {tab === 'timeline' && (
+                        <div className="modal-content">
+                            <p className="text-sm text-gray-500 mb-8">Track the progress of your application through each stage.</p>
+
+                            <div className="relative pl-2">
+                                {/* Vertical Line */}
+                                <div className="absolute left-[29px] top-2 bottom-10 w-[2px] bg-[#d1e5e8]"></div>
+
+                                {/* Step 1: Application Submitted */}
+                                <div className="flex gap-5 mb-9 relative z-10">
+                                    <div className="w-10 h-10 rounded-full bg-[#8fbabd] flex items-center justify-center text-white shrink-0 border-2 border-[#8fbabd]">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                            <polyline points="20 6 9 17 4 12" />
+                                        </svg>
+                                    </div>
+                                    <div className="min-w-0">
+                                        <div className="flex items-center gap-2">
+                                            <h4 className="text-base font-bold text-gray-800">Application Submitted</h4>
+                                            <span className="px-2.5 py-0.5 rounded-full bg-[#e8f5f2] text-[#4b8a92] text-[11px] font-bold uppercase">Done</span>
+                                        </div>
+                                        <p className="text-xs text-gray-500 mt-0.5">Submitted on {appliedDate}</p>
+                                    </div>
+                                </div>
+
+                                {/* Step 2: Under Review */}
+                                <div className={`flex gap-5 mb-9 relative z-10 ${!isPending ? '' : 'opacity-80'}`}>
+                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-2 ${!isPending ? 'bg-[#8fbabd] border-[#8fbabd] text-white' : 'bg-white border-gray-300 text-gray-400'}`}>
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 15 14" />
+                                        </svg>
+                                    </div>
+                                    <div className="min-w-0">
+                                        <div className="flex items-center gap-2">
+                                            <h4 className={`text-base font-bold ${!isPending ? 'text-gray-800' : 'text-gray-400'}`}>Under Review</h4>
+                                            {!isPending && <span className="px-2.5 py-0.5 rounded-full bg-[#e8f5f2] text-[#4b8a92] text-[11px] font-bold uppercase">Done</span>}
+                                        </div>
+                                        <p className="text-xs text-gray-500 mt-0.5">{!isPending ? 'Completed' : 'Awaiting review'}</p>
+                                    </div>
+                                </div>
+
+                                {/* Step 3: Interview Stage */}
+                                <div className={`flex gap-5 mb-9 relative z-10 ${isInterviewing ? '' : 'opacity-50'}`}>
+                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-2 ${isInterviewing ? 'bg-[#8fbabd] border-[#8fbabd] text-white' : 'bg-white border-gray-200 text-gray-300'}`}>
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                                            <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" />
+                                            <line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+                                        </svg>
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                        <div className="flex items-center gap-2">
+                                            <h4 className={`text-base font-bold ${isInterviewing ? 'text-gray-800' : 'text-gray-400'}`}>Interview Stage</h4>
+                                            {isInterviewing && <span className="px-2.5 py-0.5 rounded-full bg-[#e8f5f2] text-[#3d8076] text-[11px] font-bold uppercase">Current</span>}
+                                        </div>
+                                        <p className="text-xs text-gray-500 mt-0.5">
+                                            {isInterviewing ? 'In progress — awaiting update from employer' : 'Not reached yet'}
+                                        </p>
+                                        
+                                        {isInterviewing && app.interview && (
+                                            <div className="mt-3 bg-[#f0fdf9] border border-[#c2eadd] rounded-lg p-3 flex items-center gap-2.5 text-[13px] text-[#1b6b53] font-semibold">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                                                    <rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" />
+                                                </svg>
+                                                <span>Scheduled: {app.interview.date_label ?? 'TBD'} · {app.interview.time_label ?? ''}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Step 4: Final Decision */}
+                                <div className={`flex gap-5 relative z-10 ${isRejected || isWithdrawn ? '' : 'opacity-50'}`}>
+                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-2 ${isRejected || isWithdrawn ? 'bg-rose-500 border-rose-500 text-white' : 'bg-gray-100 border-gray-200 text-gray-300'}`}>
+                                        {isRejected ? (
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                                        ) : (
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
+                                        )}
+                                    </div>
+                                    <div className="min-w-0">
+                                        <h4 className={`text-base font-bold ${(isRejected || isWithdrawn) ? 'text-gray-800' : 'text-gray-400'}`}>Final Decision</h4>
+                                        <p className="text-xs text-gray-500 mt-0.5">
+                                            {isRejected ? 'Application Rejected' : isWithdrawn ? 'Application Withdrawn' : 'Not reached yet'}
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
-                        )}
+                        </div>
+                    )}
 
                         {tab === 'job' && (
-                            <div className="py-12 text-center text-sm text-gray-500">
-                                {app.job?.description || 'No additional job details available.'}
+                            <div className="space-y-6">
+                                {/* Job Description */}
+                                <p className="text-[15px] leading-relaxed text-gray-600">
+                                    {app.job?.description || 'No additional job details available.'}
+                                </p>
+
+                                <hr className="border-gray-100" />
+
+                                {/* Job Information Section */}
+                                <div className="space-y-4">
+                                    <h3 className="text-base font-bold text-gray-900">Job Information</h3>
+                                    
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-gray-500">Salary</span>
+                                            <span className="font-extrabold text-gray-900">{salaryRange}</span>
+                                        </div>
+                                        
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-gray-500">Location</span>
+                                            <span className="font-semibold text-gray-900">
+                                                {app.job?.is_remote ? 'Remote' : 'On-site'}
+                                            </span>
+                                        </div>
+
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-gray-500">Job Type</span>
+                                            <span className="font-semibold text-gray-900">
+                                                {app.job?.employment_type || 'Not specified'}
+                                            </span>
+                                        </div>
+
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-gray-500">Company Size</span>
+                                            <span className="font-semibold text-gray-900">
+                                                {app.company.size || 'Not specified'}
+                                            </span>
+                                        </div>
+
+                                        {app.company.industry && (
+                                            <div className="flex justify-between items-center text-sm">
+                                                <span className="text-gray-500">Industry</span>
+                                                <span className="font-semibold text-gray-900">{app.company.industry}</span>
+                                            </div>
+                                        )}
+
+                                        {app.company.website && (
+                                            <div className="flex justify-between items-center text-sm">
+                                                <span className="text-gray-500">Website</span>
+                                                <a 
+                                                    href={app.company.website} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer" 
+                                                    className="font-semibold text-avaa-dark hover:underline"
+                                                >
+                                                    {app.company.website.replace(/^https?:\/\//, '')}
+                                                </a>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <hr className="border-gray-100" />
+
+                                {/* Required Skills Section */}
+                                <div className="space-y-3">
+                                    <h3 className="text-base font-bold text-gray-900">Required Skills</h3>
+                                    <div className="flex flex-wrap gap-2">
+                                        {(skills.length ? skills : ['No skills listed']).map(s => (
+                                            <span 
+                                                key={s} 
+                                                className="text-sm px-4 py-1.5 bg-[#f0f7f8] text-[#4b8a92] rounded-full font-medium border border-[#d1e5e8]"
+                                            >
+                                                {s}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
                         )}
                     </div>
@@ -668,15 +826,19 @@ function ApplicationDetailsModal({
 }
 
 export default function ApplicationHistory({ applications }: Props) {
-    const [tab, setTab] = useState<'all' | 'pending' | 'interviewing' | 'withdrawn'>('all');
+    const [tab, setTab] = useState<'all' | 'pending' | 'interviewing' | 'withdrawn' | 'rejected'>('all');
     const [detailsOpen, setDetailsOpen] = useState(false);
     const [selected, setSelected] = useState<ApplicationItem | null>(null);
+    const [withdrawOpen, setWithdrawOpen] = useState(false);
+    const [withdrawTarget, setWithdrawTarget] = useState<ApplicationItem | null>(null);
+    const [withdrawing, setWithdrawing] = useState(false);
 
     const filtered = useMemo(() => {
         const norm = (s: Stage) => (s || '').toString().toLowerCase();
         if (tab === 'all') return applications;
         if (tab === 'pending') return applications.filter(a => norm(a.stage) === 'pending');
         if (tab === 'interviewing') return applications.filter(a => norm(a.stage) === 'interviewing');
+        if (tab === 'rejected') return applications.filter(a => norm(a.stage) === 'rejected');
         return applications.filter(a => norm(a.stage) === 'withdrawn');
     }, [applications, tab]);
 
@@ -689,13 +851,52 @@ export default function ApplicationHistory({ applications }: Props) {
         setDetailsOpen(false);
     };
 
+    const requestWithdraw = (app: ApplicationItem) => {
+        setWithdrawTarget(app);
+        setWithdrawOpen(true);
+    };
+
+    const closeWithdraw = () => {
+        if (withdrawing) return;
+        setWithdrawOpen(false);
+        setWithdrawTarget(null);
+    };
+
+    const confirmWithdraw = () => {
+        if (!withdrawTarget || withdrawing) return;
+        setWithdrawing(true);
+
+        // Demo cards use negative IDs; keep their withdraw action local.
+        if (withdrawTarget.id < 0) {
+            router.visit(route('job-seeker.applications.index'), {
+                preserveScroll: true,
+                onFinish: () => {
+                    setWithdrawing(false);
+                    closeWithdraw();
+                },
+            });
+            return;
+        }
+
+        router.patch(
+            route('job-seeker.applications.withdraw', withdrawTarget.id),
+            {},
+            {
+                preserveScroll: true,
+                onFinish: () => {
+                    setWithdrawing(false);
+                    closeWithdraw();
+                },
+            }
+        );
+    };
+
     return (
-        <AppLayout>
+        <AppLayout activeNav="Application History" pageTitle="Application History">
             <Head title="Application History" />
 
             <div className="w-full max-w-none">
                 <div className="mb-5">
-                    <h1 className="text-xl font-extrabold text-avaa-dark">Application History</h1>
                     <p className="text-sm text-gray-500 mt-1">Track your active applications and manage your recruitment pipeline</p>
                 </div>
 
@@ -706,8 +907,9 @@ export default function ApplicationHistory({ applications }: Props) {
                         tabs={[
                             { key: 'all', label: 'All' },
                             { key: 'pending', label: 'Pending' },
-                            { key: 'interviewing', label: 'Interviewing' },
+                            { key: 'interviewing', label: 'For Interview' },
                             { key: 'withdrawn', label: 'Withdrawn' },
+                            { key: 'rejected', label: 'Rejected' },
                         ]}
                     />
                 </div>
@@ -719,11 +921,65 @@ export default function ApplicationHistory({ applications }: Props) {
                                 <p className="text-sm text-gray-500">No applications found for this filter.</p>
                             </div>
                         ) : (
-                            filtered.map(app => <ApplicationCard key={app.id} app={app} onView={openDetails} />)
+                            filtered.map(app => (
+                                <ApplicationCard
+                                    key={app.id}
+                                    app={app}
+                                    onView={openDetails}
+                                    onWithdraw={requestWithdraw}
+                                />
+                            ))
                         )}
                     </div>
                 </div>
             </div>
+
+            {/* Withdraw confirmation modal */}
+            <Modal show={withdrawOpen} onClose={closeWithdraw} maxWidth="md" closeable={!withdrawing}>
+                <div className="p-6 sm:p-7">
+                    <div className="flex items-start gap-4">
+                        <div className="w-11 h-11 rounded-2xl bg-rose-50 border border-rose-100 flex items-center justify-center flex-shrink-0 text-rose-600">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                                <line x1="12" y1="9" x2="12" y2="13" />
+                                <line x1="12" y1="17" x2="12.01" y2="17" />
+                            </svg>
+                        </div>
+
+                        <div className="min-w-0">
+                            <h3 className="text-[15px] sm:text-base font-extrabold text-avaa-dark leading-snug">
+                                Withdraw application?
+                            </h3>
+                            <p className="text-sm text-gray-600 mt-1.5 leading-relaxed">
+                                This will immediately mark your application for{' '}
+                                <span className="font-semibold text-avaa-dark">
+                                    {withdrawTarget?.job?.title ?? 'this job'}
+                                </span>{' '}
+                                as withdrawn. This action can’t be undone.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="mt-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5">
+                        <button
+                            type="button"
+                            onClick={closeWithdraw}
+                            disabled={withdrawing}
+                            className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            onClick={confirmWithdraw}
+                            disabled={withdrawing}
+                            className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-sm font-semibold transition-colors shadow-sm shadow-rose-600/15 disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                            {withdrawing ? 'Withdrawing…' : 'Withdraw'}
+                        </button>
+                    </div>
+                </div>
+            </Modal>
 
             <ApplicationDetailsModal open={detailsOpen} app={selected} onClose={closeDetails} />
         </AppLayout>

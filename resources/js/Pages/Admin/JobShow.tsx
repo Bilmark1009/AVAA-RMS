@@ -1,5 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
+import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
 
 /* ── Types ── */
 interface Employer {
@@ -13,6 +14,7 @@ interface Job {
     id: number;
     title: string;
     company: string;
+    logo_url?: string | null;
     location: string;
     employment_type: string;
     is_remote: boolean;
@@ -130,9 +132,14 @@ export default function AdminJobShow({ job, appCounts }: Props) {
                             <div className="h-20 bg-gradient-to-r from-[#3d9e9e]/70 via-[#3d9e9e] to-emerald-400" />
                             <div className="px-6 pb-6 -mt-8">
                                 <div className="flex items-end gap-4 mb-4">
-                                    <div className={`w-16 h-16 rounded-2xl ring-4 ring-white ${AVATAR_BG[bgIdx]} flex items-center justify-center text-white text-xl font-bold shadow-md`}>
-                                        {companyInitials}
-                                    </div>
+                                    <ImageInitialsFallback
+                                        src={job.logo_url}
+                                        alt={job.company}
+                                        initials={companyInitials}
+                                        className={`w-16 h-16 rounded-2xl ring-4 ring-white overflow-hidden shadow-md ${job.logo_url ? 'bg-white border border-gray-200' : AVATAR_BG[bgIdx]}`}
+                                        imgClassName="w-full h-full object-cover"
+                                        textClassName="text-white text-xl font-bold flex items-center justify-center"
+                                    />
                                     <div className="pb-1">
                                         <h1 className="text-xl font-bold text-gray-900">{job.title}</h1>
                                         <div className="flex items-center flex-wrap gap-3 mt-1">
@@ -208,14 +215,13 @@ export default function AdminJobShow({ job, appCounts }: Props) {
                             <div className="bg-white rounded-2xl border border-gray-200 p-5">
                                 <h3 className="text-sm font-bold text-gray-800 mb-4">Posted By</h3>
                                 <div className="flex items-center gap-3">
-                                    {job.employer.avatar ? (
-                                        <img src={job.employer.avatar} alt={job.employer.first_name}
-                                            className="w-11 h-11 rounded-full object-cover flex-shrink-0" />
-                                    ) : (
-                                        <div className={`w-11 h-11 rounded-full ${AVATAR_BG[job.employer.id % AVATAR_BG.length]} flex items-center justify-center text-white text-sm font-bold flex-shrink-0`}>
-                                            {employerInitials}
-                                        </div>
-                                    )}
+                                    <ImageInitialsFallback
+                                        src={job.employer.avatar}
+                                        alt={job.employer.first_name}
+                                        initials={employerInitials}
+                                        className={`w-11 h-11 rounded-full flex-shrink-0 overflow-hidden ${job.employer.avatar ? 'bg-white' : AVATAR_BG[job.employer.id % AVATAR_BG.length]}`}
+                                        textClassName="text-white text-sm font-bold flex items-center justify-center"
+                                    />
                                     <div>
                                         <p className="text-sm font-semibold text-gray-800">
                                             {job.employer.first_name} {job.employer.last_name}
