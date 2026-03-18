@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
 import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
 
@@ -22,6 +22,7 @@ interface User {
     avatar?: string | null;
     jobSeekerProfile?: JobSeekerProfile | null;
     employerProfile?: EmployerProfile | null;
+    job_applications_count?: number;
 }
 
 interface Paginator {
@@ -93,6 +94,16 @@ const IcoUsers = () => (
     <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
         <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" />
         <path d="M23 21v-2a4 4 0 00-3-3.87" /><path d="M16 3.13a4 4 0 010 7.75" />
+    </svg>
+);
+const IcoUser = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" />
+    </svg>
+);
+const IcoClock = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
     </svg>
 );
 
@@ -180,78 +191,166 @@ function UserDetailsModal({ user, onClose }: { user: User; onClose: () => void }
     const frame = getProfileFrame(user.jobSeekerProfile?.profile_frame);
     const isActive = effectiveStatus(user) === 'active';
     const roleLabel = user.role === 'job_seeker' ? 'Job Seeker' : user.role === 'employer' ? 'Employer' : user.role;
+    const appCount = user.job_applications_count ?? 0;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-            <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-xl p-6">
-                <div className="flex items-start justify-between gap-4 mb-5">
-                    <div className="flex items-center gap-3 min-w-0">
+            <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[85vh] overflow-y-auto p-10">
+                
+                {/* Close Button */}
+                <button
+                    onClick={onClose}
+                    className="absolute top-6 right-6 text-gray-400 hover:text-gray-600 text-2xl w-8 h-8 flex items-center justify-center"
+                >
+                    ×
+                </button>
+
+                {/* Profile Header */}
+                <div className="flex justify-between items-start mb-8 pb-8 border-b border-gray-200">
+                    <div className="flex gap-6">
                         <ImageInitialsFallback
                             src={user.avatar}
                             alt={initials}
                             initials={initials}
-                            className={`w-12 h-12 rounded-full flex-shrink-0 overflow-hidden ${profileFrameRingClass(frame)} ${user.avatar ? 'bg-white border border-gray-200' : 'bg-[#3d9e9e]'}`}
-                            textClassName="text-white text-sm font-bold flex items-center justify-center"
+                            className={`w-20 h-20 rounded-full flex-shrink-0 overflow-hidden ${profileFrameRingClass(frame)} ${user.avatar ? 'bg-white border border-gray-200' : 'bg-[#3d9e9e]'}`}
+                            textClassName="text-white text-lg font-bold flex items-center justify-center"
                         />
                         <div className="min-w-0">
-                            <p className="font-bold text-gray-900 text-base truncate">{user.first_name} {user.last_name}</p>
-                            {user.role === 'job_seeker' && profileFrameLabel(frame) && <p className="text-xs text-gray-500 truncate">{profileFrameLabel(frame)}</p>}
-                            <p className="text-sm text-gray-500 truncate">{user.email}</p>
+                            <div className="flex items-center gap-3 mb-2">
+                                <h2 className="text-2xl font-semibold text-gray-900">{user.first_name} {user.last_name}</h2>
+                                <span className={`text-sm font-semibold px-3 py-1 rounded-full ${isActive ? 'bg-gray-200 text-gray-700' : 'bg-gray-200 text-gray-700'}`}>
+                                    {isActive ? 'Active' : 'Inactive'}
+                                </span>
+                            </div>
+                            <p className="text-gray-600 text-sm leading-relaxed max-w-2xl">
+                                {user.role === 'job_seeker' 
+                                    ? `Job Seeker with profile frame: ${profileFrameLabel(frame) || 'Default'}` 
+                                    : `Employer${user.employerProfile?.company_name ? ` • ${user.employerProfile.company_name}` : ''}`}
+                            </p>
                         </div>
                     </div>
+                </div>
+
+                {/* Content Grid */}
+                <div className="grid grid-cols-3 gap-12">
+                    
+                    {/* Left Column: Personal Information */}
+                    <div className="col-span-2">
+                        <div className="flex items-center gap-4 mb-8">
+                            <div className="w-9 h-9 bg-[#e8f4f4] rounded-lg flex items-center justify-center text-[#3d9e9e]">
+                                <IcoUser />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-semibold text-gray-900">{user.role === 'job_seeker' ? 'Profile Details' : 'Company Information'}</h3>
+                                <p className="text-sm text-gray-500">
+                                    {user.role === 'job_seeker' ? 'Skills and professional background' : 'Business and application details'}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-6">
+                            <div>
+                                <label className="text-xs text-gray-500 font-semibold uppercase tracking-wide">User ID</label>
+                                <p className="text-gray-900 font-medium mt-1">#{user.id}</p>
+                            </div>
+
+                            <div>
+                                <label className="text-xs text-gray-500 font-semibold uppercase tracking-wide">Email</label>
+                                <p className="text-gray-900 font-medium mt-1">{user.email}</p>
+                            </div>
+
+                            <div>
+                                <label className="text-xs text-gray-500 font-semibold uppercase tracking-wide">Role</label>
+                                <p className="text-gray-900 font-medium mt-1">{roleLabel}</p>
+                            </div>
+
+                            <div>
+                                <label className="text-xs text-gray-500 font-semibold uppercase tracking-wide">Joined Date</label>
+                                <p className="text-gray-900 font-medium mt-1">{new Date(user.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                            </div>
+
+                            {user.role === 'job_seeker' ? (
+                                <div>
+                                    <label className="text-xs text-gray-500 font-semibold uppercase tracking-wide">Skills</label>
+                                    {skills.length > 0 ? (
+                                        <div className="flex flex-wrap gap-2 mt-2">
+                                            {skills.map(skill => (
+                                                <span key={skill} className="px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-sm font-medium">
+                                                    {skill}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="text-gray-500 text-sm mt-1">No skills provided</p>
+                                    )}
+                                </div>
+                            ) : (
+                                <>
+                                    <div>
+                                        <label className="text-xs text-gray-500 font-semibold uppercase tracking-wide">Company Name</label>
+                                        <p className="text-gray-900 font-medium mt-1">{user.employerProfile?.company_name || 'Not specified'}</p>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs text-gray-500 font-semibold uppercase tracking-wide">Total Applications</label>
+                                        <p className="text-gray-900 font-medium mt-1">{appCount} application{appCount !== 1 ? 's' : ''}</p>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Right Column: Activity Timeline */}
+                    <div className="col-span-1">
+                        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-6">Account Status</h4>
+                        
+                        <div className="space-y-4">
+                            <div className="flex gap-4">
+                                <div className="w-8 h-8 rounded-full border border-[#3d9e9e] text-[#3d9e9e] flex items-center justify-center flex-shrink-0 bg-[#e8f4f4]">
+                                    <IcoCalendar />
+                                </div>
+                                <div>
+                                    <p className="font-semibold text-sm text-gray-900">Account Created</p>
+                                    <p className="text-xs text-gray-500 mt-0.5">{new Date(user.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</p>
+                                </div>
+                            </div>
+
+                            {user.deleted_at && (
+                                <div className="flex gap-4">
+                                    <div className="w-8 h-8 rounded-full border border-red-400 text-red-500 flex items-center justify-center flex-shrink-0 bg-red-50">
+                                        <IcoClock />
+                                    </div>
+                                    <div>
+                                        <p className="font-semibold text-sm text-gray-900">Deactivated</p>
+                                        <p className="text-xs text-gray-500 mt-0.5">{new Date(user.deleted_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="flex gap-4">
+                                <div className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center flex-shrink-0 bg-white">
+                                    <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-gray-400'}`}></span>
+                                </div>
+                                <div>
+                                    <p className="font-semibold text-sm text-gray-900">Current Status</p>
+                                    <p className={`text-xs font-semibold mt-0.5 ${isActive ? 'text-emerald-600' : 'text-gray-500'}`}>
+                                        {isActive ? 'Active' : 'Inactive'}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Footer */}
+                <div className="flex justify-end gap-3 mt-10 pt-8 border-t border-gray-200">
                     <button
                         onClick={onClose}
-                        className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                        className="px-6 py-2.5 rounded-lg border border-gray-300 text-gray-700 font-semibold text-sm hover:bg-gray-50 transition-colors"
                     >
                         Close
                     </button>
                 </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                    <div>
-                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">User ID</p>
-                        <p className="text-gray-800 font-medium">#{user.id}</p>
-                    </div>
-                    <div>
-                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Role</p>
-                        <p className="text-gray-800 font-medium">{roleLabel}</p>
-                    </div>
-                    <div>
-                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Status</p>
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${isActive ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-gray-100 text-gray-500 border border-gray-200'}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-gray-400'}`} />
-                            {isActive ? 'Active' : 'Inactive'}
-                        </span>
-                    </div>
-                    <div>
-                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Joined Date</p>
-                        <p className="text-gray-800 font-medium">{new Date(user.created_at).toISOString().slice(0, 10)}</p>
-                    </div>
-                </div>
-
-                <div className="mt-5 pt-4 border-t border-gray-100">
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Profile Details</p>
-                    {user.role === 'job_seeker' ? (
-                        skills.length > 0 ? (
-                            <div className="flex flex-wrap gap-1.5">
-                                {skills.map(skill => (
-                                    <span key={skill} className="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 text-xs font-medium">{skill}</span>
-                                ))}
-                            </div>
-                        ) : (
-                            <p className="text-sm text-gray-500">No skills provided.</p>
-                        )
-                    ) : (
-                        <p className="text-sm text-gray-700 font-medium">{user.employerProfile?.company_name || 'No company set.'}</p>
-                    )}
-                </div>
-
-                {user.deleted_at && (
-                    <div className="mt-4 px-3 py-2 rounded-lg bg-red-50 border border-red-100 text-xs text-red-700 font-medium">
-                        This account is currently deactivated.
-                    </div>
-                )}
             </div>
         </div>
     );
@@ -262,11 +361,21 @@ export default function AdminUsers({ users, filters }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
     const [role, setRole] = useState(filters.role ?? 'all');
     const [status, setStatus] = useState(filters.status ?? 'all');
-    const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+    const [viewMode, setViewMode] = useState<'list' | 'grid'>(() => {
+        if (typeof window !== 'undefined') {
+            return (localStorage.getItem('adminUsersViewMode') as 'list' | 'grid') || 'list';
+        }
+        return 'list';
+    });
     const [roleDropOpen, setRoleDropOpen] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
     const [detailTarget, setDetailTarget] = useState<User | null>(null);
     const [processingId, setProcessingId] = useState<number | null>(null);
+
+    /* ── Persist view mode to localStorage ── */
+    useEffect(() => {
+        localStorage.setItem('adminUsersViewMode', viewMode);
+    }, [viewMode]);
 
     /* ── Filter navigation ── */
     const applyFilters = useCallback((overrides: Partial<{ search: string; role: string; status: string }>) => {
@@ -536,9 +645,12 @@ export default function AdminUsers({ users, filters }: Props) {
                                 const initials = `${(user.first_name ?? '').charAt(0)}${(user.last_name ?? '').charAt(0)}`.toUpperCase();
                                 const frame = getProfileFrame(user.jobSeekerProfile?.profile_frame);
                                 const isActive = effectiveStatus(user) === 'active';
+                                const isDeleted = !!user.deleted_at;
+                                const isBusy = processingId === user.id;
+                                const appCount = user.job_applications_count ?? 0;
 
                                 return (
-                                    <div key={user.id} className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition">
+                                    <div key={user.id} className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition flex flex-col">
 
                                         <div className="flex items-start gap-3 mb-3">
                                             <ImageInitialsFallback
@@ -568,6 +680,8 @@ export default function AdminUsers({ users, filters }: Props) {
                                             </div>
                                         </div>
 
+                                        <div className="flex-1" />
+
                                         <div className="flex items-center justify-between mt-3">
                                             <span className={`text-xs font-semibold px-2 py-1 rounded-full
                                                 ${isActive
@@ -584,12 +698,23 @@ export default function AdminUsers({ users, filters }: Props) {
                                                     <IcoEye />
                                                 </button>
 
-                                                <button
-                                                    onClick={() => confirmDelete(user)}
-                                                    className="p-1.5 text-gray-400 hover:text-red-500"
-                                                >
-                                                    <IcoTrash />
-                                                </button>
+                                                {isDeleted ? (
+                                                    <button
+                                                        onClick={() => doRestore(user)}
+                                                        disabled={isBusy}
+                                                        className="p-1.5 text-emerald-500 hover:bg-emerald-50 transition-colors disabled:opacity-40"
+                                                    >
+                                                        <IcoRestore />
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => confirmDelete(user)}
+                                                        disabled={isBusy}
+                                                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40"
+                                                    >
+                                                        <IcoTrash />
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
 

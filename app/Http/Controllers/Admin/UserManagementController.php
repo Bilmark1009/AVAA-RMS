@@ -36,6 +36,7 @@ class UserManagementController extends Controller
                     ->orWhere('status', '!=', 'active');
             }))
             ->with(['jobSeekerProfile:user_id,skills,profile_frame', 'employerProfile:user_id,company_name'])
+            ->withCount('jobApplications')
             ->latest()
             ->paginate(15)
             ->withQueryString();
