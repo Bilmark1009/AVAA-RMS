@@ -2,6 +2,7 @@ import { Head, useForm, usePage, router, Link } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import SettingsLayout from '@/Layouts/SettingsLayout';
 import InputError from '@/Components/InputError';
+import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
 import { FormEventHandler, useRef, useState } from 'react';
 import { PageProps } from '@/types';
 
@@ -144,6 +145,8 @@ interface Props extends PageProps {
         avatar?: string;
         email_verified_at?: string | null;
         google_id?: string | null;
+        role?: string;
+        profile_frame?: string | null;
     };
 }
 
@@ -217,6 +220,28 @@ export default function AccountSettings({ mustVerifyEmail, status, user }: Props
 
     const initials = `${user.first_name[0] ?? ''}${user.last_name[0] ?? ''}`.toUpperCase();
     const hasGoogle = !!user.google_id;
+    const isJobSeeker = user.role === 'job_seeker';
+
+    /* ── Profile frame state (3 choices) ── */
+    const [profileFrame, setProfileFrame] = useState<string>(user.profile_frame ?? 'default');
+    const [frameSaving, setFrameSaving] = useState(false);
+    const [frameSaved, setFrameSaved] = useState(false);
+
+    const saveFrame = () => {
+        setFrameSaving(true);
+        router.patch(route('settings.account.update'), {
+            first_name: user.first_name,
+            last_name: user.last_name,
+            email: user.email,
+            username: user.username ?? '',
+            phone: user.phone ?? '',
+            profile_frame: profileFrame,
+        }, {
+            preserveScroll: true,
+            onSuccess: () => { setFrameSaved(true); setTimeout(() => setFrameSaved(false), 2500); },
+            onFinish: () => setFrameSaving(false),
+        });
+    };
 
     return (
         <>
@@ -347,6 +372,177 @@ export default function AccountSettings({ mustVerifyEmail, status, user }: Props
                             </div>
                         </form>
                     </Card>
+
+                    {/* ── Profile Frame (job seekers only) ── */}
+                    {isJobSeeker && (
+                        <Card>
+                            <CardHeader
+                                title="Profile Frame"
+                                subtitle="Let employers know your current job-seeking status with a profile frame."
+                            />
+                            <div className="p-6">
+                                {/* Live avatar preview */}
+                                <div className="flex justify-center mb-8">
+                                    <div className="relative">
+                                        {/* Pulsing glow — Open to Work */}
+                                        {profileFrame === 'open_to_work' && (
+                                            <span className="absolute inset-0 rounded-full animate-ping bg-emerald-400 opacity-25 z-0" />
+                                        )}
+                                        {/* Pulsing glow — Not Open to Work */}
+                                        {profileFrame === 'not_open_to_work' && (
+                                            <span className="absolute inset-0 rounded-full animate-pulse bg-red-300 opacity-20 z-0" />
+                                        )}
+                                        <div
+                                            className={`relative z-10 rounded-full p-1 transition-all duration-300 ${
+                                                profileFrame === 'open_to_work'
+                                                    ? 'ring-4 ring-emerald-400 shadow-lg shadow-emerald-200'
+                                                    : profileFrame === 'not_open_to_work'
+                                                    ? 'ring-4 ring-red-400 shadow-lg shadow-red-100'
+                                                    : 'ring-4 ring-gray-200'
+                                            }`}
+                                        >
+                                            <ImageInitialsFallback
+                                                src={user.avatar}
+                                                alt={`${user.first_name} ${user.last_name}`}
+                                                initials={initials}
+                                                className="w-20 h-20 rounded-full overflow-hidden bg-avaa-dark"
+                                                textClassName="text-white text-2xl font-bold flex items-center justify-center"
+                                            />
+                                        </div>
+                                        {/* Open to Work badge */}
+                                        {profileFrame === 'open_to_work' && (
+                                            <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-emerald-500 text-white text-[9px] font-bold px-2.5 py-0.5 rounded-full whitespace-nowrap shadow z-20">
+                                                Open to Work
+                                            </span>
+                                        )}
+                                        {/* Not Open to Work badge */}
+                                        {profileFrame === 'not_open_to_work' && (
+                                            <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-red-500 text-white text-[9px] font-bold px-2.5 py-0.5 rounded-full whitespace-nowrap shadow z-20">
+                                                Not Open to Work
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Frame options — 3 tiles */}
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+
+                                    {/* ── Default ── */}
+                                    <button
+                                        type="button"
+                                        onClick={() => setProfileFrame('default')}
+                                        className={`flex flex-col items-center gap-2.5 p-4 rounded-2xl border-2 transition-all ${
+                                            profileFrame === 'default'
+                                                ? 'border-gray-300 bg-gray-50'
+                                                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50/50'
+                                        }`}
+                                    >
+                                        {/* Mini avatar with default ring */}
+                                        <div className="relative">
+                                            <div className="w-10 h-10 rounded-full ring-2 ring-gray-200 bg-avaa-dark flex items-center justify-center text-white text-xs font-bold">
+                                                {initials}
+                                            </div>
+                                        </div>
+                                        <div className="text-center">
+                                            <p className={`text-xs font-semibold ${profileFrame === 'default' ? 'text-gray-800' : 'text-gray-600'}`}>
+                                                Default
+                                            </p>
+                                            <p className="text-[10px] text-gray-400 mt-0.5 leading-tight">
+                                                No frame
+                                            </p>
+                                        </div>
+                                        {profileFrame === 'default' && (
+                                            <span className="w-3 h-3 rounded-full bg-gray-400 flex-shrink-0" />
+                                        )}
+                                    </button>
+
+                                    {/* ── Open to Work ── */}
+                                    <button
+                                        type="button"
+                                        onClick={() => setProfileFrame('open_to_work')}
+                                        className={`flex flex-col items-center gap-2.5 p-4 rounded-2xl border-2 transition-all ${
+                                            profileFrame === 'open_to_work'
+                                                ? 'border-emerald-400 bg-emerald-50'
+                                                : 'border-gray-200 hover:border-emerald-200 hover:bg-emerald-50/40'
+                                        }`}
+                                    >
+                                        {/* Mini avatar preview with green ring */}
+                                        <div className="relative">
+                                            <div className="w-10 h-10 rounded-full ring-2 ring-emerald-400 ring-offset-1 bg-avaa-dark flex items-center justify-center text-white text-xs font-bold shadow-sm shadow-emerald-200">
+                                                {initials}
+                                            </div>
+                                            <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-emerald-500 text-white text-[7px] font-bold px-1.5 py-px rounded-full whitespace-nowrap z-10 leading-tight">
+                                                OTW
+                                            </span>
+                                        </div>
+                                        <div className="text-center">
+                                            <p className={`text-xs font-semibold ${profileFrame === 'open_to_work' ? 'text-emerald-700' : 'text-gray-700'}`}>
+                                                Open to Work
+                                            </p>
+                                            <p className="text-[10px] text-gray-400 mt-0.5 leading-tight">
+                                                Green frame
+                                            </p>
+                                        </div>
+                                        {profileFrame === 'open_to_work' && (
+                                            <span className="w-3 h-3 rounded-full bg-emerald-400 flex-shrink-0" />
+                                        )}
+                                    </button>
+
+                                    {/* ── Not Open to Work ── */}
+                                    <button
+                                        type="button"
+                                        onClick={() => setProfileFrame('not_open_to_work')}
+                                        className={`flex flex-col items-center gap-2.5 p-4 rounded-2xl border-2 transition-all ${
+                                            profileFrame === 'not_open_to_work'
+                                                ? 'border-red-400 bg-red-50'
+                                                : 'border-gray-200 hover:border-red-200 hover:bg-red-50/40'
+                                        }`}
+                                    >
+                                        {/* Mini avatar preview with red ring + X badge */}
+                                        <div className="relative">
+                                            <div className="w-10 h-10 rounded-full ring-2 ring-red-400 ring-offset-1 bg-avaa-dark flex items-center justify-center text-white text-xs font-bold shadow-sm shadow-red-100">
+                                                {initials}
+                                            </div>
+                                            {/* Red X overlay */}
+                                            <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-red-500 text-white text-[7px] font-bold px-1.5 py-px rounded-full whitespace-nowrap z-10 leading-tight flex items-center gap-0.5">
+                                                <svg width="6" height="6" viewBox="0 0 10 10" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
+                                                    <line x1="1" y1="1" x2="9" y2="9" /><line x1="9" y1="1" x2="1" y2="9" />
+                                                </svg>
+                                                Off
+                                            </span>
+                                        </div>
+                                        <div className="text-center">
+                                            <p className={`text-xs font-semibold ${profileFrame === 'not_open_to_work' ? 'text-red-600' : 'text-gray-700'}`}>
+                                                Not Open to Work
+                                            </p>
+                                            <p className="text-[10px] text-gray-400 mt-0.5 leading-tight">
+                                                Red frame
+                                            </p>
+                                        </div>
+                                        {profileFrame === 'not_open_to_work' && (
+                                            <span className="w-3 h-3 rounded-full bg-red-400 flex-shrink-0" />
+                                        )}
+                                    </button>
+                                </div>
+
+                                {/* Save button */}
+                                <div className="flex items-center justify-end gap-3 pt-1 border-t border-gray-100">
+                                    {frameSaved && (
+                                        <span className="text-xs text-avaa-teal font-medium">✓ Frame saved</span>
+                                    )}
+                                    <button
+                                        type="button"
+                                        onClick={saveFrame}
+                                        disabled={frameSaving}
+                                        className="px-5 py-2 bg-avaa-primary hover:bg-avaa-primary-hover text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-50"
+                                    >
+                                        {frameSaving ? 'Saving…' : 'Save Frame'}
+                                    </button>
+                                </div>
+                            </div>
+                        </Card>
+                    )}
+
 
                     {/* ── Change Password ── */}
                     <Card>
