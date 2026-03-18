@@ -20,6 +20,16 @@ export function usePreventAuthBack(): void {
         const sessionId = auth.session_id ?? null;
         const currentPath = window.location.pathname;
 
+        const isLoggedOutSession = (): boolean => {
+            const loggedOutSessionId = sessionStorage.getItem('auth_logged_out_session_id');
+            return !!loggedOutSessionId && loggedOutSessionId === (sessionId ?? '');
+        };
+
+        if (isLoggedOutSession()) {
+            window.location.replace('/');
+            return;
+        }
+
         // Role → dashboard path mapping
         const dashboardPaths: Record<string, string> = {
             admin: '/admin/dashboard',
@@ -130,7 +140,7 @@ export function usePreventAuthBack(): void {
                 sessionId &&
                 liveSessionId !== sessionId
             ) {
-                window.location.replace('/login');
+                window.location.replace('/');
             }
         };
 
