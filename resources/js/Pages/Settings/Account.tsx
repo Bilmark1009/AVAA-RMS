@@ -3,7 +3,7 @@ import AppLayout from '@/Layouts/AppLayout';
 import SettingsLayout from '@/Layouts/SettingsLayout';
 import InputError from '@/Components/InputError';
 import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
-import { FormEventHandler, useRef, useState } from 'react';
+import { FormEventHandler, useEffect, useRef, useState } from 'react';
 import { PageProps } from '@/types';
 
 /* ── Icons ── */
@@ -227,18 +227,18 @@ export default function AccountSettings({ mustVerifyEmail, status, user }: Props
     const [frameSaving, setFrameSaving] = useState(false);
     const [frameSaved, setFrameSaved] = useState(false);
 
+    useEffect(() => {
+        setProfileFrame(user.profile_frame ?? 'default');
+    }, [user.profile_frame]);
+
     const saveFrame = () => {
         setFrameSaving(true);
         router.patch(route('settings.account.update'), {
-            first_name: user.first_name,
-            last_name: user.last_name,
-            email: user.email,
-            username: user.username ?? '',
-            phone: user.phone ?? '',
             profile_frame: profileFrame,
         }, {
             preserveScroll: true,
             onSuccess: () => { setFrameSaved(true); setTimeout(() => setFrameSaved(false), 2500); },
+            onError: () => setFrameSaved(false),
             onFinish: () => setFrameSaving(false),
         });
     };

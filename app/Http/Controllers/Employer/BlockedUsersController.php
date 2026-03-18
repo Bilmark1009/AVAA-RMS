@@ -25,6 +25,7 @@ class BlockedUsersController extends Controller
                 ->get()
                 ->map(function ($block) {
                     $user = $block->blockedUser;
+                    $frame = $user->jobSeekerProfile?->profile_frame ?? 'default';
                     return [
                         'id' => $user->id,
                         'name' => $user->full_name,
@@ -36,6 +37,7 @@ class BlockedUsersController extends Controller
                         'job_title' => $user->jobSeekerProfile?->professional_title 
                             ?? $user->jobSeekerProfile?->current_job_title 
                             ?? 'Job Seeker',
+                        'profile_frame' => $frame,
                     ];
                 }),
         ]);
@@ -58,6 +60,7 @@ class BlockedUsersController extends Controller
         abort_if($target->role !== 'job_seeker', 422, 'Employers can only block job seekers.');
 
         $block = $current->block($target, $request->reason);
+        $frame = $target->jobSeekerProfile?->profile_frame ?? 'default';
 
         // Archive any existing conversations between these users
         $conversation = \App\Models\Conversation::findDirect($current->id, $target->id);
@@ -80,6 +83,7 @@ class BlockedUsersController extends Controller
                 'job_title' => $target->jobSeekerProfile?->professional_title 
                     ?? $target->jobSeekerProfile?->current_job_title 
                     ?? 'Job Seeker',
+                'profile_frame' => $frame,
             ],
         ]);
     }
@@ -133,7 +137,7 @@ class BlockedUsersController extends Controller
                     ->from('blocked_users')
                     ->where('blocked_user_id', $current->id);
             })
-            ->with('jobSeekerProfile:user_id,professional_title,current_job_title')
+            ->with('jobSeekerProfile:user_id,professional_title,current_job_title,profile_frame')
             ->limit(10)
             ->get()
             ->map(fn($u) => [
@@ -146,6 +150,7 @@ class BlockedUsersController extends Controller
                 'job_title' => $u->jobSeekerProfile?->professional_title 
                     ?? $u->jobSeekerProfile?->current_job_title 
                     ?? 'Job Seeker',
+                'profile_frame' => $u->jobSeekerProfile?->profile_frame ?? 'default',
             ]);
 
         return response()->json($users);

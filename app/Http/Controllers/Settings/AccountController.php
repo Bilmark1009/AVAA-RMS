@@ -43,6 +43,28 @@ class AccountController extends Controller
     {
         $user = $request->user();
 
+        $isFrameOnlyUpdate = $user->role === 'job_seeker'
+            && $request->has('profile_frame')
+            && !$request->hasAny(['first_name', 'last_name', 'email', 'username', 'phone']);
+
+        if ($isFrameOnlyUpdate) {
+            $validated = $request->validate([
+                'profile_frame' => ['nullable', 'string', 'in:default,open_to_work,not_open_to_work'],
+            ]);
+
+            $frame = $validated['profile_frame'] ?? 'default';
+
+            $user->jobSeekerProfile()->updateOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'profile_frame' => $frame,
+                    'open_to_work' => $frame === 'open_to_work',
+                ]
+            );
+
+            return back()->with('status', 'account-updated');
+        }
+
         $rules = [
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
@@ -64,14 +86,15 @@ class AccountController extends Controller
 
         // Save profile_frame to job seeker profile
         if ($user->role === 'job_seeker' && $request->has('profile_frame')) {
-            $user->loadMissing('jobSeekerProfile');
-            if ($user->jobSeekerProfile) {
-                $frame = $request->profile_frame ?? 'default';
-                $user->jobSeekerProfile->update([
+            $frame = $request->profile_frame ?? 'default';
+
+            $user->jobSeekerProfile()->updateOrCreate(
+                ['user_id' => $user->id],
+                [
                     'profile_frame' => $frame,
-                    'open_to_work'  => $frame === 'open_to_work',
-                ]);
-            }
+                    'open_to_work' => $frame === 'open_to_work',
+                ]
+            );
         }
 
         unset($validated['profile_frame']);

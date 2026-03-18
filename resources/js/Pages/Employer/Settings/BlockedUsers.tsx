@@ -42,6 +42,7 @@ interface BlockedUser {
     blocked_at: string;
     initials: string;
     job_title: string;
+    profile_frame?: 'default' | 'open_to_work' | 'not_open_to_work' | null;
 }
 
 interface SearchResult {
@@ -52,10 +53,27 @@ interface SearchResult {
     initials: string;
     role: string;
     job_title: string;
+    profile_frame?: 'default' | 'open_to_work' | 'not_open_to_work' | null;
+}
+
+function getProfileFrame(frame?: string | null) {
+    return frame === 'open_to_work' || frame === 'not_open_to_work' ? frame : 'default';
+}
+
+function profileFrameRingClass(frame?: string | null) {
+    if (frame === 'open_to_work') return 'ring-2 ring-emerald-400';
+    if (frame === 'not_open_to_work') return 'ring-2 ring-red-400';
+    return '';
+}
+
+function profileFrameLabel(frame?: string | null) {
+    if (frame === 'open_to_work') return 'Open to Work';
+    if (frame === 'not_open_to_work') return 'Not Open to Work';
+    return null;
 }
 
 /* ── Avatar Component ── */
-function Avatar({ src, initials, size = 'md' }: { src?: string | null | undefined; initials: string; size?: 'sm' | 'md' | 'lg' }) {
+function Avatar({ src, initials, frame, size = 'md' }: { src?: string | null | undefined; initials: string; frame?: string | null; size?: 'sm' | 'md' | 'lg' }) {
     const sizeClasses = {
         sm: 'w-8 h-8 text-xs',
         md: 'w-10 h-10 text-sm',
@@ -67,7 +85,7 @@ function Avatar({ src, initials, size = 'md' }: { src?: string | null | undefine
             src={src}
             alt="Avatar"
             initials={initials}
-            className={`${sizeClasses[size]} rounded-full overflow-hidden border border-gray-200 bg-avaa-primary`}
+            className={`${sizeClasses[size]} rounded-full overflow-hidden border border-gray-200 bg-avaa-primary ${profileFrameRingClass(getProfileFrame(frame))}`}
             textClassName="text-white font-semibold flex items-center justify-center"
         />
     );
@@ -76,6 +94,7 @@ function Avatar({ src, initials, size = 'md' }: { src?: string | null | undefine
 /* ── Blocked User Card ── */
 function BlockedUserCard({ user, onUnblock }: { user: BlockedUser; onUnblock: (id: number) => void }) {
     const [isUnblocking, setIsUnblocking] = useState(false);
+    const frameLabel = profileFrameLabel(getProfileFrame(user.profile_frame));
 
     const handleUnblock = async () => {
         setIsUnblocking(true);
@@ -117,7 +136,7 @@ function BlockedUserCard({ user, onUnblock }: { user: BlockedUser; onUnblock: (i
         <div className="bg-white border border-gray-200 rounded-xl p-4 hover:border-gray-300 transition-colors">
             <div className="flex items-start justify-between">
                 <div className="flex items-start space-x-3">
-                    <Avatar src={user.avatar} initials={user.initials} size="md" />
+                    <Avatar src={user.avatar} initials={user.initials} frame={user.profile_frame} size="md" />
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center space-x-2">
                             <h4 className="text-sm font-medium text-gray-900 truncate">{user.name}</h4>
@@ -126,6 +145,7 @@ function BlockedUserCard({ user, onUnblock }: { user: BlockedUser; onUnblock: (i
                             </span>
                         </div>
                         <p className="text-xs text-gray-600 mt-1">{user.job_title}</p>
+                        {frameLabel && <p className="text-xs text-gray-500 mt-1">{frameLabel}</p>}
                         {user.reason && (
                             <p className="text-xs text-gray-600 mt-1 line-clamp-2">{user.reason}</p>
                         )}
@@ -263,10 +283,11 @@ function BlockJobSeekerForm({ onBlock }: { onBlock: (user: SearchResult & { reas
                             }}
                             className="w-full px-3 py-2 flex items-center space-x-3 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0"
                         >
-                            <Avatar src={user.avatar} initials={user.initials} size="sm" />
+                            <Avatar src={user.avatar} initials={user.initials} frame={user.profile_frame} size="sm" />
                             <div className="flex-1 text-left">
                                 <p className="text-sm font-medium text-gray-900">{user.name}</p>
                                 <p className="text-xs text-gray-500">{user.job_title}</p>
+                                {profileFrameLabel(getProfileFrame(user.profile_frame)) && <p className="text-xs text-gray-500 mt-0.5">{profileFrameLabel(getProfileFrame(user.profile_frame))}</p>}
                             </div>
                         </button>
                     ))}
@@ -277,10 +298,11 @@ function BlockJobSeekerForm({ onBlock }: { onBlock: (user: SearchResult & { reas
             {selectedUser && (
                 <div className="space-y-3">
                     <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                        <Avatar src={selectedUser.avatar} initials={selectedUser.initials} size="sm" />
+                        <Avatar src={selectedUser.avatar} initials={selectedUser.initials} frame={selectedUser.profile_frame} size="sm" />
                         <div className="flex-1">
                             <p className="text-sm font-medium text-gray-900">{selectedUser.name}</p>
                             <p className="text-xs text-gray-500">{selectedUser.job_title}</p>
+                            {profileFrameLabel(getProfileFrame(selectedUser.profile_frame)) && <p className="text-xs text-gray-500 mt-0.5">{profileFrameLabel(getProfileFrame(selectedUser.profile_frame))}</p>}
                         </div>
                     </div>
                     
@@ -328,7 +350,8 @@ export default function EmployerBlockedUsers({ auth, blockedUsers }: { auth: any
             reason: newUser.reason || null,
             blocked_at: new Date().toISOString(),
             initials: newUser.initials,
-            job_title: newUser.job_title
+            job_title: newUser.job_title,
+            profile_frame: newUser.profile_frame ?? 'default',
         };
         setBlockedUsersList(prev => [blockedUser, ...prev]);
     };
