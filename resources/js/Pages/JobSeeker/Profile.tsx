@@ -32,6 +32,8 @@ interface JobSeekerProfile {
     notice_period?: string;
     work_style?: string;
     weekly_hours?: string;
+    open_to_work?: boolean;
+    profile_frame?: string;
 }
 
 interface WorkExperience {
@@ -159,13 +161,44 @@ export default function JobSeekerProfilePage({ user, profile, experiences, docum
                             {/* Avatar row */}
                             <div className="flex items-end justify-between -mt-12 mb-4">
                                 <div className="relative">
-                                    <ImageInitialsFallback
-                                        src={user.avatar}
-                                        alt={fullName}
-                                        initials={initials}
-                                        className="w-24 h-24 rounded-2xl ring-4 ring-white overflow-hidden shadow-md bg-avaa-dark"
-                                        textClassName="text-white text-3xl font-bold flex items-center justify-center"
-                                    />
+                                    {/* Pulsing glow — Open to Work */}
+                                    {p.profile_frame === 'open_to_work' && (
+                                        <span className="absolute inset-0 rounded-2xl animate-ping bg-emerald-400 opacity-20 z-0" />
+                                    )}
+                                    {/* Pulse — Not Open to Work */}
+                                    {p.profile_frame === 'not_open_to_work' && (
+                                        <span className="absolute inset-0 rounded-2xl animate-pulse bg-red-300 opacity-15 z-0" />
+                                    )}
+                                    <div
+                                        className={`relative z-10 rounded-2xl p-0.5 transition-all ${
+                                            p.profile_frame === 'open_to_work'
+                                                ? 'ring-4 ring-emerald-400 shadow-lg shadow-emerald-200'
+                                                : p.profile_frame === 'not_open_to_work'
+                                                ? 'ring-4 ring-red-400 shadow-lg shadow-red-100'
+                                                : 'ring-4 ring-white shadow-md'
+                                        }`}
+                                    >
+                                        <ImageInitialsFallback
+                                            src={user.avatar}
+                                            alt={fullName}
+                                            initials={initials}
+                                            className="w-24 h-24 rounded-2xl overflow-hidden bg-avaa-dark"
+                                            textClassName="text-white text-3xl font-bold flex items-center justify-center"
+                                        />
+                                    </div>
+                                    {/* Open to Work badge */}
+                                    {p.profile_frame === 'open_to_work' && (
+                                        <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-20 bg-emerald-500 text-white text-[9px] font-bold px-2.5 py-0.5 rounded-full whitespace-nowrap shadow-md">
+                                            Open to Work
+                                        </span>
+                                    )}
+                                    {/* Not Open to Work badge */}
+                                    {p.profile_frame === 'not_open_to_work' && (
+                                        <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-20 bg-red-500 text-white text-[9px] font-bold px-2.5 py-0.5 rounded-full whitespace-nowrap shadow-md flex items-center gap-1">
+                                            <svg width="7" height="7" viewBox="0 0 10 10" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="1" y1="1" x2="9" y2="9"/><line x1="9" y1="1" x2="1" y2="9"/></svg>
+                                            Not Open to Work
+                                        </span>
+                                    )}
                                 </div>
                                 <Link
                                     href={route('job-seeker.profile.edit')}

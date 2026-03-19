@@ -23,6 +23,7 @@ interface Props {
     jobsPostedCount: number;
     applicationsCount: number;
     totalVisitsCount: number;
+    monthlyApplications: { month: string; count: number }[];
     recentJobs: RecentJob[];
 }
 
@@ -175,10 +176,19 @@ const CHART_DATA: Record<Period, ChartPeriodData> = {
 const TEAL_SOLID = '#1D9E75';
 const TEAL_LIGHT = 'rgba(29,158,117,0.13)';
 
-function MonthlyApplicationsChart() {
+function MonthlyApplicationsChart({ monthlyApplications }: { monthlyApplications: { month: string; count: number }[] }) {
     const [period, setPeriod] = useState<Period>('monthly');
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const chartRef = useRef<any>(null);
+
+    const [summary, setSummary] = useState({
+        total: '0',
+        peak: '0',
+        avg: '0',
+        peakLbl: 'Peak month',
+        avgLbl: 'Monthly avg',
+        badge: '0%',
+    });
 
     useEffect(() => {
         let Chart: any;
@@ -198,18 +208,58 @@ function MonthlyApplicationsChart() {
                 chartRef.current = null;
             }
 
-            const d = CHART_DATA[period];
-            const maxVal = Math.max(...d.values);
+            let labels: string[];
+            let values: number[];
+            let total: string;
+            let peak: string;
+            let avg: string;
+            let peakLbl: string;
+            let avgLbl: string;
+            let badge: string;
+
+            if (period === 'monthly' && monthlyApplications.length > 0) {
+                labels = monthlyApplications.map(item => item.month);
+                values = monthlyApplications.map(item => item.count);
+                total = values.reduce((a, b) => a + b, 0).toLocaleString();
+                const max = Math.max(...values);
+                peak = max.toString();
+                const average = values.length > 0 ? Math.round(values.reduce((a, b) => a + b, 0) / values.length) : 0;
+                avg = average.toString();
+                peakLbl = 'Peak month';
+                avgLbl = 'Monthly avg';
+                badge = values.length > 1 ? (values[values.length - 1] > values[values.length - 2] ? '+8%' : '-5%') : '0%';
+            } else {
+                const d = CHART_DATA[period];
+                labels = d.labels;
+                values = d.values;
+                total = d.total;
+                peak = d.peak;
+                avg = d.avg;
+                peakLbl = d.peakLbl;
+                avgLbl = d.avgLbl;
+                badge = d.badge;
+            }
+
+            const maxVal = Math.max(...values);
+
+            setSummary({
+                total,
+                peak,
+                avg,
+                peakLbl,
+                avgLbl,
+                badge,
+            });
 
             chartRef.current = new Chart(canvasRef.current, {
                 type: 'bar',
                 data: {
-                    labels: d.labels,
+                    labels: labels,
                     datasets: [
                         {
-                            data: d.values,
-                            backgroundColor: d.values.map(v => (v === maxVal ? TEAL_SOLID : TEAL_LIGHT)),
-                            hoverBackgroundColor: d.values.map(v => (v === maxVal ? '#0f6e56' : 'rgba(29,158,117,0.25)')),
+                            data: values,
+                            backgroundColor: values.map(v => (v === maxVal ? TEAL_SOLID : TEAL_LIGHT)),
+                            hoverBackgroundColor: values.map(v => (v === maxVal ? '#0f6e56' : 'rgba(29,158,117,0.25)')),
                             borderRadius: 6,
                             borderSkipped: false,
                             barPercentage: 0.55,
@@ -268,7 +318,7 @@ function MonthlyApplicationsChart() {
                 chartRef.current = null;
             }
         };
-    }, [period]);
+    }, [period, monthlyApplications]);
 
     const d = CHART_DATA[period];
     const periods: { key: Period; label: string }[] = [
@@ -307,24 +357,24 @@ function MonthlyApplicationsChart() {
             {/* Summary stats */}
             <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8 mb-5">
                 <div className="min-w-[150px]">
-                    <p className="text-3xl font-extrabold text-gray-900 tracking-tight">{d.total}</p>
+                    <p className="text-3xl font-extrabold text-gray-900 tracking-tight">{summary.total}</p>
                     <div className="flex items-center gap-2 mt-1">
                         <p className="text-sm text-gray-400">Total applications</p>
                         <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">
                             <IcoTrendUp />
-                            {d.badge}
+                            {summary.badge}
                         </span>
                     </div>
                 </div>
                 <div className="hidden md:block w-px h-10 bg-gray-100" />
                 <div className="min-w-[120px]">
-                    <p className="text-3xl font-extrabold text-gray-900 tracking-tight">{d.peak}</p>
-                    <p className="text-sm text-gray-400 mt-1">{d.peakLbl}</p>
+                    <p className="text-3xl font-extrabold text-gray-900 tracking-tight">{summary.peak}</p>
+                    <p className="text-sm text-gray-400 mt-1">{summary.peakLbl}</p>
                 </div>
                 <div className="hidden md:block w-px h-10 bg-gray-100" />
                 <div className="min-w-[120px]">
-                    <p className="text-3xl font-extrabold text-gray-900 tracking-tight">{d.avg}</p>
-                    <p className="text-sm text-gray-400 mt-1">{d.avgLbl}</p>
+                    <p className="text-3xl font-extrabold text-gray-900 tracking-tight">{summary.avg}</p>
+                    <p className="text-sm text-gray-400 mt-1">{summary.avgLbl}</p>
                 </div>
             </div>
 
@@ -349,6 +399,7 @@ export default function EmployerDashboard({
     jobsPostedCount,
     applicationsCount,
     totalVisitsCount,
+    monthlyApplications,
     recentJobs,
 }: Props) {
     const companyName = profile?.company_name ?? `${user.first_name} ${user.last_name}`;
@@ -390,7 +441,7 @@ export default function EmployerDashboard({
                     <StatCard
                         label="Active Users"
                         value={activeUsersCount}
-                        sub="Users currently active"
+                        sub="Active on platform"
                         icon={<IcoActiveUsers />}
                         color="bg-emerald-50 text-emerald-600"
                         badge="+12%"
@@ -412,9 +463,9 @@ export default function EmployerDashboard({
                         badge="+8%"
                     />
                     <StatCard
-                        label="Total Visits"
+                        label="Total Applications"
                         value={totalVisitsCount}
-                        sub="Visits recorded this month"
+                        sub="Across platform"
                         icon={<IcoVisits />}
                         color="bg-violet-50 text-violet-600"
                         badge="+18%"
@@ -422,7 +473,7 @@ export default function EmployerDashboard({
                 </div>
 
                 {/* ── Monthly Applications Chart ── */}
-                <MonthlyApplicationsChart />
+                <MonthlyApplicationsChart monthlyApplications={monthlyApplications} />
 
                 {/* ── Posted Jobs Table ── */}
                 <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">

@@ -33,6 +33,9 @@ class AdminReportController extends Controller
             'reportedUser',
             'reportedUser.employerProfile',
             'reportedUser.jobSeekerProfile',
+            'jobListing',
+            'jobListing.employer',
+            'jobListing.employer.employerProfile',
             'message',
             'conversation',
             'actionBy',
@@ -40,18 +43,26 @@ class AdminReportController extends Controller
         ->whereIn('status', $dbStatuses)
         ->orderByDesc('created_at');
 
-        // Tab filter: message reports have a conversation_id; job_posts reports have neither
+        // Tab filter: job reports are tied to a job listing; others are user/message reports.
         if ($tab === 'messages') {
-            $query->whereNotNull('conversation_id');
+            $query->whereNull('job_listing_id');
         } else {
-            $query->whereNull('conversation_id');
+            $query->whereNotNull('job_listing_id');
         }
 
         $reports = $query->get()->map(function (Report $r) {
-            // Build the reporter name
+            $jobListing = $r->jobListing;
             $reportedUser = $r->reportedUser;
-            $employerName = $reportedUser?->employerProfile?->company_name
-                ?? ($reportedUser ? "{$reportedUser->first_name} {$reportedUser->last_name}" : 'Unknown');
+            $isJobReport = !is_null($r->job_listing_id);
+
+            // Build display names for both job and user/message reports
+            $employerName = $jobListing?->employer?->employerProfile?->company_name
+                ?? ($jobListing?->employer
+                    ? trim(($jobListing->employer->first_name ?? '') . ' ' . ($jobListing->employer->last_name ?? ''))
+                    : ($reportedUser?->employerProfile?->company_name
+                        ?? ($reportedUser
+                            ? trim(($reportedUser->first_name ?? '') . ' ' . ($reportedUser->last_name ?? ''))
+                            : 'Unknown')));
 
             $reporterName = $r->reporter
                 ? "{$r->reporter->first_name} {$r->reporter->last_name}"
@@ -71,26 +82,53 @@ class AdminReportController extends Controller
                 fn ($path) => Storage::url($path)
             )->values()->all();
 
-            return [
-                'id'                    => $r->id,
-                'job_title'             => $employerName,
-                'company'               => $reportedUser?->employerProfile?->company_name ?? 'N/A',
-                'location'              => '',
-                'reason_title'          => $reasonLabels[$r->reason] ?? $r->reason,
-                'reason_description'    => $r->details ?? '',
-                'reported_by'           => $reporterName,
-                'reported_at'           => $r->created_at->diffForHumans(),
-                'active_jobs_count'     => 0,
-                'previous_reports_count'=> Report::where('reported_user_id', $r->reported_user_id)
+            $activeJobsCount = $jobListing?->employer_id
+                ? \App\Models\JobListing::where('employer_id', $jobListing->employer_id)
+                    ->where('status', 'active')
+                    ->count()
+                : 0;
+
+            $baseCountQuery = Report::query();
+            $hasCountTarget = false;
+
+            if ($isJobReport && $r->job_listing_id) {
+                $baseCountQuery->where('job_listing_id', $r->job_listing_id);
+                $hasCountTarget = true;
+            } elseif (!$isJobReport && $r->reported_user_id) {
+                $baseCountQuery->where('reported_user_id', $r->reported_user_id);
+                $hasCountTarget = true;
+            }
+
+            $previousResolvedCount = $hasCountTarget
+                ? (clone $baseCountQuery)
                     ->whereIn('status', ['resolved'])
                     ->where('id', '<>', $r->id)
-                    ->count(),
-                'report_count_total'    => Report::where('reported_user_id', $r->reported_user_id)->count(),
-                'type'                  => $r->conversation_id ? 'message' : 'job',
+                    ->count()
+                : 0;
+
+            $totalReportsCount = $hasCountTarget
+                ? (clone $baseCountQuery)->count()
+                : 0;
+
+            return [
+                'id'                    => $r->id,
+                'job_title'             => $isJobReport ? ($jobListing?->title ?? 'Unknown') : $employerName,
+                'company'               => $isJobReport
+                    ? ($jobListing?->company_name
+                        ?? $jobListing?->employer?->employerProfile?->company_name
+                        ?? 'N/A')
+                    : ($reportedUser?->employerProfile?->company_name ?? 'N/A'),
+                'location'              => $isJobReport ? ($jobListing?->location ?? 'N/A') : 'N/A',
+                'reason_title'          => $reasonLabels[$r->reason] ?? $r->reason,
+                'reason_description'    => $r->details ?? $r->description ?? '',
+                'reported_by'           => $reporterName,
+                'reported_at'           => $r->created_at->diffForHumans(),
+                'active_jobs_count'     => $activeJobsCount,
+                'previous_reports_count'=> $previousResolvedCount,
+                'report_count_total'    => $totalReportsCount,
+                'type'                  => $isJobReport ? 'job' : 'message',
                 'employer_name'         => $employerName,
-                'is_high_priority'      => Report::where('reported_user_id', $r->reported_user_id)
-                    ->whereIn('status', ['resolved'])
-                    ->count() >= 2,
+                'is_high_priority'      => $previousResolvedCount >= 2,
                 'evidence'              => $evidenceUrls,
                 'message_content'       => $r->message?->content ?? null,
                 'status'                => $r->status,

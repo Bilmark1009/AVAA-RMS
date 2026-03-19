@@ -309,6 +309,262 @@ function RecruiterProfileModal({
 /* ══════════════════════════════════════════════
    MAIN PAGE
 ══════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════
+   REPORT JOB MODAL
+══════════════════════════════════════════════ */
+function ReportJobModal({
+    job,
+    onClose,
+}: {
+    job: JobListing;
+    onClose: () => void;
+}) {
+    const [reason, setReason] = useState('');
+    const [description, setDescription] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [successMessage, setSuccessMessage] = useState('');
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!reason.trim()) return;
+
+        setLoading(true);
+        router.post(route('job-seeker.jobs.report', job.id), {
+            reason,
+            description,
+        }, {
+            onSuccess: () => {
+                setSuccessMessage('Thank you! We have received your report.');
+                setTimeout(() => {
+                    setLoading(false);
+                    onClose();
+                }, 1500);
+            },
+            onError: (errors) => {
+                console.error('Error reporting job:', errors);
+                setLoading(false);
+            },
+        });
+    };
+
+    useEffect(() => {
+        const handler = (e: KeyboardEvent) => { if (e.key === 'Escape' && !loading) onClose(); };
+        document.addEventListener('keydown', handler);
+        return () => document.removeEventListener('keydown', handler);
+    }, [onClose, loading]);
+
+    return (
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ backgroundColor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)' }}
+            onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+        >
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+                {/* Header */}
+                <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
+                    <h2 className="text-lg font-bold text-avaa-dark">Report This Job</h2>
+                    <button
+                        onClick={onClose}
+                        disabled={loading}
+                        className="w-7 h-7 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-500 transition-colors disabled:opacity-50"
+                    >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                    </button>
+                </div>
+
+                {/* Success Message */}
+                {successMessage && (
+                    <div className="px-6 py-3 bg-green-50 border-b border-green-100 text-sm text-green-700 font-medium">
+                        ✓ {successMessage}
+                    </div>
+                )}
+
+                {/* Form */}
+                <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                    <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            Reason for Report
+                        </label>
+                        <select
+                            value={reason}
+                            onChange={(e) => setReason(e.target.value)}
+                            disabled={loading}
+                            className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-avaa-primary/20 focus:border-avaa-primary disabled:opacity-50"
+                        >
+                            <option value="">Select a reason...</option>
+                            <option value="spam">Spam or Scam</option>
+                            <option value="inappropriate_behavior">Inappropriate Behavior</option>
+                            <option value="suspicious_job">Suspicious Job</option>
+                            <option value="identity_theft">Identity Theft</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            Additional Details
+                        </label>
+                        <textarea
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            disabled={loading}
+                            placeholder="Please provide any additional information..."
+                            className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-avaa-primary/20 focus:border-avaa-primary resize-none disabled:opacity-50"
+                            rows={3}
+                        />
+                    </div>
+
+                    <div className="flex gap-3 pt-4">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            disabled={loading}
+                            className="flex-1 px-4 py-2.5 text-sm font-semibold text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={!reason.trim() || loading}
+                            className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 disabled:opacity-60 disabled:cursor-not-allowed rounded-xl transition-colors"
+                        >
+                            {loading ? 'Reporting...' : 'Submit Report'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+}
+
+/* ══════════════════════════════════════════════
+   SHARE JOB MODAL
+══════════════════════════════════════════════ */
+function ShareJobModal({
+    job,
+    onClose,
+}: {
+    job: JobListing;
+    onClose: () => void;
+}) {
+    const [email, setEmail] = useState('');
+    const [message, setMessage] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [successMessage, setSuccessMessage] = useState('');
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!email.trim()) return;
+
+        setLoading(true);
+        router.post(route('job-seeker.jobs.share', job.id), {
+            email,
+            message,
+        }, {
+            onSuccess: () => {
+                setSuccessMessage('Job shared successfully!');
+                setTimeout(() => {
+                    setLoading(false);
+                    onClose();
+                }, 1500);
+            },
+            onError: (errors) => {
+                console.error('Error sharing job:', errors);
+                setLoading(false);
+            },
+        });
+    };
+
+    useEffect(() => {
+        const handler = (e: KeyboardEvent) => { if (e.key === 'Escape' && !loading) onClose(); };
+        document.addEventListener('keydown', handler);
+        return () => document.removeEventListener('keydown', handler);
+    }, [onClose, loading]);
+
+    return (
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ backgroundColor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)' }}
+            onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+        >
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+                {/* Header */}
+                <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
+                    <h2 className="text-lg font-bold text-avaa-dark">Share This Job</h2>
+                    <button
+                        onClick={onClose}
+                        disabled={loading}
+                        className="w-7 h-7 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-500 transition-colors disabled:opacity-50"
+                    >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                    </button>
+                </div>
+
+                {/* Success Message */}
+                {successMessage && (
+                    <div className="px-6 py-3 bg-green-50 border-b border-green-100 text-sm text-green-700 font-medium">
+                        ✓ {successMessage}
+                    </div>
+                )}
+
+                {/* Form */}
+                <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                    <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            Recipient Email
+                        </label>
+                        <input
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            disabled={loading}
+                            placeholder="Enter email address..."
+                            className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-avaa-primary/20 focus:border-avaa-primary disabled:opacity-50"
+                            required
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            Personal Message (Optional)
+                        </label>
+                        <textarea
+                            value={message}
+                            onChange={(e) => setMessage(e.target.value)}
+                            disabled={loading}
+                            placeholder="Add a personal note..."
+                            className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-avaa-primary/20 focus:border-avaa-primary resize-none disabled:opacity-50"
+                            rows={3}
+                        />
+                    </div>
+
+                    <div className="flex gap-3 pt-4">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            disabled={loading}
+                            className="flex-1 px-4 py-2.5 text-sm font-semibold text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={!email.trim() || loading}
+                            className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-avaa-primary hover:bg-avaa-primary-hover disabled:opacity-60 disabled:cursor-not-allowed rounded-xl transition-colors"
+                        >
+                            {loading ? 'Sending...' : 'Send'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+}
+
 export default function JobDetail({
     job,
     hiringTeam = [],
@@ -320,6 +576,8 @@ export default function JobDetail({
     const [saved, setSaved] = useState(initialSaved);
     const [applied, setApplied] = useState(initialApplied || job.has_applied || false);
     const [selectedRecruiter, setSelectedRecruiter] = useState<HiringTeamMember | null>(null);
+    const [showReportModal, setShowReportModal] = useState(false);
+    const [showShareModal, setShowShareModal] = useState(false);
 
     const salary = formatSalary(job.salary_min, job.salary_max, job.salary_currency);
     const responsibilities = toLines(job.responsibilities);
@@ -352,6 +610,22 @@ export default function JobDetail({
                 <RecruiterProfileModal
                     member={selectedRecruiter}
                     onClose={() => setSelectedRecruiter(null)}
+                />
+            )}
+
+            {/* Report Job Modal */}
+            {showReportModal && (
+                <ReportJobModal
+                    job={job}
+                    onClose={() => setShowReportModal(false)}
+                />
+            )}
+
+            {/* Share Job Modal */}
+            {showShareModal && (
+                <ShareJobModal
+                    job={job}
+                    onClose={() => setShowShareModal(false)}
                 />
             )}
 
@@ -571,20 +845,41 @@ export default function JobDetail({
 
                         </div>{/* end body */}
 
+
+
+
+
+
+
+
+
+
+
                         {/* ── Footer ── */}
                         <div className="px-8 py-5 border-t border-gray-100 flex items-center justify-between text-sm text-gray-400">
-                            <span className="hover:text-gray-600 cursor-pointer transition-colors">
+                            <button
+                                onClick={() => setShowReportModal(true)}
+                                className="hover:text-red-500 cursor-pointer transition-colors text-left font-medium"
+                            >
                                 Report this job posting
-                            </span>
+                            </button>
                             <div className="flex items-center gap-4">
-                                <button className="hover:text-avaa-teal transition-colors">
+                                <button
+                                    onClick={() => setShowShareModal(true)}
+                                    className="hover:text-avaa-teal transition-colors"
+                                    title="Share this job via email"
+                                >
                                     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                         <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
                                         <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
                                         <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
                                     </svg>
                                 </button>
-                                <button className="hover:text-red-400 transition-colors">
+                                <button
+                                    onClick={() => setShowReportModal(true)}
+                                    className="hover:text-red-400 transition-colors"
+                                    title="Flag this job"
+                                >
                                     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                         <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
                                         <line x1="4" y1="22" x2="4" y2="15" />

@@ -6,6 +6,7 @@ use App\Notifications\EmailOtpNotification;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\QueryException;
@@ -103,6 +104,16 @@ class User extends Authenticatable implements MustVerifyEmail
     public function blockedByUsers(): HasMany
     {
         return $this->hasMany(BlockedUser::class, 'blocked_user_id');
+    }
+
+    public function jobApplications(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            JobApplication::class,
+            JobListing::class,
+            'employer_id',
+            'job_listing_id'
+        );
     }
 
     /* ── Role helpers ──────────────────────────────────────────────────── */
