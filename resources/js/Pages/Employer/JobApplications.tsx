@@ -63,9 +63,25 @@ function profileFrameRingClass(frame?: string | null) {
     return '';
 }
 function profileFrameLabel(frame?: string | null) {
-    if (frame === 'open_to_work') return 'Open to Work';
-    if (frame === 'not_open_to_work') return 'Not Open to Work';
+    if (frame === 'open_to_work') return { text: 'Available', cls: 'bg-emerald-500 text-white', icon: null };
+    if (frame === 'not_open_to_work') return { text: 'Unavailable', cls: 'bg-red-500 text-white', icon: null };
     return null;
+}
+
+function ProfileFrameBadge({ frame, size = 'sm' }: { frame?: string | null; size?: 'xs' | 'sm' }) {
+    const badge = profileFrameLabel(frame);
+    if (!badge) return null;
+    const px = size === 'xs' ? 'px-2 py-0.5 text-[8px]' : 'px-2.5 py-0.5 text-[10px]';
+    return (
+        <span className={`inline-flex items-center gap-1 font-bold rounded-full whitespace-nowrap shadow ${badge.cls} ${px}`}>
+            {badge.icon && (
+                <svg width="6" height="6" viewBox="0 0 10 10" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
+                    <line x1="1" y1="1" x2="9" y2="9" /><line x1="9" y1="1" x2="1" y2="9" />
+                </svg>
+            )}
+            {badge.text}
+        </span>
+    );
 }
 function timeAgo(dateStr: string) {
     const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
@@ -150,16 +166,20 @@ function RejectModal({ app, jobId, onClose }: { app: Application; jobId: number;
 
                 {/* Avatar + Name */}
                 <div className="px-6 -mt-8 flex items-end gap-3 flex-shrink-0 relative z-10 mb-3">
-                    <ImageInitialsFallback
-                        src={app.user.avatar}
-                        alt={fullName}
-                        initials={getInitials(app.user.first_name, app.user.last_name)}
-                        className={`w-16 h-16 rounded-2xl ring-4 ring-white shadow-md overflow-hidden ${profileFrameRingClass(frame)} ${app.user.avatar ? 'bg-white' : avatarColor(app.user.id)}`}
-                        textClassName="text-white text-xl font-bold flex items-center justify-center"
-                    />
+                    <div className="relative">
+                        <ImageInitialsFallback
+                            src={app.user.avatar}
+                            alt={fullName}
+                            initials={getInitials(app.user.first_name, app.user.last_name)}
+                            className={`w-16 h-16 rounded-2xl ring-4 ring-white shadow-md overflow-hidden ${profileFrameRingClass(frame)} ${app.user.avatar ? 'bg-white' : avatarColor(app.user.id)}`}
+                            textClassName="text-white text-xl font-bold flex items-center justify-center"
+                        />
+                        <span className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 z-20">
+                            <ProfileFrameBadge frame={frame} size="xs" />
+                        </span>
+                    </div>
                     <div className="pb-1">
                         <h2 className="text-lg font-bold text-avaa-dark">{fullName}</h2>
-                        {profileFrameLabel(frame) && <p className="text-xs text-gray-500">{profileFrameLabel(frame)}</p>}
                         <p className="text-sm text-gray-500">{app.user.email}</p>
                     </div>
                 </div>
@@ -261,16 +281,20 @@ function ApproveModal({ app, jobId, employerAddress, onClose }: {
 
                 {/* Avatar + Name */}
                 <div className="px-6 -mt-8 flex items-end gap-3 flex-shrink-0 relative z-10 mb-3">
-                    <ImageInitialsFallback
-                        src={app.user.avatar}
-                        alt={fullName}
-                        initials={getInitials(app.user.first_name, app.user.last_name)}
-                        className={`w-16 h-16 rounded-2xl ring-4 ring-white shadow-md overflow-hidden ${profileFrameRingClass(frame)} ${app.user.avatar ? 'bg-white' : avatarColor(app.user.id)}`}
-                        textClassName="text-white text-xl font-bold flex items-center justify-center"
-                    />
+                    <div className="relative">
+                        <ImageInitialsFallback
+                            src={app.user.avatar}
+                            alt={fullName}
+                            initials={getInitials(app.user.first_name, app.user.last_name)}
+                            className={`w-16 h-16 rounded-2xl ring-4 ring-white shadow-md overflow-hidden ${profileFrameRingClass(frame)} ${app.user.avatar ? 'bg-white' : avatarColor(app.user.id)}`}
+                            textClassName="text-white text-xl font-bold flex items-center justify-center"
+                        />
+                        <span className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 z-20">
+                            <ProfileFrameBadge frame={frame} size="xs" />
+                        </span>
+                    </div>
                     <div className="pb-1">
                         <h2 className="text-lg font-bold text-avaa-dark">{fullName}</h2>
-                        {profileFrameLabel(frame) && <p className="text-xs text-gray-500">{profileFrameLabel(frame)}</p>}
                         <p className="text-sm text-gray-500">{app.user.email}</p>
                     </div>
                 </div>
@@ -456,16 +480,20 @@ function ApplicantModal({ app, jobId, onClose, onReject, onApprove }: {
                 </div>
 
                 <div className="px-6 -mt-10 flex items-end gap-4 flex-shrink-0 relative z-10 mb-2">
-                    <ImageInitialsFallback
-                        src={u.avatar}
-                        alt={fullName}
-                        initials={initials}
-                        className={`w-20 h-20 rounded-2xl ring-4 ring-white shadow-md overflow-hidden ${profileFrameRingClass(frame)} ${u.avatar ? 'bg-white' : avatarColor(u.id)}`}
-                        textClassName="text-white text-2xl font-bold flex items-center justify-center"
-                    />
+                    <div className="relative">
+                        <ImageInitialsFallback
+                            src={u.avatar}
+                            alt={fullName}
+                            initials={initials}
+                            className={`w-20 h-20 rounded-2xl ring-4 ring-white shadow-md overflow-hidden ${profileFrameRingClass(frame)} ${u.avatar ? 'bg-white' : avatarColor(u.id)}`}
+                            textClassName="text-white text-2xl font-bold flex items-center justify-center"
+                        />
+                        <span className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 z-20">
+                            <ProfileFrameBadge frame={frame} size="xs" />
+                        </span>
+                    </div>
                     <div className="pb-1">
                         <h2 className="text-lg font-bold text-avaa-dark">{fullName}</h2>
-                        {profileFrameLabel(frame) && <p className="text-xs text-gray-500 mt-1">{profileFrameLabel(frame)}</p>}
                         <AppStatusBadge status={app.status} jobId={jobId} appId={app.id} onReject={onReject} onApprove={onApprove} />
                     </div>
                 </div>
@@ -744,13 +772,18 @@ export default function JobApplications({ job, applications, employerAddress }: 
                                     <tr key={app.id} className="hover:bg-gray-50/60 transition-colors">
                                         <td className="px-5 py-4">
                                             <div className="flex items-center gap-3">
-                                                <ImageInitialsFallback
-                                                    src={app.user.avatar}
-                                                    alt={fullName}
-                                                    initials={initials}
-                                                    className={`w-9 h-9 rounded-full flex-shrink-0 overflow-hidden ${profileFrameRingClass(frame)} ${app.user.avatar ? 'bg-white' : avatarColor(app.user.id)}`}
-                                                    textClassName="text-white text-xs font-bold flex items-center justify-center"
-                                                />
+                                                <div className="relative flex-shrink-0">
+                                                    <ImageInitialsFallback
+                                                        src={app.user.avatar}
+                                                        alt={fullName}
+                                                        initials={initials}
+                                                        className={`w-9 h-9 rounded-full overflow-hidden ${profileFrameRingClass(frame)} ${app.user.avatar ? 'bg-white' : avatarColor(app.user.id)}`}
+                                                        textClassName="text-white text-xs font-bold flex items-center justify-center"
+                                                    />
+                                                    <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-10">
+                                                        <ProfileFrameBadge frame={frame} size="xs" />
+                                                    </span>
+                                                </div>
                                                 <div className="min-w-0">
                                                     <button onClick={() => setViewApp(app)} className="text-base font-semibold text-avaa-dark hover:text-avaa-teal transition-colors truncate block text-left">{fullName}</button>
                                                     {subTitle && <p className="text-sm text-avaa-muted truncate">{subTitle}</p>}

@@ -189,14 +189,13 @@ export default function JobSeekerProfilePage({ user, profile, experiences, docum
                                     {/* Open to Work badge */}
                                     {p.profile_frame === 'open_to_work' && (
                                         <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-20 bg-emerald-500 text-white text-[9px] font-bold px-2.5 py-0.5 rounded-full whitespace-nowrap shadow-md">
-                                            Open to Work
+                                            Available
                                         </span>
                                     )}
                                     {/* Not Open to Work badge */}
                                     {p.profile_frame === 'not_open_to_work' && (
-                                        <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-20 bg-red-500 text-white text-[9px] font-bold px-2.5 py-0.5 rounded-full whitespace-nowrap shadow-md flex items-center gap-1">
-                                            <svg width="7" height="7" viewBox="0 0 10 10" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="1" y1="1" x2="9" y2="9"/><line x1="9" y1="1" x2="1" y2="9"/></svg>
-                                            Not Open to Work
+                                        <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-20 bg-red-500 text-white text-[9px] font-bold px-2.5 py-0.5 rounded-full whitespace-nowrap shadow-md">
+                                            Unavailable
                                         </span>
                                     )}
                                 </div>
@@ -210,12 +209,23 @@ export default function JobSeekerProfilePage({ user, profile, experiences, docum
 
                             {/* Name, title, status */}
                             <div className="mb-1">
-                                <div className="flex items-center gap-2.5 mb-0.5">
+                                <div className="flex items-center gap-2.5 mb-0.5 flex-wrap">
                                     <h2 className="text-xl font-bold text-avaa-dark">{fullName}</h2>
                                     {p.profile_visibility === 'public' && (
                                         <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-600">
                                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                                             Available
+                                        </span>
+                                    )}
+                                    {/* Profile frame badge inline with name */}
+                                    {p.profile_frame === 'open_to_work' && (
+                                        <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500 text-white shadow-sm">
+                                            Available
+                                        </span>
+                                    )}
+                                    {p.profile_frame === 'not_open_to_work' && (
+                                        <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-red-500 text-white shadow-sm">
+                                            Unavailable
                                         </span>
                                     )}
                                 </div>
