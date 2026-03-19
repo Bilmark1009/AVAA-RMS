@@ -423,7 +423,8 @@ function ApplicantModal({ app, jobId, onClose, onReject, onApprove }: {
     const resumePath = (app.resume_path) ?? (u.profile?.resume_path) ?? (ad?.existing_resume);
     const resumeName = resumePath ? resumePath.split('/').pop() : null;
     const resumeViewUrl = resumePath ? route('applications.resume', { application: app.id }) : null;
-
+    const timelineUrl = route('employer.users.timeline', { application: app.id });
+    
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
@@ -436,18 +437,49 @@ function ApplicantModal({ app, jobId, onClose, onReject, onApprove }: {
                 </div>
 
                 <div className="px-6 -mt-10 flex items-end gap-4 flex-shrink-0 relative z-10 mb-2">
-                    <ImageInitialsFallback
-                        src={u.avatar}
-                        alt={fullName}
-                        initials={initials}
-                        className={`w-20 h-20 rounded-2xl ring-4 ring-white shadow-md overflow-hidden ${u.avatar ? 'bg-white' : avatarColor(u.id)}`}
-                        textClassName="text-white text-2xl font-bold flex items-center justify-center"
-                    />
-                    <div className="pb-1">
-                        <h2 className="text-lg font-bold text-avaa-dark">{fullName}</h2>
-                        <AppStatusBadge status={app.status} jobId={jobId} appId={app.id} onReject={onReject} onApprove={onApprove} />
-                    </div>
-                </div>
+    {/* Avatar Link */}
+    <Link 
+        href={route('employer.users.timeline', { application: app.id })}
+        className="transition-transform duration-200 hover:scale-105"
+    >
+        <ImageInitialsFallback
+            src={u.avatar}
+            alt={fullName}
+            initials={initials}
+            className={`w-20 h-20 rounded-2xl ring-4 ring-white shadow-md overflow-hidden ${u.avatar ? 'bg-white' : avatarColor(u.id)}`}
+            textClassName="text-white text-2xl font-bold flex items-center justify-center"
+        />
+    </Link>
+
+    <div className="pb-1">
+        {/* Name Link */}
+        <Link 
+            href={route('employer.users.timeline', { application: app.id })}
+            className="group flex items-center gap-1.5"
+        >
+            <h2 className="text-lg font-bold text-avaa-dark group-hover:text-avaa-teal transition-colors">
+                {fullName}
+            </h2>
+            {/* Optional: A small arrow or icon that appears on hover */}
+            <svg 
+                className="w-4 h-4 text-avaa-teal opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200" 
+                fill="none" 
+                viewBox="0 0 24 24" 
+                stroke="currentColor"
+            >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="9 5l7 7-7 7" />
+            </svg>
+        </Link>
+        
+        <AppStatusBadge 
+            status={app.status} 
+            jobId={jobId} 
+            appId={app.id} 
+            onReject={onReject} 
+            onApprove={onApprove} 
+        />
+    </div>
+</div>
 
                 <div className="overflow-y-auto flex-1 px-6 pb-6 pt-2 space-y-5">
                     {/* Section 1: Personal Info */}

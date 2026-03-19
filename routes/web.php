@@ -34,6 +34,8 @@ use App\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use App\Http\Controllers\JobSeeker\RecruiterProfileController;
+use App\Http\Controllers\Employer\ApplicantTimelineController;
 
 // Home — redirect authenticated users to their dashboard; show Welcome to guests
 Route::get('/', function () {
@@ -226,6 +228,7 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         Route::post('/interviews/{interview}/fail', [InterviewController::class, 'failInterview'])->name('interviews.fail');
 
         Route::get('/users', [EmployeeController::class, 'index'])->name('users.index');
+       Route::get('/users/timeline/{application}', [ApplicantTimelineController::class, 'show'])->name('users.timeline');
         Route::post('/users/{application}/end-contract', [EmployeeController::class, 'endContract'])->name('users.end-contract');
     });
     // ─────────────────────────────────────────────────────────────────────────
@@ -251,7 +254,7 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         Route::post('/jobs/{job}/apply/draft', [JobApplicationController::class, 'saveDraft'])->name('jobs.apply.draft');
         Route::get('/jobs/history', [JobBrowseController::class, 'history'])->name('jobs.history');
         Route::get('/jobs/{job}', [JobBrowseController::class, 'show'])->name('jobs.show');
-
+         Route::get('/recruiter/{user}', [RecruiterProfileController::class, 'show'])->name('recruiter.timeline');
         // Application History
         Route::get('/applications', [JobApplicationController::class, 'index'])->name('applications.index');
         Route::patch('/applications/{application}/withdraw', [JobApplicationController::class, 'withdraw'])->name('applications.withdraw');
