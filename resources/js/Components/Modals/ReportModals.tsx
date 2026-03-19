@@ -1,6 +1,22 @@
 import { useState } from 'react';
-import axios from 'axios';
 import { router } from '@inertiajs/react';
+
+/* ── Notification Helper ── */
+const showNotification = (type: 'success' | 'error' | 'warning', message: string) => {
+    // Create a simple toast notification
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 px-6 py-3 rounded-xl text-sm font-semibold text-white ${
+        type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-orange-500'
+    } shadow-lg z-[9999] animate-fade-in`;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        notification.style.transition = 'opacity 0.3s ease-out';
+        setTimeout(() => notification.remove(), 300);
+    }, 4000);
+};
 
 /* ── Types ── */
 export interface Report {
@@ -87,6 +103,12 @@ const IcoImage = () => (
     </svg>
 );
 
+const IcoSpinner = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin">
+        <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+    </svg>
+);
+
 /* ── Shared: Modal Overlay Wrapper ── */
 function ModalOverlay({ children }: { children: React.ReactNode }) {
     return (
@@ -114,107 +136,135 @@ function InfoRow({ label, value, valueClass = 'text-gray-800' }: { label: string
 }
 
 /* ── Job Details Modal ── */
-export function JobDetailsModal({ report, onClose, onDecline, onSuspend, onBan }: {
+export function JobDetailsModal({ report, onClose, onDecline, onSuspend }: {
     report: Report;
     onClose: () => void;
     onDecline: () => void;
     onSuspend: () => void;
-    onBan: () => void;
 }) {
+    const [activeModal, setActiveModal] = useState<'decline' | 'suspend' | null>(null);
+
+    const handleDeclineConfirm = () => {
+        setActiveModal(null);
+        onDecline();
+    };
+
+    const handleSuspendConfirm = () => {
+        setActiveModal(null);
+        onSuspend();
+    };
+
     return (
-        <ModalOverlay>
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-                <div className="p-8">
-                    {/* Header */}
-                    <div className="flex items-start justify-between mb-6">
-                        <div>
-                            <h2 className="text-xl font-bold text-gray-900">{report.job_title}</h2>
-                            <p className="text-sm text-gray-400 mt-0.5">{report.company} • {report.location}</p>
+        <>
+            <ModalOverlay>
+                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <div className="p-8">
+                        {/* Header */}
+                        <div className="flex items-start justify-between mb-6">
+                            <div>
+                                <h2 className="text-xl font-bold text-gray-900">{report.job_title}</h2>
+                                <p className="text-sm text-gray-400 mt-0.5">{report.company} • {report.location}</p>
+                            </div>
+                            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors p-1 -mt-1 -mr-1">
+                                <IcoClose />
+                            </button>
                         </div>
-                        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors p-1 -mt-1 -mr-1">
-                            <IcoClose />
-                        </button>
-                    </div>
 
-                    {/* Report Information */}
-                    <div className="mb-6">
-                        <div className="flex items-center gap-2 mb-4">
-                            <span className="text-orange-400"><IcoFlag /></span>
-                            <h3 className="text-sm font-bold text-gray-700">Report Information</h3>
+                        {/* Report Information */}
+                        <div className="mb-6">
+                            <div className="flex items-center gap-2 mb-4">
+                                <span className="text-orange-400"><IcoFlag /></span>
+                                <h3 className="text-sm font-bold text-gray-700">Report Information</h3>
+                            </div>
+                            <div className="grid grid-cols-2 gap-x-8 gap-y-4 mb-4">
+                                <InfoRow label="Reported By" value={report.reported_by} />
+                                <InfoRow label="Reported Date" value={report.reported_at} />
+                                <InfoRow label="Total Reports" value={report.report_count_total} valueClass="text-orange-500" />
+                                <InfoRow label="Reason" value={report.reason_title} />
+                            </div>
+                            <div className="bg-orange-50 border border-orange-100 rounded-xl px-5 py-4">
+                                <p className="text-sm text-orange-600 leading-relaxed">{report.reason_description}</p>
+                            </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-x-8 gap-y-4 mb-4">
-                            <InfoRow label="Reported By" value={report.reported_by} />
-                            <InfoRow label="Reported Date" value={report.reported_at} />
-                            <InfoRow label="Total Reports" value={report.report_count_total} valueClass="text-orange-500" />
-                            <InfoRow label="Reason" value={report.reason_title} />
+
+                        <hr className="border-gray-100 mb-6" />
+
+                        {/* Job Details */}
+                        <div className="mb-6">
+                            <h3 className="text-sm font-bold text-gray-700 mb-4">Job Details</h3>
+                            <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+                                <InfoRow label="Title" value={report.job_title} />
+                                <InfoRow label="Company" value={report.company} />
+                                <InfoRow label="Salary Range" value={report.salary_range || 'N/A'} />
+                                <InfoRow label="Posted" value={report.posted || 'N/A'} />
+                            </div>
                         </div>
-                        <div className="bg-orange-50 border border-orange-100 rounded-xl px-5 py-4">
-                            <p className="text-sm text-orange-600 leading-relaxed">{report.reason_description}</p>
+
+                        <hr className="border-gray-100 mb-6" />
+
+                        {/* Company History */}
+                        <div className="mb-6">
+                            <h3 className="text-sm font-bold text-gray-700 mb-4">Company History</h3>
+                            <div className="border border-gray-100 rounded-xl p-5">
+                                <SectionLabel>Previous Reports</SectionLabel>
+                                <p className="text-3xl font-bold text-gray-800">{report.previous_reports_count}</p>
+                            </div>
                         </div>
-                    </div>
 
-                    <hr className="border-gray-100 mb-6" />
+                        {/* Warning */}
+                        {report.previous_reports_count > 0 && (
+                            <div className="bg-gray-50 border border-gray-100 rounded-xl px-5 py-4 mb-6 flex gap-3">
+                                <span className="text-gray-400 flex-shrink-0 mt-0.5"><IcoAlert /></span>
+                                <p className="text-xs text-gray-500 leading-relaxed">
+                                    This employer has {report.previous_reports_count} previous approved report{report.previous_reports_count > 1 ? 's' : ''}. Approving this report will lower their priority ranking.
+                                </p>
+                            </div>
+                        )}
 
-                    {/* Job Details */}
-                    <div className="mb-6">
-                        <h3 className="text-sm font-bold text-gray-700 mb-4">Job Details</h3>
-                        <div className="grid grid-cols-2 gap-x-8 gap-y-4">
-                            <InfoRow label="Title" value={report.job_title} />
-                            <InfoRow label="Company" value={report.company} />
-                            <InfoRow label="Salary Range" value={report.salary_range || 'N/A'} />
-                            <InfoRow label="Posted" value={report.posted || 'N/A'} />
+                        {/* Actions */}
+                        <div className="flex items-center gap-3 flex-wrap">
+                            <button onClick={onClose} className="px-5 py-2.5 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors">
+                                Cancel
+                            </button>
+                            <button onClick={() => setActiveModal('decline')} className="px-5 py-2.5 rounded-xl text-sm font-semibold text-red-500 border border-red-200 hover:bg-red-50 transition-colors flex items-center gap-2">
+                                <IcoCircleOff /> Decline Report
+                            </button>
+                            <button onClick={() => setActiveModal('suspend')} className="px-5 py-2.5 rounded-xl text-sm font-semibold text-orange-500 border border-orange-200 hover:bg-orange-50 transition-colors flex items-center gap-2">
+                                <IcoWarning /> Suspend
+                            </button>
                         </div>
-                    </div>
-
-                    <hr className="border-gray-100 mb-6" />
-
-                    {/* Company History */}
-                    <div className="mb-6">
-                        <h3 className="text-sm font-bold text-gray-700 mb-4">Company History</h3>
-                        <div className="border border-gray-100 rounded-xl p-5">
-                            <SectionLabel>Previous Reports</SectionLabel>
-                            <p className="text-3xl font-bold text-gray-800">{report.previous_reports_count}</p>
-                        </div>
-                    </div>
-
-                    {/* Warning */}
-                    {report.previous_reports_count > 0 && (
-                        <div className="bg-gray-50 border border-gray-100 rounded-xl px-5 py-4 mb-6 flex gap-3">
-                            <span className="text-gray-400 flex-shrink-0 mt-0.5"><IcoAlert /></span>
-                            <p className="text-xs text-gray-500 leading-relaxed">
-                                This employer has {report.previous_reports_count} previous approved report{report.previous_reports_count > 1 ? 's' : ''}. Approving this report will lower their priority ranking.
-                            </p>
-                        </div>
-                    )}
-
-                    {/* Actions */}
-                    <div className="flex items-center gap-3 flex-wrap">
-                        <button onClick={onClose} className="px-5 py-2.5 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors">
-                            Cancel
-                        </button>
-                        <button onClick={onDecline} className="px-5 py-2.5 rounded-xl text-sm font-semibold text-red-500 border border-red-200 hover:bg-red-50 transition-colors flex items-center gap-2">
-                            <IcoCircleOff /> Decline Report
-                        </button>
-                        <button onClick={onSuspend} className="px-5 py-2.5 rounded-xl text-sm font-semibold text-orange-500 border border-orange-200 hover:bg-orange-50 transition-colors flex items-center gap-2">
-                            <IcoWarning /> Suspend
-                        </button>
-                        <button onClick={onBan} className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors flex items-center gap-2">
-                            <IcoCircleOff /> Ban Account
-                        </button>
                     </div>
                 </div>
-            </div>
-        </ModalOverlay>
+            </ModalOverlay>
+
+            {/* Sub-Modals */}
+            {activeModal === 'decline' && (
+                <DeclineModal
+                    report={report}
+                    onClose={() => setActiveModal(null)}
+                    onConfirm={handleDeclineConfirm}
+                    tab="jobs"
+                />
+            )}
+
+            {activeModal === 'suspend' && (
+                <SuspendModal
+                    report={report}
+                    onClose={() => setActiveModal(null)}
+                    onConfirm={handleSuspendConfirm}
+                    tab="jobs"
+                />
+            )}
+        </>
     );
 }
 
 /* ── Message Details Modal ── */
-export function MessageDetailsModal({ report, onClose, onDecline, onSuspend, onBan }: {
+export function MessageDetailsModal({ report, onClose, onDecline, onSuspend }: {
     report: Report;
     onClose: () => void;
     onDecline: () => void;
     onSuspend: () => void;
-    onBan: () => void;
 }) {
     return (
         <ModalOverlay>
@@ -314,9 +364,6 @@ export function MessageDetailsModal({ report, onClose, onDecline, onSuspend, onB
                         <button onClick={onSuspend} className="px-5 py-2.5 rounded-xl text-sm font-semibold text-orange-500 border border-orange-200 hover:bg-orange-50 transition-colors flex items-center gap-2">
                             <IcoWarning /> Suspend
                         </button>
-                        <button onClick={onBan} className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors flex items-center gap-2">
-                            <IcoCircleOff /> Ban Account
-                        </button>
                     </div>
                 </div>
             </div>
@@ -336,13 +383,29 @@ export function DeclineModal({ report, onClose, onConfirm, tab }: {
     const isMessage = tab === 'messages';
 
     const handleConfirm = async () => {
+        if (!reason.trim()) {
+            showNotification('warning', 'Please select a reason for declining');
+            return;
+        }
+
         setSubmitting(true);
         try {
-            await axios.patch(route('admin.reports.decline', report.id), { decline_reason: reason });
-            onConfirm();
-        } catch {
-            // fallback: still close
-            onConfirm();
+            // Use router.patch for decline action
+            await router.patch(route('admin.reports.decline', report.id), { 
+                decline_reason: reason 
+            }, {
+                onSuccess: () => {
+                    showNotification('success', 'Report declined successfully');
+                    onConfirm();
+                },
+                onError: (errors: any) => {
+                    console.error('Error declining report:', errors);
+                    showNotification('error', 'Failed to decline report. Please try again.');
+                }
+            });
+        } catch (error) {
+            console.error('Unexpected error:', error);
+            showNotification('error', 'An unexpected error occurred');
         } finally {
             setSubmitting(false);
         }
@@ -453,7 +516,7 @@ export function DeclineModal({ report, onClose, onConfirm, tab }: {
                     <div className="flex gap-3">
                         <button onClick={onClose} className="px-6 py-2.5 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors">Cancel</button>
                         <button onClick={handleConfirm} disabled={!reason || submitting} className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center gap-2">
-                            <IcoCircleOff /> {submitting ? 'Declining...' : 'Confirm Decline'}
+                            {submitting ? <IcoSpinner /> : <IcoCircleOff />} {submitting ? 'Declining...' : 'Confirm Decline'}
                         </button>
                     </div>
                 </div>
@@ -476,14 +539,35 @@ export function SuspendModal({ report, onClose, onConfirm, tab }: {
     const handleConfirm = async () => {
         setSubmitting(true);
         try {
-            await axios.patch(route('admin.reports.approve', report.id), { action_note: `Suspended for ${duration}` });
-            onConfirm();
-        } catch {
-            onConfirm();
+            // Use the dedicated suspend route - MUST use await for callbacks to work
+            await router.patch(route('admin.reports.suspend', report.id), { 
+                action_note: `Suspended for ${duration}` 
+            }, {
+                onSuccess: () => {
+                    showNotification('success', 'Job posting has been suspended');
+                    onConfirm();
+                },
+                onError: (errors: any) => {
+                    console.error('Error suspending account:', errors);
+                    showNotification('error', 'Failed to suspend account. Please try again.');
+                }
+            });
+        } catch (error) {
+            console.error('Unexpected error:', error);
+            showNotification('error', 'An unexpected error occurred');
         } finally {
             setSubmitting(false);
         }
     };
+
+
+
+
+
+
+
+
+
 
     return (
         <ModalOverlay>
@@ -491,8 +575,8 @@ export function SuspendModal({ report, onClose, onConfirm, tab }: {
                 <div className="p-8">
                     <div className="flex items-start justify-between mb-1">
                         <div>
-                            <h2 className="text-xl font-bold text-gray-900">Confirm Account Suspension</h2>
-                            <p className="text-sm text-gray-400 mt-0.5">Temporary restriction on account activity</p>
+                            <h2 className="text-xl font-bold text-gray-900">Confirm Job Suspension</h2>
+                            <p className="text-sm text-gray-400 mt-0.5">Temporary suspension of job posting</p>
                         </div>
                         <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-1 -mt-1 -mr-1"><IcoClose /></button>
                     </div>
@@ -528,9 +612,9 @@ export function SuspendModal({ report, onClose, onConfirm, tab }: {
                         <div className="border border-gray-100 rounded-xl p-5 mb-6 flex items-center gap-4">
                             <span className="text-[#76a09a]"><IcoEye /></span>
                             <div>
-                                <SectionLabel>Active Jobs</SectionLabel>
-                                <p className="text-2xl font-bold text-gray-800">{report.active_jobs_count}</p>
-                                <p className="text-xs text-gray-400 mt-0.5">Currently posted positions</p>
+                                <SectionLabel>Job Posting</SectionLabel>
+                                <p className="text-2xl font-bold text-gray-800">{report.job_title}</p>
+                                <p className="text-xs text-gray-400 mt-0.5">To be suspended</p>
                             </div>
                         </div>
                     )}
@@ -574,11 +658,11 @@ export function SuspendModal({ report, onClose, onConfirm, tab }: {
                             <div className="space-y-3">
                                 <div className="flex items-start gap-2.5">
                                     <span className="text-red-400 mt-0.5 flex-shrink-0"><IcoCircleOff /></span>
-                                    <p className="text-xs text-gray-600"><span className="font-bold">Temporarily restrict account access</span> · The employer cannot log in or manage listings during suspension</p>
+                                    <p className="text-xs text-gray-600"><span className="font-bold">Hide job posting</span> · This job will be hidden from public view during suspension</p>
                                 </div>
                                 <div className="flex items-start gap-2.5">
                                     <span className="text-red-400 mt-0.5 flex-shrink-0"><IcoBriefcase /></span>
-                                    <p className="text-xs text-gray-600"><span className="font-bold">Hide all active job postings</span> · All {report.active_jobs_count} active jobs will be hidden from public view</p>
+                                    <p className="text-xs text-gray-600"><span className="font-bold">Temporary measure</span> · The job posting will be restored after the selected duration</p>
                                 </div>
                             </div>
                         )}
@@ -588,14 +672,14 @@ export function SuspendModal({ report, onClose, onConfirm, tab }: {
                     <div className="bg-gray-50 rounded-xl px-5 py-4 mb-8 flex gap-3">
                         <span className="text-gray-400 flex-shrink-0 mt-0.5"><IcoAlert /></span>
                         <p className="text-xs text-gray-500 leading-relaxed">
-                            Suspension is a <span className="font-bold">temporary</span> measure. The account will be automatically restored after the selected duration unless further action is taken.
+                            Suspension is a <span className="font-bold">temporary</span> measure. The job posting will be automatically restored after the selected duration unless further action is taken.
                         </p>
                     </div>
 
                     <div className="flex gap-3">
                         <button onClick={onClose} className="px-6 py-2.5 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors">Cancel</button>
                         <button onClick={handleConfirm} disabled={submitting} className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition-colors disabled:opacity-50 flex items-center gap-2">
-                            <IcoWarning /> {submitting ? 'Suspending...' : 'Confirm Suspension'}
+                            {submitting ? <IcoSpinner /> : <IcoWarning />} {submitting ? 'Suspending...' : 'Confirm Suspension'}
                         </button>
                     </div>
                 </div>
@@ -613,14 +697,34 @@ export function BanModal({ report, onClose, onConfirm, tab }: {
 }) {
     const isMessage = tab === 'messages';
     const [submitting, setSubmitting] = useState(false);
+    const [confirmText, setConfirmText] = useState('');
+    const expectedConfirmText = 'ban account';
 
     const handleConfirm = async () => {
+        // Require confirmation text to prevent accidental bans
+        if (confirmText.toLowerCase() !== expectedConfirmText) {
+            showNotification('warning', `Please type "${expectedConfirmText}" to confirm`);
+            return;
+        }
+
         setSubmitting(true);
         try {
-            await axios.patch(route('admin.reports.approve', report.id), { action_note: 'Banned account' });
-            onConfirm();
-        } catch {
-            onConfirm();
+            // Use the dedicated ban route - MUST use await for callbacks to work
+            await router.patch(route('admin.reports.ban', report.id), { 
+                action_note: 'Account banned' 
+            }, {
+                onSuccess: () => {
+                    showNotification('success', 'Job posting has been permanently removed');
+                    onConfirm();
+                },
+                onError: (errors: any) => {
+                    console.error('Error banning account:', errors);
+                    showNotification('error', 'Failed to ban account. Please try again.');
+                }
+            });
+        } catch (error) {
+            console.error('Unexpected error:', error);
+            showNotification('error', 'An unexpected error occurred');
         } finally {
             setSubmitting(false);
         }
@@ -699,7 +803,7 @@ export function BanModal({ report, onClose, onConfirm, tab }: {
                                 </div>
                                 <div className="flex items-start gap-2.5">
                                     <span className="text-red-500 mt-0.5 flex-shrink-0"><IcoBriefcase /></span>
-                                    <p className="text-xs text-red-700"><span className="font-bold">Remove all active jobs</span> · All {report.active_jobs_count} active job postings will be immediately removed</p>
+                                    <p className="text-xs text-red-700"><span className="font-bold">Deactivate all active jobs</span> · All {report.active_jobs_count} active job postings will be marked as inactive and hidden from public view</p>
                                 </div>
                             </div>
                         )}
@@ -709,13 +813,28 @@ export function BanModal({ report, onClose, onConfirm, tab }: {
                     <div className="bg-gray-50 rounded-xl px-5 py-4 mb-8 flex gap-3">
                         <span className="text-gray-400 flex-shrink-0 mt-0.5"><IcoAlert /></span>
                         <p className="text-xs text-gray-500 leading-relaxed">
-                            Please ensure you have thoroughly reviewed all evidence and reports before proceeding. This action is <span className="font-bold">permanent</span> and cannot be reversed.
+                            Please ensure you have thoroughly reviewed all evidence and reports before proceeding. <span className="font-bold">The account will be permanently banned</span> and all active jobs will be deactivated. Users will be unable to post new jobs or manage their account.
                         </p>
+                    </div>
+
+                    {/* Confirmation Input */}
+                    <div className="mb-6">
+                        <label className="block text-sm font-bold text-gray-700 mb-2">
+                            Type <span className="font-mono bg-gray-100 px-2 py-0.5 rounded text-red-600">ban account</span> to confirm
+                        </label>
+                        <input 
+                            type="text" 
+                            value={confirmText}
+                            onChange={(e) => setConfirmText(e.target.value)}
+                            placeholder="Type confirmation text here..."
+                            className="w-full px-4 py-2.5 border border-red-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                        />
+                        <p className="text-xs text-gray-400 mt-1">This confirmation prevents accidental account bans</p>
                     </div>
 
                     <div className="flex gap-3">
                         <button onClick={onClose} className="px-6 py-2.5 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors">Cancel</button>
-                        <button onClick={handleConfirm} disabled={submitting} className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center gap-2">
+                        <button onClick={handleConfirm} disabled={submitting || confirmText.toLowerCase() !== expectedConfirmText} className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
                             <IcoCircleOff /> {submitting ? 'Banning...' : 'Confirm Ban'}
                         </button>
                     </div>

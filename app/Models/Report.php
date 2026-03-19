@@ -22,11 +22,16 @@ class Report extends Model
         'action_by',
         'action_at',
         'action_note',
+        'appeal_message',
+        'appealed_at',
+        'appeal_status',
+        'appeal_decision_note',
     ];
 
     protected $casts = [
         'evidence' => 'array',
         'action_at' => 'datetime',
+        'appealed_at' => 'datetime',
     ];
 
     /* ── Relationships ─────────────────────────────────────────────────── */

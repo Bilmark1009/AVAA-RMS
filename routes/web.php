@@ -225,6 +225,9 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         Route::post('/interviews/{interview}/pass', [InterviewController::class, 'passInterview'])->name('interviews.pass');
         Route::post('/interviews/{interview}/fail', [InterviewController::class, 'failInterview'])->name('interviews.fail');
 
+        // Appeals for suspended/banned job postings
+        Route::post('/appeals', [App\Http\Controllers\Employer\AppealController::class, 'store'])->name('appeals.store');
+
         Route::get('/users', [EmployeeController::class, 'index'])->name('users.index');
         Route::post('/users/{application}/end-contract', [EmployeeController::class, 'endContract'])->name('users.end-contract');
     });
@@ -271,6 +274,10 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         Route::get('/reports', [App\Http\Controllers\Admin\AdminReportController::class, 'index'])->name('reports.index');
         Route::patch('/reports/{report}/approve', [App\Http\Controllers\Admin\AdminReportController::class, 'approve'])->name('reports.approve');
         Route::patch('/reports/{report}/decline', [App\Http\Controllers\Admin\AdminReportController::class, 'decline'])->name('reports.decline');
+        Route::patch('/reports/{report}/suspend', [App\Http\Controllers\Admin\AdminReportController::class, 'suspend'])->name('reports.suspend');
+        Route::patch('/reports/{report}/ban', [App\Http\Controllers\Admin\AdminReportController::class, 'ban'])->name('reports.ban');
+        Route::patch('/appeals/{report}/approve', [App\Http\Controllers\Admin\AdminReportController::class, 'approveAppeal'])->name('appeals.approve');
+        Route::patch('/appeals/{report}/reject', [App\Http\Controllers\Admin\AdminReportController::class, 'rejectAppeal'])->name('appeals.reject');
 
         // User Management
         Route::get('/users', [UserManagementController::class, 'index'])->name('users.index');

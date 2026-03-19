@@ -71,6 +71,19 @@ class JobListing extends Model
         return $this->hasMany(JobCollaborator::class)->where('status', 'accepted');
     }
 
+    public function reports(): HasMany
+    {
+        return $this->hasMany(Report::class);
+    }
+
+    /**
+     * Get the pending report for this job if it exists.
+     */
+    public function pendingReport()
+    {
+        return $this->hasOne(Report::class)->where('status', 'pending');
+    }
+
     /**
      * Check whether the given user is an accepted collaborator on this job.
      */

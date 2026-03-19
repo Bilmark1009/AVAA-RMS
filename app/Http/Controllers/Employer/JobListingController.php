@@ -35,6 +35,12 @@ class JobListingController extends Controller
 
         // Helper closure to format a job
         $formatJob = function (JobListing $job, bool $isOwner) use ($user) {
+            // Get any active report (pending, resolved, or dismissed) - not just pending
+            $pendingReport = $job->reports()
+                ->whereIn('status', ['pending', 'resolved', 'dismissed'])
+                ->latest('created_at')
+                ->first();
+
             return [
                 'id'                 => $job->id,
                 'title'              => $job->title,
@@ -63,6 +69,11 @@ class JobListingController extends Controller
                 'application_limit'  => $job->application_limit,
                 'work_arrangement'   => $job->work_arrangement,
                 'is_owner'           => $isOwner,
+                'report_id'          => $pendingReport?->id,
+                'report_status'      => $pendingReport?->status,
+                'report_reason'      => $pendingReport?->reason,
+                'reported_at'        => $pendingReport?->created_at?->toISOString(),
+                'report_count'       => $job->reports()->count(),
             ];
         };
 
