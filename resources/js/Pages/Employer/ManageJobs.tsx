@@ -100,6 +100,69 @@ function StatusBadge({ status, jobId, onClick }: { status: JobListing['status'];
     );
 }
 
+/* ── Sort Dropdown ── */
+function SortDropdown({
+    value,
+    onChange,
+    fullWidthOnMobile = true,
+}: {
+    value: 'newest' | 'oldest' | 'most_applicants';
+    onChange: (v: 'newest' | 'oldest' | 'most_applicants') => void;
+    fullWidthOnMobile?: boolean;
+}) {
+    const [open, setOpen] = useState(false);
+    const ref = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const h = (e: MouseEvent) => {
+            if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+        };
+        document.addEventListener('mousedown', h);
+        return () => document.removeEventListener('mousedown', h);
+    }, []);
+
+    const options: { value: 'newest' | 'oldest' | 'most_applicants'; label: string }[] = [
+        { value: 'newest', label: 'Newest' },
+        { value: 'oldest', label: 'Oldest' },
+        { value: 'most_applicants', label: 'Most Applicants' },
+    ];
+    const current = options.find(o => o.value === value)?.label ?? 'Newest';
+
+    return (
+        <div ref={ref} className={`relative ${fullWidthOnMobile ? 'w-full sm:w-auto' : ''}`}>
+            <button
+                type="button"
+                onClick={() => setOpen(o => !o)}
+                className="h-9 w-full sm:w-auto px-3 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-600 focus:outline-none focus:ring-2 focus:ring-[#6D9886] shadow-sm flex items-center justify-between gap-2"
+            >
+                <span className="truncate">{current}</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="opacity-70 flex-shrink-0">
+                    <polyline points="6 9 12 15 18 9" />
+                </svg>
+            </button>
+            {open && (
+                <div className="absolute left-0 right-0 sm:right-auto sm:min-w-[170px] mt-1 z-30 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+                    {options.map(opt => (
+                        <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => {
+                                onChange(opt.value);
+                                setOpen(false);
+                            }}
+                            className={`w-full px-3 py-2 text-left text-xs font-semibold transition-colors ${
+                                opt.value === value ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50'
+                            }`}
+                        >
+                            {opt.label}
+                        </button>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
 /* ── Options Dropdown ── */
 function OptionsMenu({ job, onEdit }: { job: JobListing; onEdit: () => void }) {
     const [open, setOpen] = useState(false);
@@ -688,7 +751,7 @@ export default function ManageJobs({ user, profile, jobs, isVerified, pendingInv
                 {/* Toolbar */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     {/* Filter tabs */}
-                    <div className="inline-flex items-center bg-white border border-gray-200 rounded-xl p-1 gap-0.5 shadow-sm">
+                    <div className="w-full sm:w-auto inline-flex items-center bg-white border border-gray-200 rounded-xl p-1 gap-0.5 shadow-sm overflow-x-auto max-w-full">
                         {(['all', 'active', 'inactive', 'draft'] as const).map(tab => (
                             <button key={tab} onClick={() => setFilter(tab)}
                                 className={`px-4 py-1.5 rounded-lg text-xs font-bold capitalize transition-all ${filter === tab ? 'bg-[#6D9886] text-white shadow-sm' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'}`}>
@@ -698,36 +761,39 @@ export default function ManageJobs({ user, profile, jobs, isVerified, pendingInv
                         ))}
                     </div>
 
-                    <div className="flex items-center gap-2">
-                        {/* Invitations link */}
-                        <button
-                            onClick={() => router.visit(route('employer.jobs.invitations'))}
-                            className="inline-flex items-center gap-1.5 px-3 h-9 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-xs font-bold rounded-xl transition-colors border border-indigo-100 whitespace-nowrap"
-                        >
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-                            Invitations
-                            {pendingInvitationsCount > 0 && (
-                                <span className="bg-indigo-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{pendingInvitationsCount}</span>
-                            )}
-                        </button>
-                        {/* Search */}
-                        <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 h-9 w-56 shadow-sm">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="text-gray-400 flex-shrink-0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search jobs..." className="text-xs bg-transparent text-gray-900 placeholder-gray-400 font-medium focus:outline-none w-full" />
+                    <div className="w-full sm:w-auto grid grid-cols-1 gap-2 sm:flex sm:flex-nowrap sm:items-center">
+                        <div className="grid grid-cols-[auto,1fr] gap-2 sm:flex sm:items-center">
+                            {/* Invitations link */}
+                            <button
+                                onClick={() => router.visit(route('employer.jobs.invitations'))}
+                                className="inline-flex items-center gap-1.5 px-3 h-9 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-xs font-bold rounded-xl transition-colors border border-indigo-100 whitespace-nowrap"
+                            >
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                                Invitations
+                                {pendingInvitationsCount > 0 && (
+                                    <span className="bg-indigo-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{pendingInvitationsCount}</span>
+                                )}
+                            </button>
+                            {/* Search */}
+                            <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 h-9 shadow-sm min-w-0 overflow-hidden w-full sm:w-56">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="text-gray-400 flex-shrink-0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                <input
+                                    type="search"
+                                    value={search}
+                                    onChange={e => setSearch(e.target.value)}
+                                    placeholder="Search jobs..."
+                                    className="w-full min-w-0 text-xs bg-transparent text-gray-900 placeholder-gray-400 font-medium focus:outline-none focus:ring-0 border-0 p-0 appearance-none"
+                                />
+                            </div>
                         </div>
                         {/* Sort */}
-                        <select value={sortBy} onChange={e => setSortBy(e.target.value as any)}
-                            className="h-9 px-3 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-600 focus:outline-none focus:ring-2 focus:ring-[#6D9886] shadow-sm">
-                            <option value="newest">Newest</option>
-                            <option value="oldest">Oldest</option>
-                            <option value="most_applicants">Most Applicants</option>
-                        </select>
+                        <SortDropdown value={sortBy} onChange={setSortBy} />
                         {/* Add Job */}
                         <button
                             onClick={() => isVerified && router.visit(route('employer.jobs.create'))}
                             disabled={!isVerified}
                             title={!isVerified ? 'Requires verification' : undefined}
-                            className="inline-flex items-center gap-1.5 px-4 h-9 bg-[#6D9886] hover:bg-[#5a8371] text-white text-xs font-bold rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm whitespace-nowrap"
+                            className="inline-flex items-center justify-center gap-1.5 px-4 h-9 bg-[#6D9886] hover:bg-[#5a8371] text-white text-xs font-bold rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm whitespace-nowrap w-full sm:w-auto flex-shrink-0"
                         >
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                             Add Job
