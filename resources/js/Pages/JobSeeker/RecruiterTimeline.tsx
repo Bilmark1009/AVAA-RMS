@@ -2,6 +2,7 @@ import { Head, Link } from "@inertiajs/react";
 import AppLayout from "@/Layouts/AppLayout";
 import ImageInitialsFallback from "@/Components/ImageInitialsFallback";
 import { useState, useEffect, useRef } from 'react';
+
 interface Props {
     member: any;
     postedJobs: any[];
@@ -44,25 +45,26 @@ export default function EmployerProfile({ member, postedJobs = [] }: Props) {
         <AppLayout>
             <Head title={`${displayName} - Profile`} />
 
-            <div className="max-w-6xl mx-auto flex flex-col lg:flex-row gap-6">
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex flex-col lg:flex-row gap-6 lg:gap-8">
                 {/* ══ LEFT COLUMN: Profile & Job Timeline ══ */}
-                <div className="flex-1 space-y-6">
+                <div className="flex-1 space-y-6 min-w-0">
                     {/* Profile Header Card */}
                     <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
                         <div className="h-32 bg-gradient-to-r from-[#5a8b8b] to-[#7db0a1]" />
-                        <div className="px-8 pb-8">
+                        <div className="px-6 sm:px-8 pb-8">
                             <div className="flex justify-between items-end -mt-12 mb-6">
                                 <ImageInitialsFallback
                                     src={member.avatar}
                                     alt={`${member.name ?? "Recruiter"}'s profile picture`}
                                     initials={member.name?.charAt(0) ?? "R"}
-                                    className="w-24 h-24 rounded-2xl ring-4 ring-white shadow-md bg-avaa-dark object-cover overflow-hidden"
+                                    className="w-24 h-24 rounded-2xl ring-4 ring-white shadow-md bg-avaa-dark object-cover overflow-hidden shrink-0"
                                 />
-                                <span className="px-3 py-1 bg-emerald-100 text-emerald-600 text-xs font-bold rounded-full">
+                                <span className="px-3 py-1 bg-emerald-100 text-emerald-600 text-xs font-bold rounded-full mb-2">
                                     Active
                                 </span>
                             </div>
-                            <h1 className="text-2xl font-bold text-gray-800">
+                            
+                            <h1 className="text-2xl font-bold text-gray-800 break-words">
                                 {member.name ?? "Unknown Name"}
                             </h1>
                             <p className="text-gray-500 font-medium">
@@ -72,7 +74,7 @@ export default function EmployerProfile({ member, postedJobs = [] }: Props) {
                             {member.email && (
                                 <a
                                     href={`mailto:${member.email}`}
-                                    className="text-sm text-avaa-teal hover:underline mt-1 block"
+                                    className="text-sm text-avaa-teal hover:underline mt-1 block truncate"
                                 >
                                     {member.email}
                                 </a>
@@ -82,7 +84,7 @@ export default function EmployerProfile({ member, postedJobs = [] }: Props) {
                                 <h3 className="font-bold text-gray-800 mb-3">
                                     About
                                 </h3>
-                                <p className="text-gray-600 text-[15px] leading-relaxed">
+                                <p className="text-gray-600 text-[15px] leading-relaxed break-words whitespace-pre-wrap">
                                     {member.about ||
                                         "This recruiter hasn't provided a bio yet."}
                                 </p>
@@ -102,18 +104,14 @@ export default function EmployerProfile({ member, postedJobs = [] }: Props) {
                                 {postedJobs.map((job) => (
                                     <div
                                         key={job.id}
-                                        className="bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-md transition-all flex flex-col gap-4"
+                                        className="bg-white border border-gray-200 rounded-2xl p-5 sm:p-6 hover:shadow-md transition-all flex flex-col gap-4"
                                     >
-                                        {/* 1. Header: Avatar + Title (Centered) */}
+                                        {/* 1. Header: Avatar + Title */}
                                         <div className="flex items-center gap-4">
                                             <ImageInitialsFallback
                                                 src={job.company_logo}
                                                 alt={`${job.company_name} logo`}
-                                                initials={
-                                                    job.company_name?.charAt(
-                                                        0,
-                                                    ) ?? "A"
-                                                }
+                                                initials={job.company_name?.charAt(0) ?? "A"}
                                                 className="w-12 h-12 rounded-full border border-gray-100 flex-shrink-0 object-cover overflow-hidden"
                                             />
                                             <div className="min-w-0 flex-1">
@@ -128,49 +126,23 @@ export default function EmployerProfile({ member, postedJobs = [] }: Props) {
 
                                         {/* 2. Info Row: Location, Time, Type */}
                                         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px] text-gray-500">
-                                            <span className="flex items-center gap-1.5">
-                                                <svg
-                                                    className="w-4 h-4 text-gray-400"
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    viewBox="0 0 24 24"
-                                                >
-                                                    <path
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        strokeWidth="2"
-                                                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                                                    />
-                                                    <path
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        strokeWidth="2"
-                                                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                                                    />
+                                            <span className="flex items-center gap-1.5 whitespace-nowrap">
+                                                <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                                                 </svg>
-                                                {job.is_remote
-                                                    ? "Remote"
-                                                    : job.location}
+                                                <span className="truncate max-w-[120px] sm:max-w-none">
+                                                    {job.is_remote ? "Remote" : job.location}
+                                                </span>
                                             </span>
-                                            <span className="flex items-center gap-1.5">
-                                                <svg
-                                                    className="w-4 h-4 text-gray-400"
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    viewBox="0 0 24 24"
-                                                >
-                                                    <path
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        strokeWidth="2"
-                                                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                                                    />
+                                            <span className="flex items-center gap-1.5 whitespace-nowrap">
+                                                <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                 </svg>
                                                 {timeAgo(job.posted_date)}
                                             </span>
-                                            <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-600 text-[11px] font-bold rounded-full uppercase tracking-wide">
-                                                {job.employment_type ||
-                                                    "Full-time"}
+                                            <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-600 text-[11px] font-bold rounded-full uppercase tracking-wide whitespace-nowrap">
+                                                {job.employment_type || "Full-time"}
                                             </span>
                                         </div>
 
@@ -181,7 +153,7 @@ export default function EmployerProfile({ member, postedJobs = [] }: Props) {
                                                 .map((skill: string) => (
                                                     <span
                                                         key={skill}
-                                                        className="text-[12px] px-3 py-1 bg-gray-50 text-gray-600 rounded-lg font-medium border border-gray-100"
+                                                        className="text-[12px] px-3 py-1 bg-gray-50 text-gray-600 rounded-lg font-medium border border-gray-100 whitespace-nowrap"
                                                     >
                                                         {skill}
                                                     </span>
@@ -189,8 +161,8 @@ export default function EmployerProfile({ member, postedJobs = [] }: Props) {
                                         </div>
 
                                         {/* 4. Footer: Salary + Actions */}
-                                        <div className="flex items-center justify-between pt-4 border-t border-gray-100 mt-auto">
-                                            <div className="flex-shrink-0">
+                                        <div className="flex flex-wrap items-center justify-between gap-y-4 gap-x-2 pt-4 border-t border-gray-100 mt-auto">
+                                            <div className="flex-shrink-0 mr-4">
                                                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">
                                                     Salary Range
                                                 </p>
@@ -203,36 +175,25 @@ export default function EmployerProfile({ member, postedJobs = [] }: Props) {
                                                 </p>
                                             </div>
 
-                                            <div className="flex items-center gap-2">
-                                                <button className="p-2 rounded-xl border border-gray-200 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all">
-                                                    <svg
-                                                        width="16"
-                                                        height="16"
-                                                        viewBox="0 0 24 24"
-                                                        fill="none"
-                                                        stroke="currentColor"
-                                                        strokeWidth="2.5"
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                    >
+                                            {/* Action Buttons Container */}
+                                            <div className="flex items-center gap-2 shrink-0">
+                                                <button className="flex items-center justify-center w-9 h-9 rounded-xl border border-gray-200 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all shrink-0">
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                                         <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
                                                     </svg>
                                                 </button>
                                                 <Link
-                                                    href={route(
-                                                        "job-seeker.jobs.show",
-                                                        job.id,
-                                                    )}
-                                                    className="px-3 py-1.5 border border-gray-200 text-gray-700 text-[13px] font-bold rounded-xl hover:border-gray-400 transition-colors"
+                                                    href={route("job-seeker.jobs.show", job.id)}
+                                                    className="flex items-center justify-center px-4 h-9 border border-gray-200 text-gray-700 text-[13px] font-bold rounded-xl hover:border-gray-400 transition-colors whitespace-nowrap"
                                                 >
                                                     View Details
                                                 </Link>
                                                 {job.has_applied ? (
-                                                    <button className="px-4 py-1.5 bg-emerald-100/80 text-emerald-700 text-[13px] font-bold rounded-xl">
+                                                    <button className="flex items-center justify-center px-5 h-9 bg-emerald-100/80 text-emerald-700 text-[13px] font-bold rounded-xl whitespace-nowrap">
                                                         Applied ✓
                                                     </button>
                                                 ) : (
-                                                    <button className="px-4 py-1.5 bg-avaa-teal text-white text-[13px] font-bold rounded-xl shadow-sm hover:bg-opacity-90">
+                                                    <button className="flex items-center justify-center px-5 h-9 bg-avaa-teal text-white text-[13px] font-bold rounded-xl shadow-sm hover:bg-opacity-90 whitespace-nowrap">
                                                         Apply
                                                     </button>
                                                 )}
@@ -252,25 +213,25 @@ export default function EmployerProfile({ member, postedJobs = [] }: Props) {
                 </div>
 
                 {/* ══ RIGHT COLUMN: Stats & Details ══ */}
-                <div className="w-full lg:w-80 space-y-6">
+                <div className="w-full lg:w-80 space-y-6 shrink-0">
                     <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
                         <h3 className="text-sm font-bold text-gray-800 mb-4">
                             Operational Overview
                         </h3>
                         <div className="grid grid-cols-2 gap-3">
-                            <div className="bg-gray-50 p-4 rounded-xl text-center border border-gray-100">
+                            <div className="bg-gray-50 p-4 rounded-xl text-center border border-gray-100 flex flex-col justify-center">
                                 <p className="text-xl font-bold text-avaa-teal">
                                     {postedJobs.length}
                                 </p>
-                                <p className="text-[10px] text-gray-400 font-black uppercase">
+                                <p className="text-[10px] text-gray-400 font-black uppercase mt-1">
                                     Total Job Post
                                 </p>
                             </div>
-                            <div className="bg-gray-50 p-4 rounded-xl text-center border border-gray-100">
+                            <div className="bg-gray-50 p-4 rounded-xl text-center border border-gray-100 flex flex-col justify-center">
                                 <p className="text-xl font-bold text-avaa-teal">
                                     0
                                 </p>
-                                <p className="text-[10px] text-gray-400 font-black uppercase">
+                                <p className="text-[10px] text-gray-400 font-black uppercase mt-1">
                                     Total Applicant
                                 </p>
                             </div>
@@ -301,7 +262,7 @@ export default function EmployerProfile({ member, postedJobs = [] }: Props) {
                                     <p className="text-[10px] text-gray-400 font-black uppercase tracking-wider">
                                         {detail.label}
                                     </p>
-                                    <p className="text-sm font-bold text-gray-700">
+                                    <p className="text-sm font-bold text-gray-700 break-words">
                                         {detail.value || "N/A"}
                                     </p>
                                 </div>
@@ -311,7 +272,8 @@ export default function EmployerProfile({ member, postedJobs = [] }: Props) {
                                     <a
                                         href={member.website}
                                         target="_blank"
-                                        className="text-xs font-bold text-avaa-teal hover:underline"
+                                        rel="noreferrer"
+                                        className="text-xs font-bold text-avaa-teal hover:underline break-all"
                                     >
                                         Visit Website →
                                     </a>

@@ -137,9 +137,25 @@ function profileFrameRingClass(frame?: string | null) {
 }
 
 function profileFrameLabel(frame?: string | null) {
-    if (frame === 'open_to_work') return 'Open to Work';
-    if (frame === 'not_open_to_work') return 'Not Open to Work';
+    if (frame === 'open_to_work') return { text: 'Available', cls: 'bg-emerald-500 text-white', icon: null };
+    if (frame === 'not_open_to_work') return { text: 'Unavailable', cls: 'bg-red-500 text-white', icon: null };
     return null;
+}
+
+function ProfileFrameBadge({ frame, size = 'sm' }: { frame?: string | null; size?: 'xs' | 'sm' }) {
+    const badge = profileFrameLabel(frame);
+    if (!badge) return null;
+    const px = size === 'xs' ? 'px-2 py-0.5 text-[8px]' : 'px-2.5 py-0.5 text-[10px]';
+    return (
+        <span className={`inline-flex items-center gap-1 font-bold rounded-full whitespace-nowrap shadow ${badge.cls} ${px}`}>
+            {badge.icon && (
+                <svg width="6" height="6" viewBox="0 0 10 10" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
+                    <line x1="1" y1="1" x2="9" y2="9" /><line x1="9" y1="1" x2="1" y2="9" />
+                </svg>
+            )}
+            {badge.text}
+        </span>
+    );
 }
 
 /* ── Delete Confirm Modal ── */
@@ -209,13 +225,18 @@ function UserDetailsModal({ user, onClose }: { user: User; onClose: () => void }
                 {/* Profile Header */}
                 <div className="flex justify-between items-start mb-8 pb-8 border-b border-gray-200">
                     <div className="flex gap-6">
-                        <ImageInitialsFallback
-                            src={user.avatar}
-                            alt={initials}
-                            initials={initials}
-                            className={`w-20 h-20 rounded-full flex-shrink-0 overflow-hidden ${profileFrameRingClass(frame)} ${user.avatar ? 'bg-white border border-gray-200' : 'bg-[#3d9e9e]'}`}
-                            textClassName="text-white text-lg font-bold flex items-center justify-center"
-                        />
+                        <div className="relative">
+                            <ImageInitialsFallback
+                                src={user.avatar}
+                                alt={initials}
+                                initials={initials}
+                                className={`w-20 h-20 rounded-full flex-shrink-0 overflow-hidden ${profileFrameRingClass(frame)} ${user.avatar ? 'bg-white border border-gray-200' : 'bg-[#3d9e9e]'}`}
+                                textClassName="text-white text-lg font-bold flex items-center justify-center"
+                            />
+                            <span className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 z-20">
+                                {user.role === 'job_seeker' && <ProfileFrameBadge frame={frame} size="xs" />}
+                            </span>
+                        </div>
                         <div className="min-w-0">
                             <div className="flex items-center gap-3 mb-2">
                                 <h2 className="text-2xl font-semibold text-gray-900">{user.first_name} {user.last_name}</h2>
@@ -225,7 +246,7 @@ function UserDetailsModal({ user, onClose }: { user: User; onClose: () => void }
                             </div>
                             <p className="text-gray-600 text-sm leading-relaxed max-w-2xl">
                                 {user.role === 'job_seeker' 
-                                    ? `Job Seeker with profile frame: ${profileFrameLabel(frame) || 'Default'}` 
+                                    ? `Job Seeker${profileFrameLabel(frame) ? ` · ${profileFrameLabel(frame)!.text}` : ''}` 
                                     : `Employer${user.employerProfile?.company_name ? ` • ${user.employerProfile.company_name}` : ''}`}
                             </p>
                         </div>
@@ -537,13 +558,18 @@ export default function AdminUsers({ users, filters }: Props) {
                                                 {/* User */}
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-3">
-                                                        <ImageInitialsFallback
-                                                            src={user.avatar}
-                                                            alt={initials}
-                                                            initials={initials}
-                                                            className={`w-9 h-9 rounded-full flex-shrink-0 overflow-hidden ${profileFrameRingClass(frame)} ${user.avatar ? 'bg-white' : AVATAR_BG[i % AVATAR_BG.length]}`}
-                                                            textClassName="text-white text-xs font-bold flex items-center justify-center"
-                                                        />
+                                                        <div className="relative">
+                                                            <ImageInitialsFallback
+                                                                src={user.avatar}
+                                                                alt={initials}
+                                                                initials={initials}
+                                                                className={`w-9 h-9 rounded-full flex-shrink-0 overflow-hidden ${profileFrameRingClass(frame)} ${user.avatar ? 'bg-white' : AVATAR_BG[i % AVATAR_BG.length]}`}
+                                                                textClassName="text-white text-xs font-bold flex items-center justify-center"
+                                                            />
+                                                            <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-10">
+                                                                {user.role === 'job_seeker' && <ProfileFrameBadge frame={frame} size="xs" />}
+                                                            </span>
+                                                        </div>
 
                                                         <div className="min-w-0">
                                                             <p className="font-semibold text-gray-800 leading-tight truncate">
@@ -552,7 +578,6 @@ export default function AdminUsers({ users, filters }: Props) {
                                                                     <span className="ml-2 text-[10px] font-bold text-red-400 bg-red-50 px-1.5 py-0.5 rounded-full">DELETED</span>
                                                                 )}
                                                             </p>
-                                                            {user.role === 'job_seeker' && profileFrameLabel(frame) && <p className="text-[11px] text-gray-500 truncate">{profileFrameLabel(frame)}</p>}
                                                             <p className="text-xs text-gray-400 truncate mt-0.5">{user.email}</p>
                                                         </div>
                                                     </div>
@@ -653,13 +678,18 @@ export default function AdminUsers({ users, filters }: Props) {
                                     <div key={user.id} className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition flex flex-col">
 
                                         <div className="flex items-start gap-3 mb-3">
-                                            <ImageInitialsFallback
-                                                src={user.avatar}
-                                                alt={initials}
-                                                initials={initials}
-                                                className={`w-10 h-10 rounded-full overflow-hidden ${profileFrameRingClass(frame)} ${user.avatar ? 'bg-white' : AVATAR_BG[i % AVATAR_BG.length]}`}
-                                                textClassName="text-white text-sm font-bold flex items-center justify-center"
-                                            />
+                                            <div className="relative flex-shrink-0">
+                                                <ImageInitialsFallback
+                                                    src={user.avatar}
+                                                    alt={initials}
+                                                    initials={initials}
+                                                    className={`w-10 h-10 rounded-full overflow-hidden ${profileFrameRingClass(frame)} ${user.avatar ? 'bg-white' : AVATAR_BG[i % AVATAR_BG.length]}`}
+                                                    textClassName="text-white text-sm font-bold flex items-center justify-center"
+                                                />
+                                                <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-10">
+                                                    {user.role === 'job_seeker' && <ProfileFrameBadge frame={frame} size="xs" />}
+                                                </span>
+                                            </div>
 
                                             <div className="min-w-0">
                                                 <div className="flex items-center gap-2">
@@ -672,7 +702,6 @@ export default function AdminUsers({ users, filters }: Props) {
                                                 </div>
 
                                                 <p className="text-xs text-gray-400 truncate mt-0.5">{user.email}</p>
-                                                {user.role === 'job_seeker' && profileFrameLabel(frame) && <p className="text-[11px] text-gray-500 truncate mt-0.5">{profileFrameLabel(frame)}</p>}
                                                 <p className="mt-2 flex items-center gap-1 text-xs text-gray-400">
                                                     <IcoCalendar />
                                                     {new Date(user.created_at).toISOString().slice(0, 10)}

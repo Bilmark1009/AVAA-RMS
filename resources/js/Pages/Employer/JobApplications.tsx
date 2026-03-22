@@ -63,9 +63,25 @@ function profileFrameRingClass(frame?: string | null) {
     return '';
 }
 function profileFrameLabel(frame?: string | null) {
-    if (frame === 'open_to_work') return 'Open to Work';
-    if (frame === 'not_open_to_work') return 'Not Open to Work';
+    if (frame === 'open_to_work') return { text: 'Available', cls: 'bg-emerald-500 text-white', icon: null };
+    if (frame === 'not_open_to_work') return { text: 'Unavailable', cls: 'bg-red-500 text-white', icon: null };
     return null;
+}
+
+function ProfileFrameBadge({ frame, size = 'sm' }: { frame?: string | null; size?: 'xs' | 'sm' }) {
+    const badge = profileFrameLabel(frame);
+    if (!badge) return null;
+    const px = size === 'xs' ? 'px-2 py-0.5 text-[8px]' : 'px-2.5 py-0.5 text-[10px]';
+    return (
+        <span className={`inline-flex items-center gap-1 font-bold rounded-full whitespace-nowrap shadow ${badge.cls} ${px}`}>
+            {badge.icon && (
+                <svg width="6" height="6" viewBox="0 0 10 10" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
+                    <line x1="1" y1="1" x2="9" y2="9" /><line x1="9" y1="1" x2="1" y2="9" />
+                </svg>
+            )}
+            {badge.text}
+        </span>
+    );
 }
 function timeAgo(dateStr: string) {
     const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
@@ -150,17 +166,21 @@ function RejectModal({ app, jobId, onClose }: { app: Application; jobId: number;
 
                 {/* Avatar + Name */}
                 <div className="px-6 -mt-8 flex items-end gap-3 flex-shrink-0 relative z-10 mb-3">
-                    <ImageInitialsFallback
-                        src={app.user.avatar}
-                        alt={fullName}
-                        initials={getInitials(app.user.first_name, app.user.last_name)}
-                        className={`w-16 h-16 rounded-2xl ring-4 ring-white shadow-md overflow-hidden ${profileFrameRingClass(frame)} ${app.user.avatar ? 'bg-white' : avatarColor(app.user.id)}`}
-                        textClassName="text-white text-xl font-bold flex items-center justify-center"
-                    />
-                    <div className="pb-1">
-                        <h2 className="text-lg font-bold text-avaa-dark">{fullName}</h2>
-                        {profileFrameLabel(frame) && <p className="text-xs text-gray-500">{profileFrameLabel(frame)}</p>}
-                        <p className="text-sm text-gray-500">{app.user.email}</p>
+                    <div className="relative">
+                        <ImageInitialsFallback
+                            src={app.user.avatar}
+                            alt={fullName}
+                            initials={getInitials(app.user.first_name, app.user.last_name)}
+                            className={`w-16 h-16 rounded-2xl ring-4 ring-white shadow-md overflow-hidden ${profileFrameRingClass(frame)} ${app.user.avatar ? 'bg-white' : avatarColor(app.user.id)}`}
+                            textClassName="text-white text-xl font-bold flex items-center justify-center"
+                        />
+                        <span className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 z-20">
+                            <ProfileFrameBadge frame={frame} size="xs" />
+                        </span>
+                    </div>
+                    <div className="pb-1 min-w-0">
+                        <h2 className="text-lg font-bold text-avaa-dark truncate">{fullName}</h2>
+                        <p className="text-sm text-gray-500 truncate">{app.user.email}</p>
                     </div>
                 </div>
 
@@ -261,23 +281,27 @@ function ApproveModal({ app, jobId, employerAddress, onClose }: {
 
                 {/* Avatar + Name */}
                 <div className="px-6 -mt-8 flex items-end gap-3 flex-shrink-0 relative z-10 mb-3">
-                    <ImageInitialsFallback
-                        src={app.user.avatar}
-                        alt={fullName}
-                        initials={getInitials(app.user.first_name, app.user.last_name)}
-                        className={`w-16 h-16 rounded-2xl ring-4 ring-white shadow-md overflow-hidden ${profileFrameRingClass(frame)} ${app.user.avatar ? 'bg-white' : avatarColor(app.user.id)}`}
-                        textClassName="text-white text-xl font-bold flex items-center justify-center"
-                    />
-                    <div className="pb-1">
-                        <h2 className="text-lg font-bold text-avaa-dark">{fullName}</h2>
-                        {profileFrameLabel(frame) && <p className="text-xs text-gray-500">{profileFrameLabel(frame)}</p>}
-                        <p className="text-sm text-gray-500">{app.user.email}</p>
+                    <div className="relative shrink-0">
+                        <ImageInitialsFallback
+                            src={app.user.avatar}
+                            alt={fullName}
+                            initials={getInitials(app.user.first_name, app.user.last_name)}
+                            className={`w-16 h-16 rounded-2xl ring-4 ring-white shadow-md overflow-hidden ${profileFrameRingClass(frame)} ${app.user.avatar ? 'bg-white' : avatarColor(app.user.id)}`}
+                            textClassName="text-white text-xl font-bold flex items-center justify-center"
+                        />
+                        <span className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 z-20">
+                            <ProfileFrameBadge frame={frame} size="xs" />
+                        </span>
+                    </div>
+                    <div className="pb-1 min-w-0">
+                        <h2 className="text-lg font-bold text-avaa-dark truncate">{fullName}</h2>
+                        <p className="text-sm text-gray-500 truncate">{app.user.email}</p>
                     </div>
                 </div>
 
                 <div className="overflow-y-auto flex-1 px-6 pb-5 pt-2 space-y-4">
                     {/* Date + Time */}
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                             <label className={labelClass}>Interview Date</label>
                             <input type="date" value={form.interview_date} onChange={e => set('interview_date', e.target.value)}
@@ -290,7 +314,7 @@ function ApproveModal({ app, jobId, employerAddress, onClose }: {
                     </div>
 
                     {/* Type + Interviewer */}
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                             <label className={labelClass}>Interview Type</label>
                             <select value={form.interview_type} onChange={e => set('interview_type', e.target.value)} className={inputClass}>
@@ -443,7 +467,7 @@ function ApplicantModal({ app, jobId, onClose, onReject, onApprove }: {
     const resumePath = (app.resume_path) ?? (u.profile?.resume_path) ?? (ad?.existing_resume);
     const resumeName = resumePath ? resumePath.split('/').pop() : null;
     const resumeViewUrl = resumePath ? route('applications.resume', { application: app.id }) : null;
-    const timelineUrl = route('employer.users.timeline', { application: app.id });
+    const resumeDownloadUrl = resumePath ? `${route('applications.resume', { application: app.id })}?download=1` : null;
     
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -456,79 +480,73 @@ function ApplicantModal({ app, jobId, onClose, onReject, onApprove }: {
                     </button>
                 </div>
 
-                <div className="px-6 -mt-10 flex items-end gap-4 flex-shrink-0 relative z-10 mb-2">
-    {/* Avatar Link */}
-    <Link 
-        href={route('employer.users.timeline', { application: app.id })}
-        className="transition-transform duration-200 hover:scale-105"
-    >
-        <ImageInitialsFallback
-            src={u.avatar}
-            alt={fullName}
-            initials={initials}
-            className={`w-20 h-20 rounded-2xl ring-4 ring-white shadow-md overflow-hidden ${u.avatar ? 'bg-white' : avatarColor(u.id)}`}
-            textClassName="text-white text-2xl font-bold flex items-center justify-center"
-        />
-    </Link>
+                <div className="px-5 sm:px-6 -mt-10 flex items-end gap-4 flex-shrink-0 relative z-10 mb-2">
+                    <Link 
+                        href={route('employer.users.timeline', { application: app.id })}
+                        className="transition-transform duration-200 hover:scale-105 shrink-0"
+                    >
+                        <ImageInitialsFallback
+                            src={u.avatar}
+                            alt={fullName}
+                            initials={initials}
+                            className={`w-20 h-20 rounded-2xl ring-4 ring-white shadow-md overflow-hidden ${u.avatar ? 'bg-white' : avatarColor(u.id)}`}
+                            textClassName="text-white text-2xl font-bold flex items-center justify-center"
+                        />
+                    </Link>
 
-    <div className="pb-1">
-        {/* Name Link */}
-        <Link 
-            href={route('employer.users.timeline', { application: app.id })}
-            className="group flex items-center gap-1.5"
-        >
-            <h2 className="text-lg font-bold text-avaa-dark group-hover:text-avaa-teal transition-colors">
-                {fullName}
-            </h2>
-            {/* Optional: A small arrow or icon that appears on hover */}
-            <svg 
-                className="w-4 h-4 text-avaa-teal opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200" 
-                fill="none" 
-                viewBox="0 0 24 24" 
-                stroke="currentColor"
-            >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="9 5l7 7-7 7" />
-            </svg>
-        </Link>
-        
-        <AppStatusBadge 
-            status={app.status} 
-            jobId={jobId} 
-            appId={app.id} 
-            onReject={onReject} 
-            onApprove={onApprove} 
-        />
-    </div>
-</div>
+                    <div className="pb-1 min-w-0">
+                        <Link 
+                            href={route('employer.users.timeline', { application: app.id })}
+                            className="group flex items-center gap-1.5"
+                        >
+                            <h2 className="text-lg font-bold text-avaa-dark group-hover:text-avaa-teal transition-colors truncate">
+                                {fullName}
+                            </h2>
+                            <svg 
+                                className="w-4 h-4 text-avaa-teal opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 shrink-0" 
+                                fill="none" 
+                                viewBox="0 0 24 24" 
+                                stroke="currentColor"
+                            >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="9 5l7 7-7 7" />
+                            </svg>
+                        </Link>
+                        
+                        {/* Switched from AppStatusBadge to AppStatusChip to remove dropdown function */}
+                        <div className="mt-1">
+                            <AppStatusChip status={app.status} />
+                        </div>
+                    </div>
+                </div>
 
-                <div className="overflow-y-auto flex-1 px-6 pb-6 pt-2 space-y-5">
+                <div className="overflow-y-auto flex-1 px-4 sm:px-6 pb-6 pt-2 space-y-5">
                     {/* Section 1: Personal Info */}
-                    <div className="border border-gray-100 rounded-xl p-5">
+                    <div className="border border-gray-100 rounded-xl p-4 sm:p-5">
                         <div className="flex items-center gap-2 mb-4">
-                            <span className="w-6 h-6 rounded-lg bg-avaa-primary-light text-avaa-teal flex items-center justify-center text-xs font-bold">1</span>
+                            <span className="w-6 h-6 rounded-lg bg-avaa-primary-light text-avaa-teal flex items-center justify-center text-xs font-bold shrink-0">1</span>
                             <h4 className="text-sm font-bold text-avaa-dark">Personal Information</h4>
                         </div>
-                        <div className="grid grid-cols-2 gap-x-8 gap-y-3">
-                            <div><p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Full Name</p><p className="text-sm font-semibold text-avaa-dark mt-0.5">{fullName}</p></div>
-                            <div><p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Email</p><p className="text-sm font-semibold text-avaa-dark mt-0.5">{(ad?.email) ?? u.email}</p></div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
+                            <div><p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Full Name</p><p className="text-sm font-semibold text-avaa-dark mt-0.5 truncate">{fullName}</p></div>
+                            <div><p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Email</p><p className="text-sm font-semibold text-avaa-dark mt-0.5 break-all">{(ad?.email) ?? u.email}</p></div>
                             <div><p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Phone Number</p><p className="text-sm font-semibold text-avaa-dark mt-0.5">{(ad?.phone) ?? (u.phone) ?? '—'}</p></div>
                             <div><p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Location</p><p className="text-sm font-semibold text-avaa-dark mt-0.5">{((ad?.location) ?? [u.profile?.city, u.profile?.state, u.profile?.country].filter(Boolean).join(', ')) || '—'}</p></div>
                         </div>
                     </div>
 
                     {/* Section 2: Professional Experience */}
-                    <div className="border border-gray-100 rounded-xl p-5">
+                    <div className="border border-gray-100 rounded-xl p-4 sm:p-5">
                         <div className="flex items-center gap-2 mb-4">
-                            <span className="w-6 h-6 rounded-lg bg-avaa-primary-light text-avaa-teal flex items-center justify-center text-xs font-bold">2</span>
+                            <span className="w-6 h-6 rounded-lg bg-avaa-primary-light text-avaa-teal flex items-center justify-center text-xs font-bold shrink-0">2</span>
                             <h4 className="text-sm font-bold text-avaa-dark">Professional Experience</h4>
                         </div>
-                        <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
                             <div><p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Current Job Title</p><p className="text-sm font-semibold text-avaa-dark mt-0.5">{(ad?.current_job_title) ?? (u.profile?.current_job_title) ?? '—'}</p></div>
                             <div><p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Company</p><p className="text-sm font-semibold text-avaa-dark mt-0.5">{(ad?.current_company) ?? (u.profile?.current_company) ?? '—'}</p></div>
                         </div>
 
                         {((ad?.skills?.length) ?? (u.profile?.skills?.length) ?? 0) > 0 && (
-                            <div className="mt-4">
+                            <div className="mt-5">
                                 <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-2">Skills & Expertise</p>
                                 <div className="flex flex-wrap gap-2">
                                     {((ad?.skills) ?? (u.profile?.skills) ?? []).map((s: string) => (
@@ -539,7 +557,7 @@ function ApplicantModal({ app, jobId, onClose, onReject, onApprove }: {
                         )}
 
                         {((ad?.cover_letter) ?? app.cover_letter) && (
-                            <div className="mt-4">
+                            <div className="mt-5">
                                 <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-1">Why are you a good fit?</p>
                                 <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">{(ad?.cover_letter) ?? app.cover_letter}</p>
                             </div>
@@ -547,16 +565,21 @@ function ApplicantModal({ app, jobId, onClose, onReject, onApprove }: {
                     </div>
 
                     {/* Section 3: Resume */}
-                    <div className="border border-gray-100 rounded-xl p-5">
+                    <div className="border border-gray-100 rounded-xl p-4 sm:p-5">
                         <div className="flex items-center gap-2 mb-4">
-                            <span className="w-6 h-6 rounded-lg bg-avaa-primary-light text-avaa-teal flex items-center justify-center text-xs font-bold">3</span>
+                            <span className="w-6 h-6 rounded-lg bg-avaa-primary-light text-avaa-teal flex items-center justify-center text-xs font-bold shrink-0">3</span>
                             <h4 className="text-sm font-bold text-avaa-dark">Resume</h4>
                         </div>
                         {resumePath ? (
-                            <div className="flex items-center gap-3 border border-gray-200 rounded-xl p-3">
-                                <div className="w-9 h-9 rounded-xl bg-avaa-primary-light text-avaa-teal flex items-center justify-center flex-shrink-0"><IcoFile /></div>
-                                <div className="flex-1 min-w-0"><p className="text-sm font-medium text-avaa-dark truncate">{(resumeName) ?? 'Resume'}</p></div>
-                                <a href={resumeViewUrl ?? '#'} target="_blank" rel="noreferrer" className="text-gray-400 hover:text-avaa-teal transition-colors p-1"><IcoEye /></a>
+                            <div className="flex flex-wrap items-center justify-between gap-3 border border-gray-200 rounded-xl p-3">
+                                <div className="flex items-center gap-3 flex-1 min-w-[150px]">
+                                    <div className="w-9 h-9 rounded-xl bg-avaa-primary-light text-avaa-teal flex items-center justify-center flex-shrink-0"><IcoFile /></div>
+                                    <div className="flex-1 min-w-0"><p className="text-sm font-medium text-avaa-dark truncate">{(resumeName) ?? 'Resume'}</p></div>
+                                </div>
+                                <div className="flex items-center gap-3 shrink-0 ml-auto">
+                                    <a href={resumeViewUrl ?? '#'} target="_blank" rel="noreferrer" className="text-gray-400 hover:text-avaa-teal transition-colors p-1"><IcoEye /></a>
+                                    <a href={resumeDownloadUrl ?? '#'} className="text-xs font-medium text-avaa-dark hover:text-avaa-teal hover:underline whitespace-nowrap">Download</a>
+                                </div>
                             </div>
                         ) : (
                             <p className="text-sm text-gray-400 italic">No resume attached.</p>
@@ -564,7 +587,7 @@ function ApplicantModal({ app, jobId, onClose, onReject, onApprove }: {
                     </div>
                 </div>
 
-                <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-end gap-3 flex-shrink-0 rounded-b-2xl">
+                <div className="px-4 sm:px-6 py-4 border-t border-gray-100 flex flex-wrap items-center justify-end gap-3 flex-shrink-0 rounded-b-2xl">
                     <button onClick={onClose} className="px-5 py-2 text-sm font-medium text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">Close</button>
                     {app.status === 'pending' && (
                         <>
@@ -677,10 +700,10 @@ export default function JobApplications({ job, applications, employerAddress }: 
             {approveApp && <ApproveModal app={approveApp} jobId={job.id} employerAddress={employerAddress} onClose={() => setApproveApp(null)} />}
 
             {/* Breadcrumb */}
-            <nav className="flex items-center gap-2 text-sm text-gray-500 mb-5">
+            <nav className="flex flex-wrap items-center gap-2 text-sm text-gray-500 mb-5">
                 <Link href={route('employer.dashboard')} className="hover:text-avaa-teal transition-colors font-medium">Dashboard</Link>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6" /></svg>
-                <Link href={route('employer.jobs.index')} className="hover:text-avaa-teal transition-colors font-medium">Manage Jobs</Link>
+                <Link href={route('employer.jobs.index')} className="hover:text-avaa-teal transition-colors font-medium whitespace-nowrap">Manage Jobs</Link>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6" /></svg>
                 <span className="text-avaa-dark font-medium">Applicants</span>
             </nav>
@@ -690,25 +713,25 @@ export default function JobApplications({ job, applications, employerAddress }: 
                 <div className="h-20 bg-gradient-to-r from-avaa-primary/80 via-avaa-teal to-emerald-400 relative rounded-t-2xl">
                     <div className="absolute inset-0 opacity-20 rounded-t-2xl" style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 20%, white 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
                 </div>
-                <div className="px-6 pb-5 -mt-8 relative z-10">
-                    <div className="flex items-end justify-between">
+                <div className="px-4 sm:px-6 pb-5 -mt-8 relative z-10">
+                    <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                         <div className="flex items-end gap-4">
-                            <div className={`w-16 h-16 rounded-2xl ring-4 ring-white ${avatarColor(job.id)} flex items-center justify-center text-white text-xl font-bold shadow-md`}>
+                            <div className={`w-16 h-16 rounded-2xl ring-4 ring-white ${avatarColor(job.id)} flex items-center justify-center text-white text-xl font-bold shadow-md shrink-0`}>
                                 {job.company.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase()}
                             </div>
-                            <div className="pb-0.5">
-                                <h2 className="text-xl font-bold text-avaa-dark">{job.title}</h2>
-                                <div className="flex items-center gap-3 mt-1">
-                                    <span className="flex items-center gap-1 text-xs text-gray-500">
+                            <div className="pb-0.5 min-w-0">
+                                <h2 className="text-xl font-bold text-avaa-dark truncate">{job.title}</h2>
+                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
+                                    <span className="flex items-center gap-1 text-xs text-gray-500 whitespace-nowrap">
                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="10" r="3" /><path d="M12 2a8 8 0 00-8 8c0 5.25 8 14 8 14s8-8.75 8-14a8 8 0 00-8-8z" /></svg>
-                                        {job.location}
+                                        <span className="truncate max-w-[120px] sm:max-w-none">{job.location}</span>
                                     </span>
-                                    <span className="text-xs text-gray-400">{timeAgo(job.posted_date)}</span>
-                                    {job.employment_type && <span className="px-2.5 py-0.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">{job.employment_type}</span>}
+                                    <span className="text-xs text-gray-400 whitespace-nowrap">{timeAgo(job.posted_date)}</span>
+                                    {job.employment_type && <span className="px-2.5 py-0.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-full whitespace-nowrap">{job.employment_type}</span>}
                                 </div>
                             </div>
                         </div>
-                        <Link href={route('employer.jobs.index')} className="flex items-center gap-1.5 text-xs font-semibold text-avaa-muted hover:text-avaa-teal transition-colors mb-1">
+                        <Link href={route('employer.jobs.index')} className="flex items-center gap-1.5 text-xs font-semibold text-avaa-muted hover:text-avaa-teal transition-colors mb-1 shrink-0">
                             View all Jobs
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
                         </Link>
@@ -731,7 +754,8 @@ export default function JobApplications({ job, applications, employerAddress }: 
                         </button>
                     ))}
                 </div>
-                <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 h-10 w-64 shadow-sm">
+                {/* Search input is now fully responsive on mobile */}
+                <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 h-10 w-full sm:w-64 shadow-sm shrink-0">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="text-gray-400 flex-shrink-0"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
                     <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search applicants..." className="text-sm bg-transparent text-gray-900 placeholder-gray-400 font-medium focus:outline-none focus:ring-0 border-0 w-full" />
                 </div>
@@ -743,11 +767,11 @@ export default function JobApplications({ job, applications, employerAddress }: 
                     <table className="w-full">
                         <thead>
                             <tr className="border-b border-gray-100 bg-gray-50/50">
-                                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase tracking-widest">Name</th>
-                                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-widest">Curriculum Vitae</th>
-                                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-widest">Date Applied</th>
-                                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-widest">Status</th>
-                                <th className="px-6 py-3 text-xs font-semibold text-gray-400 uppercase tracking-widest text-right">Action</th>
+                                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase tracking-widest min-w-[200px]">Name</th>
+                                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-widest min-w-[200px]">Curriculum Vitae</th>
+                                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-widest whitespace-nowrap">Date Applied</th>
+                                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-widest min-w-[120px]">Status</th>
+                                <th className="px-6 py-3 text-xs font-semibold text-gray-400 uppercase tracking-widest text-right min-w-[100px]">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
@@ -775,13 +799,18 @@ export default function JobApplications({ job, applications, employerAddress }: 
                                     <tr key={app.id} className="hover:bg-gray-50/60 transition-colors">
                                         <td className="px-5 py-4">
                                             <div className="flex items-center gap-3">
-                                                <ImageInitialsFallback
-                                                    src={app.user.avatar}
-                                                    alt={fullName}
-                                                    initials={initials}
-                                                    className={`w-9 h-9 rounded-full flex-shrink-0 overflow-hidden ${profileFrameRingClass(frame)} ${app.user.avatar ? 'bg-white' : avatarColor(app.user.id)}`}
-                                                    textClassName="text-white text-xs font-bold flex items-center justify-center"
-                                                />
+                                                <div className="relative flex-shrink-0">
+                                                    <ImageInitialsFallback
+                                                        src={app.user.avatar}
+                                                        alt={fullName}
+                                                        initials={initials}
+                                                        className={`w-9 h-9 rounded-full overflow-hidden ${profileFrameRingClass(frame)} ${app.user.avatar ? 'bg-white' : avatarColor(app.user.id)}`}
+                                                        textClassName="text-white text-xs font-bold flex items-center justify-center"
+                                                    />
+                                                    <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-10">
+                                                        <ProfileFrameBadge frame={frame} size="xs" />
+                                                    </span>
+                                                </div>
                                                 <div className="min-w-0">
                                                     <button onClick={() => setViewApp(app)} className="text-base font-semibold text-avaa-dark hover:text-avaa-teal transition-colors truncate block text-left">{fullName}</button>
                                                     {subTitle && <p className="text-sm text-avaa-muted truncate">{subTitle}</p>}
