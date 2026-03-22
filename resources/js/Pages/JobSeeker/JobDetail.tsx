@@ -651,20 +651,28 @@ export default function JobDetail({
     const handleApply = () =>
         router.visit(route("job-seeker.jobs.apply.form", job.id));
 
+    const [linkCopied, setLinkCopied] = useState(false);
+
     const handleShareJob = async () => {
-        const jobUrl = window.location.href;
-        if (navigator.clipboard) {
-            await navigator.clipboard.writeText(jobUrl);
-            // Create a brief toast notification
-            const notification = document.createElement('div');
-            notification.className = 'fixed top-4 right-4 px-6 py-3 rounded-xl text-sm font-semibold text-white bg-green-500 shadow-lg z-[9999]';
-            notification.textContent = '✓ Link copied to clipboard!';
-            document.body.appendChild(notification);
-            setTimeout(() => {
-                notification.style.opacity = '0';
-                notification.style.transition = 'opacity 0.3s ease-out';
-                setTimeout(() => notification.remove(), 300);
-            }, 3000);
+        // Generate a clean shareable URL using the named route (no extra query params)
+        const jobUrl = route('job-seeker.jobs.show', { job: job.id });
+        const fullUrl = `${window.location.origin}${jobUrl}`;
+        try {
+            await navigator.clipboard.writeText(fullUrl);
+            setLinkCopied(true);
+            setTimeout(() => setLinkCopied(false), 3000);
+        } catch {
+            // Fallback for older browsers
+            const textArea = document.createElement('textarea');
+            textArea.value = fullUrl;
+            textArea.style.position = 'fixed';
+            textArea.style.opacity = '0';
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            setLinkCopied(true);
+            setTimeout(() => setLinkCopied(false), 3000);
         }
     };
 
@@ -705,6 +713,13 @@ export default function JobDetail({
                     job={job}
                     onClose={() => setShowReportModal(false)}
                 />
+            )}
+
+            {/* Link Copied Toast */}
+            {linkCopied && (
+                <div className="fixed top-4 right-4 px-6 py-3 rounded-xl text-sm font-semibold text-white bg-green-500 shadow-lg z-[9999] animate-fade-in">
+                    ✓ Link copied to clipboard!
+                </div>
             )}
 
             {/* Breadcrumb */}
