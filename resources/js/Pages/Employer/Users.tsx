@@ -57,9 +57,25 @@ function profileFrameRingClass(frame?: string | null) {
     return '';
 }
 function profileFrameLabel(frame?: string | null) {
-    if (frame === 'open_to_work') return { text: 'Open to Work', cls: 'bg-emerald-50 text-emerald-700 border-emerald-100' };
-    if (frame === 'not_open_to_work') return { text: 'Not Open to Work', cls: 'bg-red-50 text-red-700 border-red-100' };
+    if (frame === 'open_to_work') return { text: 'Available', cls: 'bg-emerald-500 text-white', icon: null };
+    if (frame === 'not_open_to_work') return { text: 'Unavailable', cls: 'bg-red-500 text-white', icon: null };
     return null;
+}
+
+function ProfileFrameBadge({ frame, size = 'sm' }: { frame?: string | null; size?: 'xs' | 'sm' }) {
+    const badge = profileFrameLabel(frame);
+    if (!badge) return null;
+    const px = size === 'xs' ? 'px-2 py-0.5 text-[8px]' : 'px-2.5 py-0.5 text-[10px]';
+    return (
+        <span className={`inline-flex items-center gap-1 font-bold rounded-full whitespace-nowrap shadow ${badge.cls} ${px}`}>
+            {badge.icon && (
+                <svg width="6" height="6" viewBox="0 0 10 10" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
+                    <line x1="1" y1="1" x2="9" y2="9" /><line x1="9" y1="1" x2="1" y2="9" />
+                </svg>
+            )}
+            {badge.text}
+        </span>
+    );
 }
 
 /* ── Icons ── */
@@ -115,20 +131,20 @@ function ApplicantModal({ employee, onClose }: { employee: Employee; onClose: ()
                 </div>
 
                 <div className="px-6 -mt-10 flex items-end gap-4 flex-shrink-0 relative z-10 mb-2">
-                    <ImageInitialsFallback
-                        src={u.avatar}
-                        alt={fullName}
-                        initials={initials}
-                        className={`w-20 h-20 rounded-2xl ring-4 ring-white shadow-md overflow-hidden ${profileFrameRingClass(frame)} ${u.avatar ? 'bg-white' : avatarColor(u.id)}`}
-                        textClassName="text-white text-2xl font-bold flex items-center justify-center"
-                    />
+                    <div className="relative">
+                        <ImageInitialsFallback
+                            src={u.avatar}
+                            alt={fullName}
+                            initials={initials}
+                            className={`w-20 h-20 rounded-2xl ring-4 ring-white shadow-md overflow-hidden ${profileFrameRingClass(frame)} ${u.avatar ? 'bg-white' : avatarColor(u.id)}`}
+                            textClassName="text-white text-2xl font-bold flex items-center justify-center"
+                        />
+                        <span className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 z-20">
+                            <ProfileFrameBadge frame={frame} size="xs" />
+                        </span>
+                    </div>
                     <div className="pb-1">
                         <h2 className="text-lg font-bold text-avaa-dark">{fullName}</h2>
-                        {frameBadge && (
-                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border mt-1 mr-2 ${frameBadge.cls}`}>
-                                {frameBadge.text}
-                            </span>
-                        )}
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide uppercase bg-emerald-50 text-emerald-600 border border-emerald-100 mt-1">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                             Active Employee
@@ -320,16 +336,20 @@ export default function Users({ employees, activeCount }: Props) {
                                         <tr key={emp.id} className="hover:bg-gray-50/60 transition-colors group">
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
-                                                        <ImageInitialsFallback
-                                                            src={emp.candidate.avatar}
-                                                            alt={fullName}
-                                                            initials={initials}
-                                                            className={`w-10 h-10 rounded-full shadow-sm flex-shrink-0 overflow-hidden ${profileFrameRingClass(frame)} ${emp.candidate.avatar ? 'bg-white' : avatarColor(emp.candidate.id)}`}
-                                                            textClassName="text-white text-sm font-bold flex items-center justify-center"
-                                                        />
+                                                        <div className="relative flex-shrink-0">
+                                                            <ImageInitialsFallback
+                                                                src={emp.candidate.avatar}
+                                                                alt={fullName}
+                                                                initials={initials}
+                                                                className={`w-10 h-10 rounded-full shadow-sm overflow-hidden ${profileFrameRingClass(frame)} ${emp.candidate.avatar ? 'bg-white' : avatarColor(emp.candidate.id)}`}
+                                                                textClassName="text-white text-sm font-bold flex items-center justify-center"
+                                                            />
+                                                            <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-10">
+                                                                <ProfileFrameBadge frame={frame} size="xs" />
+                                                            </span>
+                                                        </div>
                                                     <div className="min-w-0">
                                                         <p className="text-base font-bold text-gray-900 truncate">{fullName}</p>
-                                                        {frameBadge && <p className="text-[10px] font-semibold text-gray-500 truncate mt-0.5">{frameBadge.text}</p>}
                                                         <p className="text-xs font-medium text-gray-500 truncate mt-0.5">{emp.candidate.email}</p>
                                                     </div>
                                                 </div>
