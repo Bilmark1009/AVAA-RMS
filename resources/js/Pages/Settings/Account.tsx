@@ -393,12 +393,13 @@ export default function AccountSettings({ mustVerifyEmail, status, user }: Props
                                             <span className="absolute inset-0 rounded-full animate-pulse bg-red-300 opacity-20 z-0" />
                                         )}
                                         <div
-                                            className={`relative z-10 rounded-full p-1 transition-all duration-300 ${profileFrame === 'open_to_work'
-                                                ? 'ring-4 ring-emerald-400 shadow-lg shadow-emerald-200'
-                                                : profileFrame === 'not_open_to_work'
+                                            className={`relative z-10 rounded-full p-1 transition-all duration-300 ${
+                                                profileFrame === 'open_to_work'
+                                                    ? 'ring-4 ring-emerald-400 shadow-lg shadow-emerald-200'
+                                                    : profileFrame === 'not_open_to_work'
                                                     ? 'ring-4 ring-red-400 shadow-lg shadow-red-100'
                                                     : 'ring-4 ring-gray-200'
-                                                }`}
+                                            }`}
                                         >
                                             <ImageInitialsFallback
                                                 src={user.avatar}
@@ -411,13 +412,13 @@ export default function AccountSettings({ mustVerifyEmail, status, user }: Props
                                         {/* Open to Work badge */}
                                         {profileFrame === 'open_to_work' && (
                                             <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-emerald-500 text-white text-[9px] font-bold px-2.5 py-0.5 rounded-full whitespace-nowrap shadow z-20">
-                                                Available
+                                                Open to Work
                                             </span>
                                         )}
                                         {/* Not Open to Work badge */}
                                         {profileFrame === 'not_open_to_work' && (
                                             <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-red-500 text-white text-[9px] font-bold px-2.5 py-0.5 rounded-full whitespace-nowrap shadow z-20">
-                                                Unavailable
+                                                Not Open to Work
                                             </span>
                                         )}
                                     </div>
@@ -430,10 +431,11 @@ export default function AccountSettings({ mustVerifyEmail, status, user }: Props
                                     <button
                                         type="button"
                                         onClick={() => setProfileFrame('default')}
-                                        className={`flex flex-col items-center gap-2.5 p-4 rounded-2xl border-2 transition-all ${profileFrame === 'default'
-                                            ? 'border-gray-300 bg-gray-50'
-                                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50/50'
-                                            }`}
+                                        className={`flex flex-col items-center gap-2.5 p-4 rounded-2xl border-2 transition-all ${
+                                            profileFrame === 'default'
+                                                ? 'border-gray-300 bg-gray-50'
+                                                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50/50'
+                                        }`}
                                     >
                                         {/* Mini avatar with default ring */}
                                         <div className="relative">
@@ -458,10 +460,11 @@ export default function AccountSettings({ mustVerifyEmail, status, user }: Props
                                     <button
                                         type="button"
                                         onClick={() => setProfileFrame('open_to_work')}
-                                        className={`flex flex-col items-center gap-2.5 p-4 rounded-2xl border-2 transition-all ${profileFrame === 'open_to_work'
-                                            ? 'border-emerald-400 bg-emerald-50'
-                                            : 'border-gray-200 hover:border-emerald-200 hover:bg-emerald-50/40'
-                                            }`}
+                                        className={`flex flex-col items-center gap-2.5 p-4 rounded-2xl border-2 transition-all ${
+                                            profileFrame === 'open_to_work'
+                                                ? 'border-emerald-400 bg-emerald-50'
+                                                : 'border-gray-200 hover:border-emerald-200 hover:bg-emerald-50/40'
+                                        }`}
                                     >
                                         {/* Mini avatar preview with green ring */}
                                         <div className="relative">
@@ -489,10 +492,11 @@ export default function AccountSettings({ mustVerifyEmail, status, user }: Props
                                     <button
                                         type="button"
                                         onClick={() => setProfileFrame('not_open_to_work')}
-                                        className={`flex flex-col items-center gap-2.5 p-4 rounded-2xl border-2 transition-all ${profileFrame === 'not_open_to_work'
-                                            ? 'border-red-400 bg-red-50'
-                                            : 'border-gray-200 hover:border-red-200 hover:bg-red-50/40'
-                                            }`}
+                                        className={`flex flex-col items-center gap-2.5 p-4 rounded-2xl border-2 transition-all ${
+                                            profileFrame === 'not_open_to_work'
+                                                ? 'border-red-400 bg-red-50'
+                                                : 'border-gray-200 hover:border-red-200 hover:bg-red-50/40'
+                                        }`}
                                     >
                                         {/* Mini avatar preview with red ring + X badge */}
                                         <div className="relative">

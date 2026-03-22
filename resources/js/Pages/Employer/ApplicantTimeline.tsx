@@ -22,6 +22,8 @@ export default function ApplicantTimeline({
 
     const formatUrl = (path?: string | null) => {
         if (!path) return null;
+        // If the path already contains 'storage', don't double it
+        if (path.includes("storage/")) return path;
         return path.startsWith("http") ? path : `/storage/${path}`;
     };
 
@@ -140,41 +142,68 @@ export default function ApplicantTimeline({
                     {/* Professional Experience Section */}
                     <div className="bg-white rounded-2xl p-8 border border-gray-200 shadow-sm">
                         <h3 className="text-lg font-bold text-gray-800 mb-8">
-                            {" "}
-                            Professional Experience{" "}
+                            Professional Experience
                         </h3>
+
                         <div className="relative space-y-12 before:absolute before:inset-0 before:ml-6 before:-translate-x-px before:h-full before:w-0.5 before:bg-gray-100">
-                            {/* 1. Current Position (if any) */}
+                            {/* 1. Current Position (Internal Platform Hire) */}
                             {currentPosition && (
                                 <TimelineItem
                                     placement={currentPosition}
-                                    isCurrent
+                                    isCurrent={true}
+                                    isManual={false}
                                 />
                             )}
 
-                            {/* 2. Past Internal Placements */}
-                            {pastPlacements.map((p: any) => (
-                                <TimelineItem
-                                    key={`placement-${p.id}`}
-                                    placement={p}
-                                />
-                            ))}
+                            {/* 2. Past Internal Placements (History within your company/platform) */}
+                            {pastPlacements &&
+                                pastPlacements.length > 0 &&
+                                pastPlacements.map((p: any) => (
+                                    <TimelineItem
+                                        key={`placement-${p.id}`}
+                                        placement={p}
+                                        isCurrent={false}
+                                        isManual={false}
+                                    />
+                                ))}
 
-                            {/* 3. Manual/External Experiences (Missing Part) */}
-                            {manualExperiences.map((exp: any) => (
-                                <TimelineItem
-                                    key={`manual-${exp.id}`}
-                                    placement={exp}
-                                    isManual
-                                />
-                            ))}
+                            {/* 3. Manual/External Experiences (History from other companies like Denso Ten) */}
+                            {manualExperiences &&
+                                manualExperiences.length > 0 &&
+                                manualExperiences.map((exp: any) => (
+                                    <TimelineItem
+                                        key={`manual-${exp.id}`}
+                                        placement={exp}
+                                        isCurrent={exp.is_current} // Use the specific status from the DB
+                                        isManual={true}
+                                    />
+                                ))}
 
-                            {/* Empty State */}
-                            {!currentPosition &&
+                            {/* Empty State: Only shows if all arrays are empty and currentPosition is null */}
+                            {(!currentPosition ||
+                                Object.keys(currentPosition).length === 0) &&
                                 pastPlacements.length === 0 &&
                                 manualExperiences.length === 0 && (
-                                    <div className="ml-12 text-gray-400 italic text-sm py-4">
-                                        No Data Available
+                                    <div className="flex items-center gap-4 ml-6 py-4">
+                                        <div className="w-12 h-12 rounded-xl bg-gray-50 border border-dashed border-gray-200 flex items-center justify-center flex-shrink-0">
+                                            <svg
+                                                className="w-5 h-5 text-gray-300"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth="2"
+                                                    d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                                                />
+                                            </svg>
+                                        </div>
+                                        <p className="text-sm text-gray-400 italic">
+                                            No professional experience records
+                                            found.
+                                        </p>
                                     </div>
                                 )}
                         </div>
@@ -186,7 +215,8 @@ export default function ApplicantTimeline({
                             Education
                         </h3>
                         <div className="space-y-6">
-                            {applicant.education_history?.length > 0 ? (
+                            {applicant.education_history &&
+                            applicant.education_history.length > 0 ? (
                                 applicant.education_history.map(
                                     (edu: any, idx: number) => (
                                         <div
@@ -195,27 +225,31 @@ export default function ApplicantTimeline({
                                         >
                                             <div>
                                                 <h4 className="font-bold text-gray-800">
-                                                    {edu.school ??
-                                                        "No Data Available"}
+                                                    {edu.institution_name ??
+                                                        "Institution Not Provided"}
                                                 </h4>
                                                 <p className="text-sm text-gray-500">
                                                     {edu.degree ??
-                                                        "No Data Available"}{" "}
-                                                    in{" "}
-                                                    {edu.field ??
-                                                        "No Data Available"}
+                                                        "Degree Not Provided"}
+                                                    {edu.field
+                                                        ? ` in ${edu.field}`
+                                                        : ""}
                                                 </p>
                                             </div>
-                                            <span className="text-xs font-bold text-gray-400">
-                                                {edu.year ??
-                                                    "No Data Available"}
-                                            </span>
+                                            {/* Optional: Only show the year span if the data exists. 
+                            If your DB doesn't have a year column, this will remain hidden.
+                        */}
+                                            {edu.year && (
+                                                <span className="text-xs font-bold text-gray-400">
+                                                    {edu.year}
+                                                </span>
+                                            )}
                                         </div>
                                     ),
                                 )
                             ) : (
-                                <p className="text-sm text-gray-400">
-                                    No Data Available
+                                <p className="text-sm text-gray-400 italic">
+                                    No education history provided.
                                 </p>
                             )}
                         </div>
@@ -372,9 +406,23 @@ export default function ApplicantTimeline({
                                 </div>
                             ))}
                         </div>
-                        <button className="w-full mt-6 py-3 bg-avaa-teal text-white text-xs font-bold rounded-xl shadow-sm hover:bg-opacity-90 transition-all uppercase tracking-widest">
-                            Download Resume
-                        </button>
+                        {applicant.resume_path ? (
+                            <a
+                                href={formatUrl(applicant.resume_path) ?? "#"}
+                                download={`${applicant.full_name.replace(/\s+/g, "_")}_Resume.pdf`}
+                                className="w-full mt-6 py-3 bg-avaa-teal text-white text-xs font-bold rounded-xl shadow-sm hover:bg-opacity-90 transition-all uppercase tracking-widest flex items-center justify-center no-underline"
+                            >
+                                Download Resume
+                            </a>
+                        ) : (
+                            <button
+                                type="button"
+                                disabled
+                                className="w-full mt-6 py-3 bg-gray-200 text-gray-400 text-xs font-bold rounded-xl cursor-not-allowed uppercase tracking-widest border border-gray-300"
+                            >
+                                No Resume Available
+                            </button>
+                        )}
                     </div>
 
                     {/* Top Matches Jobs Section */}
@@ -413,24 +461,44 @@ export default function ApplicantTimeline({
         </AppLayout>
     );
 }
-
 function TimelineItem({ placement, isCurrent, isManual }: any) {
-    // Logic to handle both internal placements and manual work experiences
-    const title = isManual ? placement?.job_title : placement?.job_listing?.title;
-    const company = isManual ? placement?.company : placement?.job_listing?.company?.name;
-    
-    // Formatting the date range based on source
-    const dateRange = isManual 
-        ? `${placement?.start_date ?? "N/A"} — ${placement?.is_current ? 'Present' : placement?.end_date ?? "N/A"}`
-        : `${placement?.hired_at_formatted ?? "N/A"} — ${isCurrent ? "Present" : placement?.ended_at_formatted ?? "N/A"}`;
+    // 1. Logic simplified: The controller now sends 'job_title' and 'company' directly
+    // We use optional chaining and fallback to the nested job_listing only as a backup
+    const title = placement?.job_title || placement?.job_listing?.title;
+    const company = placement?.company || placement?.job_listing?.company?.name;
+
+    // 2. Formatting the date range
+    // The controller now sends 'start_date' and 'end_date' for both types
+    const dateRange =
+        placement?.is_current || isCurrent
+            ? `${placement?.start_date ?? "N/A"} — Present`
+            : `${placement?.start_date ?? "N/A"} — ${placement?.end_date ?? "N/A"}`;
 
     return (
         <div className="relative flex items-start gap-6 group">
             {/* Timeline Icon & Line connector */}
-            <div className={`relative flex items-center justify-center w-12 h-12 rounded-xl border-4 border-white shadow-sm flex-shrink-0 z-10 
-                ${isCurrent ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-400"}`}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+            <div
+                className={`relative flex items-center justify-center w-12 h-12 rounded-xl border-4 border-white shadow-sm flex-shrink-0 z-10 
+                ${isCurrent || placement?.is_current ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-400"}`}
+            >
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                >
+                    <rect
+                        x="2"
+                        y="7"
+                        width="20"
+                        height="14"
+                        rx="2"
+                        ry="2"
+                    ></rect>
                     <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
                 </svg>
             </div>
@@ -438,7 +506,7 @@ function TimelineItem({ placement, isCurrent, isManual }: any) {
             <div className="flex-1 pt-1">
                 <div className="flex justify-between items-start mb-1">
                     <h4 className="font-bold text-gray-800 text-base">
-                        {title || "No Data Available"}
+                        {title || "No Title Provided"}
                     </h4>
                     <span className="text-[11px] font-bold text-gray-400 uppercase tabular-nums">
                         {dateRange}
@@ -446,13 +514,15 @@ function TimelineItem({ placement, isCurrent, isManual }: any) {
                 </div>
 
                 <p className="text-sm font-bold text-avaa-teal mb-3">
-                    {company || "No Data Available"}
+                    {company || "No Company Provided"}
                 </p>
 
                 <div className="text-xs text-gray-500 leading-relaxed max-w-md">
-                    {/* Handles 'description' from manual entry or 'responsibilities' from internal database */}
+                    {/* 3. Handle description fallback */}
                     <p className="whitespace-pre-line">
-                        • {placement?.description || placement?.responsibilities || "No details provided."}
+                        {placement?.description || placement?.responsibilities
+                            ? `• ${placement.description || placement.responsibilities}`
+                            : "No details provided."}
                     </p>
                 </div>
             </div>

@@ -63,25 +63,9 @@ function profileFrameRingClass(frame?: string | null) {
     return '';
 }
 function profileFrameLabel(frame?: string | null) {
-    if (frame === 'open_to_work') return { text: 'Available', cls: 'bg-emerald-500 text-white', icon: null };
-    if (frame === 'not_open_to_work') return { text: 'Unavailable', cls: 'bg-red-500 text-white', icon: null };
+    if (frame === 'open_to_work') return 'Open to Work';
+    if (frame === 'not_open_to_work') return 'Not Open to Work';
     return null;
-}
-
-function ProfileFrameBadge({ frame, size = 'sm' }: { frame?: string | null; size?: 'xs' | 'sm' }) {
-    const badge = profileFrameLabel(frame);
-    if (!badge) return null;
-    const px = size === 'xs' ? 'px-2 py-0.5 text-[8px]' : 'px-2.5 py-0.5 text-[10px]';
-    return (
-        <span className={`inline-flex items-center gap-1 font-bold rounded-full whitespace-nowrap shadow ${badge.cls} ${px}`}>
-            {badge.icon && (
-                <svg width="6" height="6" viewBox="0 0 10 10" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
-                    <line x1="1" y1="1" x2="9" y2="9" /><line x1="9" y1="1" x2="1" y2="9" />
-                </svg>
-            )}
-            {badge.text}
-        </span>
-    );
 }
 function timeAgo(dateStr: string) {
     const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
@@ -249,25 +233,17 @@ function RejectModal({
 
                 {/* Avatar + Name */}
                 <div className="px-6 -mt-8 flex items-end gap-3 flex-shrink-0 relative z-10 mb-3">
-                    <div className="relative">
-                        <ImageInitialsFallback
-                            src={app.user.avatar}
-                            alt={fullName}
-                            initials={getInitials(app.user.first_name, app.user.last_name)}
-                            className={`w-16 h-16 rounded-2xl ring-4 ring-white shadow-md overflow-hidden ${profileFrameRingClass(frame)} ${app.user.avatar ? 'bg-white' : avatarColor(app.user.id)}`}
-                            textClassName="text-white text-xl font-bold flex items-center justify-center"
-                        />
-                        <span className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 z-20">
-                            <ProfileFrameBadge frame={frame} size="xs" />
-                        </span>
-                    </div>
+                    <ImageInitialsFallback
+                        src={app.user.avatar}
+                        alt={fullName}
+                        initials={getInitials(app.user.first_name, app.user.last_name)}
+                        className={`w-16 h-16 rounded-2xl ring-4 ring-white shadow-md overflow-hidden ${profileFrameRingClass(frame)} ${app.user.avatar ? 'bg-white' : avatarColor(app.user.id)}`}
+                        textClassName="text-white text-xl font-bold flex items-center justify-center"
+                    />
                     <div className="pb-1">
-                        <h2 className="text-lg font-bold text-avaa-dark">
-                            {fullName}
-                        </h2>
-                        <p className="text-sm text-gray-500">
-                            {app.user.email}
-                        </p>
+                        <h2 className="text-lg font-bold text-avaa-dark">{fullName}</h2>
+                        {profileFrameLabel(frame) && <p className="text-xs text-gray-500">{profileFrameLabel(frame)}</p>}
+                        <p className="text-sm text-gray-500">{app.user.email}</p>
                     </div>
                 </div>
 
@@ -430,25 +406,17 @@ function ApproveModal({
 
                 {/* Avatar + Name */}
                 <div className="px-6 -mt-8 flex items-end gap-3 flex-shrink-0 relative z-10 mb-3">
-                    <div className="relative">
-                        <ImageInitialsFallback
-                            src={app.user.avatar}
-                            alt={fullName}
-                            initials={getInitials(app.user.first_name, app.user.last_name)}
-                            className={`w-16 h-16 rounded-2xl ring-4 ring-white shadow-md overflow-hidden ${profileFrameRingClass(frame)} ${app.user.avatar ? 'bg-white' : avatarColor(app.user.id)}`}
-                            textClassName="text-white text-xl font-bold flex items-center justify-center"
-                        />
-                        <span className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 z-20">
-                            <ProfileFrameBadge frame={frame} size="xs" />
-                        </span>
-                    </div>
+                    <ImageInitialsFallback
+                        src={app.user.avatar}
+                        alt={fullName}
+                        initials={getInitials(app.user.first_name, app.user.last_name)}
+                        className={`w-16 h-16 rounded-2xl ring-4 ring-white shadow-md overflow-hidden ${profileFrameRingClass(frame)} ${app.user.avatar ? 'bg-white' : avatarColor(app.user.id)}`}
+                        textClassName="text-white text-xl font-bold flex items-center justify-center"
+                    />
                     <div className="pb-1">
-                        <h2 className="text-lg font-bold text-avaa-dark">
-                            {fullName}
-                        </h2>
-                        <p className="text-sm text-gray-500">
-                            {app.user.email}
-                        </p>
+                        <h2 className="text-lg font-bold text-avaa-dark">{fullName}</h2>
+                        {profileFrameLabel(frame) && <p className="text-xs text-gray-500">{profileFrameLabel(frame)}</p>}
+                        <p className="text-sm text-gray-500">{app.user.email}</p>
                     </div>
                 </div>
 
@@ -759,7 +727,8 @@ function ApplicantModal({
     const resumePath = (app.resume_path) ?? (u.profile?.resume_path) ?? (ad?.existing_resume);
     const resumeName = resumePath ? resumePath.split('/').pop() : null;
     const resumeViewUrl = resumePath ? route('applications.resume', { application: app.id }) : null;
-
+    const timelineUrl = route('employer.users.timeline', { application: app.id });
+    
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div
@@ -777,31 +746,49 @@ function ApplicantModal({
                 </div>
 
                 <div className="px-6 -mt-10 flex items-end gap-4 flex-shrink-0 relative z-10 mb-2">
-                    <div className="relative">
-                        <ImageInitialsFallback
-                            src={u.avatar}
-                            alt={fullName}
-                            initials={initials}
-                            className={`w-20 h-20 rounded-2xl ring-4 ring-white shadow-md overflow-hidden ${profileFrameRingClass(frame)} ${u.avatar ? 'bg-white' : avatarColor(u.id)}`}
-                            textClassName="text-white text-2xl font-bold flex items-center justify-center"
-                        />
-                        <span className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 z-20">
-                            <ProfileFrameBadge frame={frame} size="xs" />
-                        </span>
-                    </div>
-                    <div className="pb-1">
-                        <h2 className="text-lg font-bold text-avaa-dark">
-                            {fullName}
-                        </h2>
-                        <AppStatusBadge
-                            status={app.status}
-                            jobId={jobId}
-                            appId={app.id}
-                            onReject={onReject}
-                            onApprove={onApprove}
-                        />
-                    </div>
-                </div>
+    {/* Avatar Link */}
+    <Link 
+        href={route('employer.users.timeline', { application: app.id })}
+        className="transition-transform duration-200 hover:scale-105"
+    >
+        <ImageInitialsFallback
+            src={u.avatar}
+            alt={fullName}
+            initials={initials}
+            className={`w-20 h-20 rounded-2xl ring-4 ring-white shadow-md overflow-hidden ${u.avatar ? 'bg-white' : avatarColor(u.id)}`}
+            textClassName="text-white text-2xl font-bold flex items-center justify-center"
+        />
+    </Link>
+
+    <div className="pb-1">
+        {/* Name Link */}
+        <Link 
+            href={route('employer.users.timeline', { application: app.id })}
+            className="group flex items-center gap-1.5"
+        >
+            <h2 className="text-lg font-bold text-avaa-dark group-hover:text-avaa-teal transition-colors">
+                {fullName}
+            </h2>
+            {/* Optional: A small arrow or icon that appears on hover */}
+            <svg 
+                className="w-4 h-4 text-avaa-teal opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200" 
+                fill="none" 
+                viewBox="0 0 24 24" 
+                stroke="currentColor"
+            >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="9 5l7 7-7 7" />
+            </svg>
+        </Link>
+        
+        <AppStatusBadge 
+            status={app.status} 
+            jobId={jobId} 
+            appId={app.id} 
+            onReject={onReject} 
+            onApprove={onApprove} 
+        />
+    </div>
+</div>
 
                 <div className="overflow-y-auto flex-1 px-6 pb-6 pt-2 space-y-5">
                     {/* Section 1: Personal Info */}
@@ -1403,18 +1390,13 @@ export default function JobApplications({
                                     <tr key={app.id} className="hover:bg-gray-50/60 transition-colors">
                                         <td className="px-5 py-4">
                                             <div className="flex items-center gap-3">
-                                                <div className="relative flex-shrink-0">
-                                                    <ImageInitialsFallback
-                                                        src={app.user.avatar}
-                                                        alt={fullName}
-                                                        initials={initials}
-                                                        className={`w-9 h-9 rounded-full overflow-hidden ${profileFrameRingClass(frame)} ${app.user.avatar ? 'bg-white' : avatarColor(app.user.id)}`}
-                                                        textClassName="text-white text-xs font-bold flex items-center justify-center"
-                                                    />
-                                                    <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-10">
-                                                        <ProfileFrameBadge frame={frame} size="xs" />
-                                                    </span>
-                                                </div>
+                                                <ImageInitialsFallback
+                                                    src={app.user.avatar}
+                                                    alt={fullName}
+                                                    initials={initials}
+                                                    className={`w-9 h-9 rounded-full flex-shrink-0 overflow-hidden ${profileFrameRingClass(frame)} ${app.user.avatar ? 'bg-white' : avatarColor(app.user.id)}`}
+                                                    textClassName="text-white text-xs font-bold flex items-center justify-center"
+                                                />
                                                 <div className="min-w-0">
                                                     <button onClick={() => setViewApp(app)} className="text-base font-semibold text-avaa-dark hover:text-avaa-teal transition-colors truncate block text-left">{fullName}</button>
                                                     {subTitle && <p className="text-sm text-avaa-muted truncate">{subTitle}</p>}

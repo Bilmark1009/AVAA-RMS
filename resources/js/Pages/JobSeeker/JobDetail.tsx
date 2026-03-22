@@ -1,8 +1,7 @@
-import { Head, Link, router } from "@inertiajs/react";
-import AppLayout from "@/Layouts/AppLayout";
-import ImageInitialsFallback from "@/Components/ImageInitialsFallback";
-import { useState, useEffect } from "react";
-
+import { Head, Link, router } from '@inertiajs/react';
+import AppLayout from '@/Layouts/AppLayout';
+import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
+import { useState, useEffect } from 'react';
 /* ── Types ── */
 interface JobListing {
     id: number;
@@ -178,6 +177,11 @@ function RecruiterProfileModal({
         return () => document.removeEventListener("keydown", handler);
     }, [onClose]);
 
+    // Redirect to Recruiter Timeline
+    const handleViewTimeline = () => {
+        router.visit(route('job-seeker.recruiter.timeline', { user: member.id }))
+    };
+
     return (
         /* ── Backdrop ── */
         <div
@@ -258,16 +262,21 @@ function RecruiterProfileModal({
                         </button>
                     </div>
 
-                    {/* Name & company */}
-                    <h2 className="text-xl font-bold text-avaa-dark leading-tight">
-                        {member.name}
-                    </h2>
-                    {member.company && (
-                        <p className="text-sm text-avaa-teal font-medium mt-0.5">
-                            {member.company}
-                            {member.industry ? ` · ${member.industry}` : ""}
-                        </p>
-                    )}
+                    {/* Name & company — Clickable Timeline Trigger */}
+                    <button 
+                        onClick={handleViewTimeline}
+                        className="text-left block group focus:outline-none"
+                    >
+                        <h2 className="text-xl font-bold text-avaa-dark leading-tight group-hover:text-avaa-teal transition-colors">
+                            {member.name}
+                        </h2>
+                        {member.company && (
+                            <p className="text-sm text-avaa-teal font-medium mt-0.5 group-hover:underline">
+                                {member.company}
+                                {member.industry ? ` · ${member.industry}` : ''}
+                            </p>
+                        )}
+                    </button>
 
                     {/* Meta chips */}
                     <div className="flex flex-wrap gap-2 mt-3">

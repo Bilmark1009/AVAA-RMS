@@ -189,13 +189,14 @@ export default function JobSeekerProfilePage({ user, profile, experiences, docum
                                     {/* Open to Work badge */}
                                     {p.profile_frame === 'open_to_work' && (
                                         <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-20 bg-emerald-500 text-white text-[9px] font-bold px-2.5 py-0.5 rounded-full whitespace-nowrap shadow-md">
-                                            Available
+                                            Open to Work
                                         </span>
                                     )}
                                     {/* Not Open to Work badge */}
                                     {p.profile_frame === 'not_open_to_work' && (
-                                        <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-20 bg-red-500 text-white text-[9px] font-bold px-2.5 py-0.5 rounded-full whitespace-nowrap shadow-md">
-                                            Unavailable
+                                        <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-20 bg-red-500 text-white text-[9px] font-bold px-2.5 py-0.5 rounded-full whitespace-nowrap shadow-md flex items-center gap-1">
+                                            <svg width="7" height="7" viewBox="0 0 10 10" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="1" y1="1" x2="9" y2="9"/><line x1="9" y1="1" x2="1" y2="9"/></svg>
+                                            Not Open to Work
                                         </span>
                                     )}
                                 </div>
