@@ -1,4 +1,4 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
@@ -29,10 +29,15 @@ interface JobListing {
     screener_questions?: string[];
     work_arrangement?: string;
     is_owner?: boolean;
+    report_id?: number;
+    report_status?: 'pending' | 'resolved' | 'dismissed';
+    report_reason?: string;
+    reported_at?: string;
+    report_count?: number;
 }
 
 interface Props {
-    user: { first_name: string; last_name: string; email: string; role: string };
+    user: { first_name: string; last_name: string; email: string; role: string; status: 'active' | 'pending' | 'suspended' | 'banned' };
     profile: any;
     jobs: JobListing[];
     isVerified: boolean;
@@ -94,6 +99,69 @@ function StatusBadge({ status, jobId, onClick }: { status: JobListing['status'];
                             </button>
                         );
                     })}
+                </div>
+            )}
+        </div>
+    );
+}
+
+/* ── Sort Dropdown ── */
+function SortDropdown({
+    value,
+    onChange,
+    fullWidthOnMobile = true,
+}: {
+    value: 'newest' | 'oldest' | 'most_applicants';
+    onChange: (v: 'newest' | 'oldest' | 'most_applicants') => void;
+    fullWidthOnMobile?: boolean;
+}) {
+    const [open, setOpen] = useState(false);
+    const ref = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const h = (e: MouseEvent) => {
+            if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+        };
+        document.addEventListener('mousedown', h);
+        return () => document.removeEventListener('mousedown', h);
+    }, []);
+
+    const options: { value: 'newest' | 'oldest' | 'most_applicants'; label: string }[] = [
+        { value: 'newest', label: 'Newest' },
+        { value: 'oldest', label: 'Oldest' },
+        { value: 'most_applicants', label: 'Most Applicants' },
+    ];
+    const current = options.find(o => o.value === value)?.label ?? 'Newest';
+
+    return (
+        <div ref={ref} className={`relative ${fullWidthOnMobile ? 'w-full sm:w-auto' : ''}`}>
+            <button
+                type="button"
+                onClick={() => setOpen(o => !o)}
+                className="h-9 w-full sm:w-auto px-3 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-600 focus:outline-none focus:ring-2 focus:ring-[#6D9886] shadow-sm flex items-center justify-between gap-2"
+            >
+                <span className="truncate">{current}</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="opacity-70 flex-shrink-0">
+                    <polyline points="6 9 12 15 18 9" />
+                </svg>
+            </button>
+            {open && (
+                <div className="absolute left-0 right-0 sm:right-auto sm:min-w-[170px] mt-1 z-30 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+                    {options.map(opt => (
+                        <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => {
+                                onChange(opt.value);
+                                setOpen(false);
+                            }}
+                            className={`w-full px-3 py-2 text-left text-xs font-semibold transition-colors ${
+                                opt.value === value ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50'
+                            }`}
+                        >
+                            {opt.label}
+                        </button>
+                    ))}
                 </div>
             )}
         </div>
@@ -181,17 +249,26 @@ function OptionsMenu({ job, onEdit }: { job: JobListing; onEdit: () => void }) {
 }
 
 /* ── Job Card ── */
-function JobCard({ job, onEdit }: { job: JobListing; onEdit: () => void }) {
+function JobCard({ job, onEdit, onAppeal }: { job: JobListing; onEdit: () => void; onAppeal?: () => void }) {
+
     const statusCfg = {
         active:   { bg: 'bg-emerald-50 border-emerald-200', dot: 'bg-emerald-500', text: 'text-emerald-700', label: 'Active'   },
         inactive: { bg: 'bg-gray-50 border-gray-200',       dot: 'bg-gray-400',    text: 'text-gray-500',   label: 'Inactive' },
         draft:    { bg: 'bg-amber-50 border-amber-200',     dot: 'bg-amber-400',   text: 'text-amber-700',  label: 'Draft'    },
     }[job.status];
 
+    const reportStatusCfg = {
+        pending:   { bg: 'bg-red-50 border-red-200',    dot: 'bg-red-500',    text: 'text-red-700',    label: 'Reported'  },
+        resolved:  { bg: 'bg-orange-50 border-orange-200', dot: 'bg-orange-500', text: 'text-orange-700', label: 'Suspended' },
+        dismissed: { bg: 'bg-gray-50 border-gray-200',    dot: 'bg-gray-400',   text: 'text-gray-600',   label: 'Dismissed' },
+    }[job.report_status || 'pending'];
+
+    const isClickable = !(job.report_id && job.report_status === 'resolved');
+
     return (
         <div
-            onClick={() => router.visit(route('employer.jobs.show', job.id))}
-            className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col overflow-hidden cursor-pointer group"
+            onClick={() => isClickable && router.visit(route('employer.jobs.show', job.id))}
+            className={`bg-white rounded-2xl border border-gray-100 shadow-sm flex flex-col overflow-hidden ${isClickable ? 'hover:shadow-md hover:-translate-y-0.5 cursor-pointer group transition-all duration-200' : 'opacity-60 cursor-not-allowed'}`}
         >
             {/* Top accent bar */}
             <div className="h-1 bg-gradient-to-r from-[#6D9886] to-[#4a7360]" />
@@ -217,6 +294,24 @@ function JobCard({ job, onEdit }: { job: JobListing; onEdit: () => void }) {
                         <span className={`w-1.5 h-1.5 rounded-full ${statusCfg.dot}`} />
                         {statusCfg.label}
                     </span>
+                    {job.report_id && job.report_status === 'pending' && (
+                        <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border cursor-pointer hover:opacity-80 transition-opacity ${reportStatusCfg.bg} ${reportStatusCfg.text}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${reportStatusCfg.dot} animate-pulse`} />
+                            {reportStatusCfg.label}
+                        </span>
+                    )}
+                    {job.report_id && job.report_status === 'resolved' && (
+                        <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border ${reportStatusCfg.bg} ${reportStatusCfg.text}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${reportStatusCfg.dot}`} />
+                            {reportStatusCfg.label}
+                        </span>
+                    )}
+                    {job.report_id && job.report_status === 'dismissed' && (
+                        <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border ${reportStatusCfg.bg} ${reportStatusCfg.text}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${reportStatusCfg.dot}`} />
+                            {reportStatusCfg.label}
+                        </span>
+                    )}
                     {job.is_owner === false && (
                         <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100">
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
@@ -268,19 +363,48 @@ function JobCard({ job, onEdit }: { job: JobListing; onEdit: () => void }) {
                     </div>
                 )}
 
+                {/* Report Status Alert - Info Only */}
+                {job.report_id && job.report_status === 'pending' && (
+                    <div className="mb-3 p-3 bg-red-50 border border-red-100 rounded-xl">
+                        <p className="text-xs font-semibold text-red-600 mb-1">⚠️ Job Reported</p>
+                        <p className="text-xs text-red-600 mb-2">{job.report_reason || 'This job has been reported. The admin team will review it shortly.'}</p>
+                        <p className="text-[10px] text-red-500">⏳ Admin review in progress...</p>
+                    </div>
+                )}
+                {job.report_id && job.report_status === 'resolved' && (
+                    <div className="mb-3 p-3 bg-orange-50 border border-orange-100 rounded-xl">
+                        <p className="text-xs font-semibold text-orange-600 mb-1">⏸️ Job Posting Suspended</p>
+                        <p className="text-xs text-orange-600 mb-2">Admin has suspended this job posting due to reported violations. Your account remains fully functional. Check your email for details.</p>
+                        <button
+                            onClick={e => { e.stopPropagation(); onAppeal?.(); }}
+                            className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold rounded-lg transition-colors"
+                        >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                            Appeal Suspension
+                        </button>
+                    </div>
+                )}
+                {job.report_id && job.report_status === 'dismissed' && (
+                    <div className="mb-3 p-3 bg-green-50 border border-green-100 rounded-xl">
+                        <p className="text-xs font-semibold text-green-700 mb-1">✓ Report Dismissed</p>
+                        <p className="text-xs text-green-700">The admin team has reviewed and dismissed this report. No action taken.</p>
+                    </div>
+                )}
+
                 <div className="flex-1" />
 
                 {/* Footer */}
                 <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
                     <button
-                        onClick={e => { e.stopPropagation(); router.visit(route('employer.jobs.applications', job.id)); }}
-                        className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-[#6D9886] transition-colors"
+                        onClick={e => { e.stopPropagation(); isClickable && router.visit(route('employer.jobs.applications', job.id)); }}
+                        disabled={!isClickable}
+                        className={`flex items-center gap-1.5 text-xs font-semibold transition-colors ${isClickable ? 'text-gray-500 hover:text-[#6D9886]' : 'text-gray-300 cursor-not-allowed'}`}
                     >
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
                         {job.applications_count} Applicant{job.applications_count !== 1 ? 's' : ''}
                     </button>
-                    <span className="flex items-center gap-1 text-xs font-semibold text-[#6D9886] group-hover:text-[#4a7360] transition-colors">
-                        View Details
+                    <span className={`flex items-center gap-1 text-xs font-semibold transition-colors ${isClickable ? 'text-[#6D9886] group-hover:text-[#4a7360]' : 'text-gray-300'}`}>
+                        {isClickable ? 'View Details' : 'Suspended'}
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
                     </span>
                 </div>
@@ -316,6 +440,105 @@ const XIcon = () => (
         <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
     </svg>
 );
+
+/* ── Appeal Modal ── */
+function AppealModal({ job, onClose }: { job: JobListing; onClose: () => void }) {
+    const [message, setMessage] = useState('');
+    const [submitting, setSubmitting] = useState(false);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+        document.addEventListener('keydown', esc);
+        document.body.style.overflow = 'hidden';
+        return () => { document.removeEventListener('keydown', esc); document.body.style.overflow = ''; };
+    }, [onClose]);
+
+    const handleSubmit = async () => {
+        setError('');
+        if (!message.trim()) {
+            setError('Please provide a detailed explanation for your appeal.');
+            return;
+        }
+
+        setSubmitting(true);
+        router.post(route('employer.appeals.store'), {
+            report_id: job.report_id,
+            job_id: job.id,
+            message: message.trim(),
+        }, {
+            preserveScroll: true,
+            onError: (errors: any) => {
+                setError(errors.message || errors.error || 'Failed to submit appeal. Please try again.');
+                setSubmitting(false);
+            },
+            onSuccess: () => {
+                setSubmitting(false);
+                onClose();
+            },
+        });
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+            <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
+                <div className="h-12 bg-gradient-to-r from-orange-600 to-orange-500 flex-shrink-0 flex items-center px-5 justify-between">
+                    <h2 className="text-white font-bold text-sm">Appeal Suspension</h2>
+                    <button onClick={onClose} className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-white transition-colors"><XIcon /></button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-5 space-y-4">
+                    <div>
+                        <p className="text-sm font-semibold text-gray-900 mb-2">Job Posting</p>
+                        <p className="text-sm text-gray-600">{job.title}</p>
+                    </div>
+
+                    <div>
+                        <p className="text-sm font-semibold text-gray-900 mb-2">Reason for Appeal</p>
+                        <p className="text-xs text-gray-500 mb-2">{job.report_reason || 'Admin took action on this posting'}</p>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-semibold text-gray-900 mb-2">Your Appeal Message *</label>
+                        <textarea
+                            value={message}
+                            onChange={e => { setMessage(e.target.value); setError(''); }}
+                            placeholder="Explain why this decision should be reconsidered. Provide any additional context or clarifications..."
+                            rows={5}
+                            className="w-full rounded-xl border border-gray-200 bg-gray-50 text-gray-800 text-sm px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all placeholder-gray-400 resize-none"
+                        />
+                        <p className="text-xs text-gray-400 mt-1">{message.length}/500 characters</p>
+                    </div>
+
+                    {error && (
+                        <div className="p-3 bg-red-50 border border-red-200 rounded-xl">
+                            <p className="text-xs text-red-600">{error}</p>
+                        </div>
+                    )}
+
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl">
+                        <p className="text-xs text-blue-700"><strong>Note:</strong> Your appeal will be reviewed by our admin team within 24-48 hours. Be detailed and professional in your explanation.</p>
+                    </div>
+                </div>
+
+                <div className="px-5 py-3.5 border-t border-gray-100 flex items-center justify-between flex-shrink-0 bg-gray-50/50">
+                    <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors">
+                        Cancel
+                    </button>
+                    <button
+                        onClick={handleSubmit}
+                        disabled={submitting || !message.trim()}
+                        className="px-5 py-2 bg-orange-600 hover:bg-orange-700 text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                        {submitting && <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>}
+                        {submitting ? 'Submitting...' : 'Submit Appeal'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
 
 function JobFormModal({ mode, job, companyName, onClose }: {
     mode: 'create' | 'edit'; job?: JobListing; companyName?: string; onClose: () => void;
@@ -652,9 +875,43 @@ function JobFormModal({ mode, job, companyName, onClose }: {
    MAIN PAGE
 ══════════════════════════════════════════════ */
 export default function ManageJobs({ user, profile, jobs, isVerified, pendingInvitationsCount = 0 }: Props) {
+    const page = usePage();
     const [filter, setFilter] = useState<'all' | 'active' | 'inactive' | 'draft'>('all');
     const [search, setSearch] = useState('');
     const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'most_applicants'>('newest');
+    const [appealModalOpen, setAppealModalOpen] = useState(false);
+    const [selectedJobForAppeal, setSelectedJobForAppeal] = useState<JobListing | null>(null);
+    const [showSuccess, setShowSuccess] = useState(false);
+    const [successMessage, setSuccessMessage] = useState('');
+
+    const openAppealModal = (job: JobListing) => {
+        setSelectedJobForAppeal(job);
+        setAppealModalOpen(true);
+    };
+
+    // Handle flash messages
+    useEffect(() => {
+        const flash = page.props.flash as any;
+        if (flash?.success) {
+            setSuccessMessage(flash.success);
+            setShowSuccess(true);
+            const timer = setTimeout(() => setShowSuccess(false), 4000);
+            return () => clearTimeout(timer);
+        }
+    }, [page.props.flash]);
+
+    // Auto-refresh page every 10 seconds to check for report status changes
+    useEffect(() => {
+        const hasAnyReports = jobs.some(j => j.report_status); // Any report (pending/resolved/dismissed)
+        
+        if (!hasAnyReports) return; // Stop polling if no reports exist
+        
+        const interval = setInterval(() => {
+            router.reload({ only: ['jobs', 'user'] });
+        }, 10000); // Refresh every 10 seconds
+
+        return () => clearInterval(interval);
+    }, [jobs]);
 
     const companyName = profile?.company_name ?? `${user.first_name} ${user.last_name}`;
 
@@ -684,11 +941,46 @@ export default function ManageJobs({ user, profile, jobs, isVerified, pendingInv
         <AppLayout pageTitle="Job Management" pageSubtitle="Monitor and manage job postings." activeNav="Manage Jobs">
             <Head title="Manage Jobs" />
 
+            {showSuccess && (
+                <div className="mb-5 p-4 bg-green-50 border border-green-200 rounded-xl animate-in">
+                    <div className="flex items-start gap-3">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-green-600 flex-shrink-0 mt-0.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        <p className="text-sm font-semibold text-green-900">{successMessage}</p>
+                    </div>
+                </div>
+            )}
+
+            {user.status === 'banned' && (
+                <div className="mb-5 p-4 bg-red-50 border border-red-200 rounded-xl">
+                    <div className="flex items-start gap-3">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-red-600 flex-shrink-0 mt-0.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                        <div>
+                            <p className="text-sm font-bold text-red-900">Account Permanently Banned</p>
+                            <p className="text-xs text-red-700 mt-1">Your account has been permanently banned due to policy violations. You can no longer post jobs or manage listings. For appeal inquiries, please contact support.</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {user.status === 'suspended' && (
+                <div className="mb-5 p-4 bg-orange-50 border border-orange-200 rounded-xl">
+                    <div className="flex items-start gap-3">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-orange-600 flex-shrink-0 mt-0.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><circle cx="12" cy="16" r="1"/></svg>
+                        <div>
+                            <p className="text-sm font-bold text-orange-900">Account Temporarily Suspended</p>
+                            <p className="text-xs text-orange-700 mt-1">Your account has been temporarily suspended. You can view your jobs but cannot edit, create, or manage listings until the suspension is lifted. Please contact support for more information.</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+
+
             <div className="space-y-5">
                 {/* Toolbar */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     {/* Filter tabs */}
-                    <div className="inline-flex items-center bg-white border border-gray-200 rounded-xl p-1 gap-0.5 shadow-sm">
+                    <div className="w-full sm:w-auto inline-flex items-center bg-white border border-gray-200 rounded-xl p-1 gap-0.5 shadow-sm overflow-x-auto max-w-full">
                         {(['all', 'active', 'inactive', 'draft'] as const).map(tab => (
                             <button key={tab} onClick={() => setFilter(tab)}
                                 className={`px-4 py-1.5 rounded-lg text-xs font-bold capitalize transition-all ${filter === tab ? 'bg-[#6D9886] text-white shadow-sm' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'}`}>
@@ -698,22 +990,30 @@ export default function ManageJobs({ user, profile, jobs, isVerified, pendingInv
                         ))}
                     </div>
 
-                    <div className="flex items-center gap-2">
-                        {/* Invitations link */}
-                        <button
-                            onClick={() => router.visit(route('employer.jobs.invitations'))}
-                            className="inline-flex items-center gap-1.5 px-3 h-9 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-xs font-bold rounded-xl transition-colors border border-indigo-100 whitespace-nowrap"
-                        >
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-                            Invitations
-                            {pendingInvitationsCount > 0 && (
-                                <span className="bg-indigo-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{pendingInvitationsCount}</span>
-                            )}
-                        </button>
-                        {/* Search */}
-                        <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 h-9 w-56 shadow-sm">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="text-gray-400 flex-shrink-0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search jobs..." className="text-xs bg-transparent text-gray-900 placeholder-gray-400 font-medium focus:outline-none w-full" />
+                    <div className="w-full sm:w-auto grid grid-cols-1 gap-2 sm:flex sm:flex-nowrap sm:items-center">
+                        <div className="grid grid-cols-[auto,1fr] gap-2 sm:flex sm:items-center">
+                            {/* Invitations link */}
+                            <button
+                                onClick={() => router.visit(route('employer.jobs.invitations'))}
+                                className="inline-flex items-center gap-1.5 px-3 h-9 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-xs font-bold rounded-xl transition-colors border border-indigo-100 whitespace-nowrap"
+                            >
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                                Invitations
+                                {pendingInvitationsCount > 0 && (
+                                    <span className="bg-indigo-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{pendingInvitationsCount}</span>
+                                )}
+                            </button>
+                            {/* Search */}
+                            <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 h-9 shadow-sm min-w-0 overflow-hidden w-full sm:w-56">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="text-gray-400 flex-shrink-0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                <input
+                                    type="search"
+                                    value={search}
+                                    onChange={e => setSearch(e.target.value)}
+                                    placeholder="Search jobs..."
+                                    className="w-full min-w-0 text-xs bg-transparent text-gray-900 placeholder-gray-400 font-medium focus:outline-none focus:ring-0 border-0 p-0 appearance-none"
+                                />
+                            </div>
                         </div>
                         {/* Sort */}
                         <select value={sortBy} onChange={e => setSortBy(e.target.value as any)}
@@ -755,7 +1055,7 @@ export default function ManageJobs({ user, profile, jobs, isVerified, pendingInv
                     <>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                             {filtered.map(job => (
-                                <JobCard key={job.id} job={job} onEdit={() => router.visit(route('employer.jobs.edit', job.id))} />
+                                <JobCard key={job.id} job={job} onEdit={() => router.visit(route('employer.jobs.edit', job.id))} onAppeal={() => openAppealModal(job)} />
                             ))}
                         </div>
                         <p className="text-xs text-gray-400">
@@ -765,6 +1065,11 @@ export default function ManageJobs({ user, profile, jobs, isVerified, pendingInv
                     </>
                 )}
             </div>
+
+            {/* Appeal Modal */}
+            {appealModalOpen && selectedJobForAppeal && (
+                <AppealModal job={selectedJobForAppeal} onClose={() => { setAppealModalOpen(false); setSelectedJobForAppeal(null); }} />
+            )}
         </AppLayout>
     );
 }

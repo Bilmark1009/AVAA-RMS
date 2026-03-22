@@ -1,8 +1,7 @@
-import { Head, Link, router } from "@inertiajs/react";
-import AppLayout from "@/Layouts/AppLayout";
-import ImageInitialsFallback from "@/Components/ImageInitialsFallback";
-import { useState, useEffect } from "react";
-
+import { Head, Link, router } from '@inertiajs/react';
+import AppLayout from '@/Layouts/AppLayout';
+import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
+import { useState, useEffect } from 'react';
 /* ── Types ── */
 interface JobListing {
     id: number;
@@ -178,6 +177,11 @@ function RecruiterProfileModal({
         return () => document.removeEventListener("keydown", handler);
     }, [onClose]);
 
+    // Redirect to Recruiter Timeline
+    const handleViewTimeline = () => {
+        router.visit(route('job-seeker.recruiter.timeline', { user: member.id }))
+    };
+
     return (
         /* ── Backdrop ── */
         <div
@@ -258,16 +262,21 @@ function RecruiterProfileModal({
                         </button>
                     </div>
 
-                    {/* Name & company */}
-                    <h2 className="text-xl font-bold text-avaa-dark leading-tight">
-                        {member.name}
-                    </h2>
-                    {member.company && (
-                        <p className="text-sm text-avaa-teal font-medium mt-0.5">
-                            {member.company}
-                            {member.industry ? ` · ${member.industry}` : ""}
-                        </p>
-                    )}
+                    {/* Name & company — Clickable Timeline Trigger */}
+                    <button 
+                        onClick={handleViewTimeline}
+                        className="text-left block group focus:outline-none"
+                    >
+                        <h2 className="text-xl font-bold text-avaa-dark leading-tight group-hover:text-avaa-teal transition-colors">
+                            {member.name}
+                        </h2>
+                        {member.company && (
+                            <p className="text-sm text-avaa-teal font-medium mt-0.5 group-hover:underline">
+                                {member.company}
+                                {member.industry ? ` · ${member.industry}` : ''}
+                            </p>
+                        )}
+                    </button>
 
                     {/* Meta chips */}
                     <div className="flex flex-wrap gap-2 mt-3">
@@ -612,132 +621,6 @@ function ReportJobModal({
     );
 }
 
-/* ══════════════════════════════════════════════
-   SHARE JOB MODAL
-══════════════════════════════════════════════ */
-function ShareJobModal({
-    job,
-    onClose,
-}: {
-    job: JobListing;
-    onClose: () => void;
-}) {
-    const [email, setEmail] = useState('');
-    const [message, setMessage] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [successMessage, setSuccessMessage] = useState('');
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!email.trim()) return;
-
-        setLoading(true);
-        router.post(route('job-seeker.jobs.share', job.id), {
-            email,
-            message,
-        }, {
-            onSuccess: () => {
-                setSuccessMessage('Job shared successfully!');
-                setTimeout(() => {
-                    setLoading(false);
-                    onClose();
-                }, 1500);
-            },
-            onError: (errors) => {
-                console.error('Error sharing job:', errors);
-                setLoading(false);
-            },
-        });
-    };
-
-    useEffect(() => {
-        const handler = (e: KeyboardEvent) => { if (e.key === 'Escape' && !loading) onClose(); };
-        document.addEventListener('keydown', handler);
-        return () => document.removeEventListener('keydown', handler);
-    }, [onClose, loading]);
-
-    return (
-        <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            style={{ backgroundColor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)' }}
-            onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-        >
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-                {/* Header */}
-                <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
-                    <h2 className="text-lg font-bold text-avaa-dark">Share This Job</h2>
-                    <button
-                        onClick={onClose}
-                        disabled={loading}
-                        className="w-7 h-7 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-500 transition-colors disabled:opacity-50"
-                    >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                        </svg>
-                    </button>
-                </div>
-
-                {/* Success Message */}
-                {successMessage && (
-                    <div className="px-6 py-3 bg-green-50 border-b border-green-100 text-sm text-green-700 font-medium">
-                        ✓ {successMessage}
-                    </div>
-                )}
-
-                {/* Form */}
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                    <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            Recipient Email
-                        </label>
-                        <input
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            disabled={loading}
-                            placeholder="Enter email address..."
-                            className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-avaa-primary/20 focus:border-avaa-primary disabled:opacity-50"
-                            required
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            Personal Message (Optional)
-                        </label>
-                        <textarea
-                            value={message}
-                            onChange={(e) => setMessage(e.target.value)}
-                            disabled={loading}
-                            placeholder="Add a personal note..."
-                            className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-avaa-primary/20 focus:border-avaa-primary resize-none disabled:opacity-50"
-                            rows={3}
-                        />
-                    </div>
-
-                    <div className="flex gap-3 pt-4">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            disabled={loading}
-                            className="flex-1 px-4 py-2.5 text-sm font-semibold text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={!email.trim() || loading}
-                            className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-avaa-primary hover:bg-avaa-primary-hover disabled:opacity-60 disabled:cursor-not-allowed rounded-xl transition-colors"
-                        >
-                            {loading ? 'Sending...' : 'Send'}
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    );
-}
-
 export default function JobDetail({
     job,
     hiringTeam = [],
@@ -750,7 +633,6 @@ export default function JobDetail({
     const [applied, setApplied] = useState(initialApplied || job.has_applied || false);
     const [selectedRecruiter, setSelectedRecruiter] = useState<HiringTeamMember | null>(null);
     const [showReportModal, setShowReportModal] = useState(false);
-    const [showShareModal, setShowShareModal] = useState(false);
 
     const salary = formatSalary(
         job.salary_min,
@@ -768,6 +650,23 @@ export default function JobDetail({
 
     const handleApply = () =>
         router.visit(route("job-seeker.jobs.apply.form", job.id));
+
+    const handleShareJob = async () => {
+        const jobUrl = window.location.href;
+        if (navigator.clipboard) {
+            await navigator.clipboard.writeText(jobUrl);
+            // Create a brief toast notification
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-4 right-4 px-6 py-3 rounded-xl text-sm font-semibold text-white bg-green-500 shadow-lg z-[9999]';
+            notification.textContent = '✓ Link copied to clipboard!';
+            document.body.appendChild(notification);
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transition = 'opacity 0.3s ease-out';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+    };
 
     const toggleSave = () => {
         if (saved) {
@@ -805,14 +704,6 @@ export default function JobDetail({
                 <ReportJobModal
                     job={job}
                     onClose={() => setShowReportModal(false)}
-                />
-            )}
-
-            {/* Share Job Modal */}
-            {showShareModal && (
-                <ShareJobModal
-                    job={job}
-                    onClose={() => setShowShareModal(false)}
                 />
             )}
 
@@ -1154,9 +1045,9 @@ export default function JobDetail({
                             </button>
                             <div className="flex items-center gap-4">
                                 <button
-                                    onClick={() => setShowShareModal(true)}
+                                    onClick={handleShareJob}
                                     className="hover:text-avaa-teal transition-colors"
-                                    title="Share this job via email"
+                                    title="Copy job link to share"
                                 >
                                     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                         <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />

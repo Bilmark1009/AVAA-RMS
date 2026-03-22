@@ -114,6 +114,8 @@ export default function VerifyEmail({ status }: { status?: string }) {
                 <button
                     type="button"
                     onClick={() => {
+                        const currentSessionId = sessionStorage.getItem('auth_session_id') ?? '';
+                        sessionStorage.setItem('auth_logged_out_session_id', currentSessionId);
                         sessionStorage.removeItem('auth_logged_in');
                         sessionStorage.removeItem('auth_dashboard');
                         sessionStorage.removeItem('auth_user_id');

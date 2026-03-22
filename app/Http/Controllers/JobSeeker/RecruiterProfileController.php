@@ -49,7 +49,7 @@ class RecruiterProfileController extends Controller
         ];
     });
 
-        return Inertia::render('JobSeeker/EmployerProfile', [
+        return Inertia::render('JobSeeker/RecruiterTimeline', [
             'member' => [
                 'id' => $user->id,
                 'name' => $fullName,

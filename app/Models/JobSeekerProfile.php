@@ -38,6 +38,8 @@ class JobSeekerProfile extends Model
         'notice_period',
         'work_style',
         'weekly_hours',
+        'open_to_work',
+        'profile_frame',
     ];
 
     protected $casts = [
@@ -48,6 +50,7 @@ class JobSeekerProfile extends Model
         'desired_job_types' => 'array',
         'desired_industries' => 'array',
         'willing_to_relocate' => 'boolean',
+        'open_to_work' => 'boolean',
         'expected_salary_min' => 'decimal:2',
         'expected_salary_max' => 'decimal:2',
     ];

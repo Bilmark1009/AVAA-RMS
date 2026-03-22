@@ -11,6 +11,7 @@ interface Candidate {
     email: string;
     avatar?: string | null;
     title?: string;
+    profile_frame?: 'default' | 'open_to_work' | 'not_open_to_work' | null;
 }
 
 interface InterviewData {
@@ -111,6 +112,19 @@ function ConfirmModal({
 const AVATAR_COLORS = ['bg-avaa-dark', 'bg-teal-700', 'bg-emerald-700', 'bg-slate-600', 'bg-cyan-700', 'bg-stone-600'];
 function avatarColor(id: number) { return AVATAR_COLORS[id % AVATAR_COLORS.length]; }
 function getInitials(first: string, last: string) { return `${(first[0] ?? '')}${(last[0] ?? '')}`.toUpperCase(); }
+function getProfileFrame(frame?: string | null) {
+    return frame === 'open_to_work' || frame === 'not_open_to_work' ? frame : 'default';
+}
+function profileFrameRingClass(frame?: string | null) {
+    if (frame === 'open_to_work') return 'ring-2 ring-emerald-400';
+    if (frame === 'not_open_to_work') return 'ring-2 ring-red-400';
+    return '';
+}
+function profileFrameLabel(frame?: string | null) {
+    if (frame === 'open_to_work') return 'Open to Work';
+    if (frame === 'not_open_to_work') return 'Not Open to Work';
+    return null;
+}
 
 const STATUS_CFG: Record<string, { dot: string; text: string; bg: string; label: string }> = {
     active: { dot: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50', label: 'Active' },
@@ -234,6 +248,7 @@ function EditModal({ interview, onClose }: { interview: InterviewData; onClose: 
 
     const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
     const fullName = `${interview.candidate.first_name} ${interview.candidate.last_name}`;
+    const frame = getProfileFrame(interview.candidate.profile_frame);
 
     const handleSubmit = () => {
         setSaving(true);
@@ -257,11 +272,12 @@ function EditModal({ interview, onClose }: { interview: InterviewData; onClose: 
                         src={interview.candidate.avatar}
                         alt={fullName}
                         initials={getInitials(interview.candidate.first_name, interview.candidate.last_name)}
-                        className={`w-16 h-16 rounded-2xl ring-4 ring-white shadow-md overflow-hidden ${interview.candidate.avatar ? 'bg-white' : avatarColor(interview.candidate.id)}`}
+                        className={`w-16 h-16 rounded-2xl ring-4 ring-white shadow-md overflow-hidden ${profileFrameRingClass(frame)} ${interview.candidate.avatar ? 'bg-white' : avatarColor(interview.candidate.id)}`}
                         textClassName="text-white text-xl font-bold flex items-center justify-center"
                     />
                     <div className="pb-1">
                         <h2 className="text-base font-bold text-avaa-dark">{fullName}</h2>
+                        {profileFrameLabel(frame) && <p className="text-xs text-gray-500">{profileFrameLabel(frame)}</p>}
                         <p className="text-sm text-gray-500">{interview.job.title}</p>
                     </div>
                 </div>
@@ -413,6 +429,7 @@ function JobGroup({
                             {interviews.map(i => {
                                 const fullName = `${i.candidate.first_name} ${i.candidate.last_name}`;
                                 const initials = getInitials(i.candidate.first_name, i.candidate.last_name);
+                                const frame = getProfileFrame(i.candidate.profile_frame);
 
                                 return (
                                     <tr key={i.id} className="hover:bg-gray-50/60 transition-colors">
@@ -422,11 +439,12 @@ function JobGroup({
                                                     src={i.candidate.avatar}
                                                     alt={fullName}
                                                     initials={initials}
-                                                    className={`w-10 h-10 rounded-full shadow-sm flex-shrink-0 overflow-hidden ${i.candidate.avatar ? 'bg-white' : avatarColor(i.candidate.id)}`}
+                                                    className={`w-10 h-10 rounded-full shadow-sm flex-shrink-0 overflow-hidden ${profileFrameRingClass(frame)} ${i.candidate.avatar ? 'bg-white' : avatarColor(i.candidate.id)}`}
                                                     textClassName="text-white text-sm font-bold flex items-center justify-center"
                                                 />
                                                 <div className="min-w-0">
                                                     <p className="text-base font-bold text-gray-900 truncate">{fullName}</p>
+                                                    {profileFrameLabel(frame) && <p className="text-[11px] font-medium text-gray-500 truncate mt-0.5">{profileFrameLabel(frame)}</p>}
                                                     {i.candidate.title && <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider truncate mt-0.5">{i.candidate.title}</p>}
                                                 </div>
                                             </div>
