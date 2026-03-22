@@ -142,46 +142,7 @@ function profileFrameLabel(frame?: string | null) {
     return null;
 }
 
-function getProfileFrame(frame?: string | null) {
-    return frame === 'open_to_work' || frame === 'not_open_to_work' ? frame : 'default';
-}
 
-function profileFrameRingClass(frame?: string | null) {
-    if (frame === 'open_to_work') return 'ring-2 ring-emerald-400';
-    if (frame === 'not_open_to_work') return 'ring-2 ring-red-400';
-    return '';
-}
-
-function profileFrameLabel(frame?: string | null) {
-<<<<<<< HEAD
-    if (frame === 'open_to_work') return { text: 'Available', cls: 'bg-emerald-500 text-white', icon: null };
-    if (frame === 'not_open_to_work') return { text: 'Unavailable', cls: 'bg-red-500 text-white', icon: null };
-    return null;
-}
-
-function ProfileFrameBadge({ frame, size = 'sm' }: { frame?: string | null; size?: 'xs' | 'sm' }) {
-    const badge = profileFrameLabel(frame);
-    if (!badge) return null;
-    const px = size === 'xs' ? 'px-2 py-0.5 text-[8px]' : 'px-2.5 py-0.5 text-[10px]';
-    return (
-        <span className={`inline-flex items-center gap-1 font-bold rounded-full whitespace-nowrap shadow ${badge.cls} ${px}`}>
-            {badge.icon && (
-                <svg width="6" height="6" viewBox="0 0 10 10" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
-                    <line x1="1" y1="1" x2="9" y2="9" /><line x1="9" y1="1" x2="1" y2="9" />
-                </svg>
-            )}
-            {badge.text}
-        </span>
-    );
-}
-
-=======
-    if (frame === 'open_to_work') return 'Open to Work';
-    if (frame === 'not_open_to_work') return 'Not Open to Work';
-    return null;
-}
-
->>>>>>> afd1a29b23502867561c9c845915a3b651a3694f
 /* ── Delete Confirm Modal ── */
 function DeleteModal({ user, onConfirm, onCancel }: {
     user: User;

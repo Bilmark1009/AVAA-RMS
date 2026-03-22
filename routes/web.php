@@ -34,7 +34,6 @@ use App\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use App\Http\Controllers\JobSeeker\RecruiterProfileController;
 use App\Http\Controllers\Employer\ApplicantTimelineController;
 
 // Home — redirect authenticated users to their dashboard; show Welcome to guests
