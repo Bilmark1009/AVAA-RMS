@@ -1262,49 +1262,66 @@ export default function JobDetail({
                     </div>
 
                     {/* ══ Contact Us / Hiring Team card ══ */}
-                    {hiringTeam.map((member, idx) => (
-                        <button
-                            key={member.id}
-                            // CHANGE: Navigate to the full profile page instead of opening the modal
-                            onClick={() =>
-                                router.visit(
-                                    route(
-                                        "job-seeker.recruiter.profile",
-                                        member.id,
-                                    ),
-                                )
-                            }
-                            className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-avaa-primary-light group transition-colors text-left"
-                        >
-                            <ImageInitialsFallback
-                                src={member.avatar}
-                                alt={member.name}
-                                initials={getInitials(member.name)}
-                                className={`w-10 h-10 rounded-full flex-shrink-0 overflow-hidden ${member.avatar ? "bg-white border border-gray-200" : avatarColor(idx)}`}
-                                textClassName="text-white text-sm font-bold flex items-center justify-center"
-                            />
-                            <div className="min-w-0 flex-1">
-                                <p className="text-sm font-semibold text-avaa-dark group-hover:text-avaa-teal transition-colors truncate">
-                                    {member.name}
-                                </p>
-                                <p className="text-xs text-gray-500 truncate">
-                                    {member.company ?? member.title}
+                    {hiringTeam.length > 0 && (
+                        <div className="bg-white border border-gray-200 rounded-2xl p-6">
+                            {/* Header */}
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-base font-bold text-avaa-dark">Contact Us</h3>
+                                <span className="text-[11px] font-semibold text-avaa-teal bg-avaa-primary-light px-2 py-0.5 rounded-full border border-avaa-primary/20">
+                                    {hiringTeam.length} {hiringTeam.length === 1 ? 'recruiter' : 'recruiters'}
+                                </span>
+                            </div>
+
+                            <div className="space-y-1">
+                                {hiringTeam.map((member, idx) => (
+                                    <button
+                                        key={member.id}
+                                        onClick={() => setSelectedRecruiter(member)}
+                                        className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-avaa-primary-light group transition-colors text-left"
+                                    >
+                                        <ImageInitialsFallback
+                                            src={member.avatar}
+                                            alt={member.name}
+                                            initials={getInitials(member.name)}
+                                            className={`w-10 h-10 rounded-full flex-shrink-0 overflow-hidden ${member.avatar ? "bg-white border border-gray-200" : avatarColor(idx)}`}
+                                            textClassName="text-white text-sm font-bold flex items-center justify-center"
+                                        />
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-sm font-semibold text-avaa-dark group-hover:text-avaa-teal transition-colors truncate">
+                                                {member.name}
+                                            </p>
+                                            <p className="text-xs text-gray-500 truncate">
+                                                {member.company ?? member.title}
+                                            </p>
+                                        </div>
+                                        {/* Arrow indicator */}
+                                        <svg
+                                            width="13"
+                                            height="13"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="2.5"
+                                            strokeLinecap="round"
+                                            className="text-gray-300 group-hover:text-avaa-teal transition-colors flex-shrink-0"
+                                        >
+                                            <polyline points="9 18 15 12 9 6" />
+                                        </svg>
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Hint footer */}
+                            <div className="mt-4 pt-4 border-t border-gray-100 flex items-start gap-2">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-avaa-teal flex-shrink-0 mt-0.5">
+                                    <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+                                </svg>
+                                <p className="text-[11px] text-gray-400 leading-relaxed">
+                                    Click any recruiter to view their profile and send a message.
                                 </p>
                             </div>
-                            <svg
-                                width="13"
-                                height="13"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2.5"
-                                strokeLinecap="round"
-                                className="text-gray-300 group-hover:text-avaa-teal transition-colors flex-shrink-0"
-                            >
-                                <polyline points="9 18 15 12 9 6" />
-                            </svg>
-                        </button>
-                    ))}
+                        </div>
+                    )}
 
                     {/* Similar Jobs */}
                     {similarJobs.length > 0 && (
