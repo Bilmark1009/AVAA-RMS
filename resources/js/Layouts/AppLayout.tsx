@@ -144,6 +144,8 @@ function safeRoute(name: string, params?: any): string {
 /** Programmatic logout: clears auth flags and replaces history so Back never returns to dashboard */
 function handleLogout(e: React.MouseEvent): void {
     e.preventDefault();
+    const currentSessionId = sessionStorage.getItem('auth_session_id') ?? '';
+    sessionStorage.setItem('auth_logged_out_session_id', currentSessionId);
     sessionStorage.removeItem('auth_logged_in');
     sessionStorage.removeItem('auth_dashboard');
     sessionStorage.removeItem('auth_user_id');
@@ -333,8 +335,10 @@ interface SidebarShellProps {
     initials: string;
     sideNavItems: NavItem[];
     logoLinkHref: string;
-    topBarExtras?: ReactNode; // extra items in the top bar (e.g. Employer's Messages button)
-    sidebarBottomExtra?: ReactNode; // e.g. admin user info block
+    topBarExtras?: ReactNode;
+    sidebarBottomExtra?: ReactNode;
+    frameStatus?: 'open_to_work' | 'not_open_to_work' | 'default' | null;
+    hideAvatarDropdown?: boolean;
 }
 
 function SidebarShell({
@@ -348,6 +352,8 @@ function SidebarShell({
     logoLinkHref,
     topBarExtras,
     sidebarBottomExtra,
+    frameStatus,
+    hideAvatarDropdown,
 }: SidebarShellProps) {
     const [collapsed, setCollapsed] = useState(false);
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -526,14 +532,24 @@ function SidebarShell({
                         {/* Notification Bell */}
                         <NotificationDropdown />
 
-                        {/* Avatar */}
-                        <AvatarDropdown
-                            initials={initials}
-                            avatar={user.avatar ?? undefined}
-                            name={`${user.first_name} ${user.last_name}`}
-                            email={user.email ?? ''}
-                            role={user.role}
-                        />
+                        {/* Avatar — hidden for admin, with frame ring for job seekers */}
+                        {!hideAvatarDropdown && (
+                            <div className="relative flex-shrink-0">
+                                {frameStatus === 'open_to_work' && (
+                                    <span className="absolute inset-0 rounded-full ring-2 ring-emerald-400 z-10 pointer-events-none" />
+                                )}
+                                {frameStatus === 'not_open_to_work' && (
+                                    <span className="absolute inset-0 rounded-full ring-2 ring-red-400 z-10 pointer-events-none" />
+                                )}
+                                <AvatarDropdown
+                                    initials={initials}
+                                    avatar={user.avatar ?? undefined}
+                                    name={`${user.first_name} ${user.last_name}`}
+                                    email={user.email ?? ''}
+                                    role={user.role}
+                                />
+                            </div>
+                        )}
                     </div>
                 </header>
 
@@ -576,6 +592,7 @@ function AdminLayout({ children, activeNav, pageTitle, pageSubtitle, user, initi
             sideNavItems={sideNavItems}
             logoLinkHref={safeRoute('admin.dashboard')}
             sidebarBottomExtra={adminBottomExtra}
+            hideAvatarDropdown
         >
             {children}
         </SidebarShell>
@@ -633,16 +650,39 @@ function JobSeekerLayout({ children, activeNav, pageTitle, pageSubtitle, user, i
                 href={safeRoute('job-seeker.profile.show')}
                 className="flex items-center gap-3 px-3 py-2 mb-1 rounded-xl hover:bg-avaa-primary-light transition-colors group"
             >
-                <div className="w-8 h-8 rounded-full bg-avaa-dark flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                    {initials}
+                <div className="relative w-8 h-8 flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-avaa-dark flex items-center justify-center text-white text-xs font-bold overflow-hidden">
+                        {initials}
+                    </div>
+                    {/* Frame ring indicator */}
+                    {user.jobSeekerProfile?.profile_frame === 'open_to_work' && (
+                        <span className="absolute inset-0 rounded-full ring-2 ring-emerald-400 pointer-events-none" />
+                    )}
+                    {user.jobSeekerProfile?.profile_frame === 'not_open_to_work' && (
+                        <span className="absolute inset-0 rounded-full ring-2 ring-red-400 pointer-events-none" />
+                    )}
                 </div>
                 <div className="min-w-0">
                     <p className="text-xs font-semibold text-avaa-dark truncate">{user.first_name} {user.last_name}</p>
-                    <p className="text-[10px] text-avaa-muted truncate">Job Seeker</p>
+                    {user.jobSeekerProfile?.profile_frame === 'open_to_work' && (
+                        <span className="inline-flex items-center text-[9px] font-bold px-1.5 py-px rounded-full bg-emerald-500 text-white mt-0.5">
+                            Available
+                        </span>
+                    )}
+                    {user.jobSeekerProfile?.profile_frame === 'not_open_to_work' && (
+                        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-px rounded-full bg-red-500 text-white mt-0.5">
+                            Unavailable
+                        </span>
+                    )}
+                    {!user.jobSeekerProfile?.profile_frame || user.jobSeekerProfile?.profile_frame === 'default' ? (
+                        <p className="text-[10px] text-avaa-muted truncate">Job Seeker</p>
+                    ) : null}
                 </div>
             </Link>
         ) : null
     );
+
+    const frameStatus = user.jobSeekerProfile?.profile_frame as 'open_to_work' | 'not_open_to_work' | 'default' | null ?? null;
 
     // Minimalist top bar — no search bar, just page title / notifications / avatar
     return (
@@ -655,6 +695,7 @@ function JobSeekerLayout({ children, activeNav, pageTitle, pageSubtitle, user, i
             sideNavItems={sideNavItems}
             logoLinkHref={safeRoute('job-seeker.jobs.browse')}
             sidebarBottomExtra={jobSeekerBottomExtra}
+            frameStatus={frameStatus}
         // No topBarExtras — keep the top bar minimal
         >
             {children}

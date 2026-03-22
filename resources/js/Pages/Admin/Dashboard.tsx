@@ -12,12 +12,14 @@ interface RecentUser {
     id: number; first_name: string; last_name: string;
     email: string; role: string; created_at: string;
     applications_count: number;
+    profile_frame?: 'default' | 'open_to_work' | 'not_open_to_work' | null;
 }
 
 interface RecentJobSeeker {
     id: number; first_name: string; last_name: string;
     email: string; role: string; status: string;
     created_at: string; applications_count: number;
+    profile_frame?: 'default' | 'open_to_work' | 'not_open_to_work' | null;
 }
 
 interface Props {
@@ -181,6 +183,22 @@ function timeAgo(dateStr: string): string {
     return `${days} day${days !== 1 ? 's' : ''} ago`;
 }
 
+function getProfileFrame(frame?: string | null) {
+    return frame === 'open_to_work' || frame === 'not_open_to_work' ? frame : 'default';
+}
+
+function profileFrameRingClass(frame?: string | null) {
+    if (frame === 'open_to_work') return 'ring-2 ring-emerald-400';
+    if (frame === 'not_open_to_work') return 'ring-2 ring-red-400';
+    return '';
+}
+
+function profileFrameLabel(frame?: string | null) {
+    if (frame === 'open_to_work') return 'Open to Work';
+    if (frame === 'not_open_to_work') return 'Not Open to Work';
+    return null;
+}
+
 /* ── Recent Jobs Panel ── */
 function RecentJobsPanel({ jobs }: { jobs: RecentJob[] }) {
     return (
@@ -272,15 +290,17 @@ function RecentUsersPanel({ users }: { users: RecentUser[] }) {
                 ) : (
                     users.map((u, i) => {
                         const initials = `${(u.first_name ?? '').charAt(0)}${(u.last_name ?? '').charAt(0)}`.toUpperCase();
+                        const frame = getProfileFrame(u.profile_frame);
                         return (
                             <div key={u.id} className="px-5 py-3.5 flex items-center gap-3 hover:bg-gray-50/60 transition-colors">
-                                <div className={`w-9 h-9 rounded-full ${AVATAR_BG[i % AVATAR_BG.length]} flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>
+                                <div className={`w-9 h-9 rounded-full ${AVATAR_BG[i % AVATAR_BG.length]} ${profileFrameRingClass(frame)} flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>
                                     {initials}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <p className="font-semibold text-gray-800 text-sm truncate leading-tight">
                                         {u.first_name} {u.last_name}
                                     </p>
+                                    {u.role === 'job_seeker' && profileFrameLabel(frame) && <p className="text-xs text-gray-500 truncate mt-0.5">{profileFrameLabel(frame)}</p>}
                                     <p className="text-xs text-gray-400 truncate mt-0.5">{u.email}</p>
                                 </div>
                                 <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
@@ -401,18 +421,20 @@ export default function AdminDashboard({
                                     {recentJobSeekers.map((js, i) => {
                                         const initials = `${(js.first_name ?? '').charAt(0)}${(js.last_name ?? '').charAt(0)}`.toUpperCase();
                                         const isActive = js.status === 'active';
+                                        const frame = getProfileFrame(js.profile_frame);
                                         return (
                                             <tr key={js.id} className="hover:bg-gray-50/70 transition-colors">
                                                 {/* User */}
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-3">
-                                                        <div className={`w-9 h-9 rounded-full ${AVATAR_BG[i % AVATAR_BG.length]} flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>
+                                                        <div className={`w-9 h-9 rounded-full ${AVATAR_BG[i % AVATAR_BG.length]} ${profileFrameRingClass(frame)} flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>
                                                             {initials}
                                                         </div>
                                                         <div>
                                                             <p className="font-semibold text-gray-800 leading-tight">
                                                                 {js.first_name} {js.last_name}
                                                             </p>
+                                                            {profileFrameLabel(frame) && <p className="text-xs text-gray-500 mt-0.5">{profileFrameLabel(frame)}</p>}
                                                         </div>
                                                     </div>
                                                 </td>

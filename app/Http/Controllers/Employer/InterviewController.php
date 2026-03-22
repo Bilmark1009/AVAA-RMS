@@ -46,6 +46,7 @@ class InterviewController extends Controller
                     'last_name' => $i->candidate->last_name,
                     'email' => $i->candidate->email,
                     'avatar' => $i->candidate->avatar,
+                    'profile_frame' => $i->candidate->jobSeekerProfile?->profile_frame ?? 'default',
                     'title' => $i->candidate->jobSeekerProfile?->professional_title
                         ?? $i->candidate->jobSeekerProfile?->current_job_title
                         ?? '',

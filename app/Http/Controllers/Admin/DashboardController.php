@@ -47,9 +47,39 @@ class DashboardController extends Controller
         $recentUsers = User::selectRaw('id, first_name, last_name, email, role, created_at,
             (SELECT COUNT(*) FROM job_applications WHERE job_applications.user_id = users.id) as applications_count')
             ->whereIn('role', ['employer', 'job_seeker'])
+            ->with('jobSeekerProfile:user_id,profile_frame')
             ->latest()
             ->take(8)
-            ->get();
+            ->get()
+            ->map(fn($u) => [
+                'id' => $u->id,
+                'first_name' => $u->first_name,
+                'last_name' => $u->last_name,
+                'email' => $u->email,
+                'role' => $u->role,
+                'created_at' => $u->created_at,
+                'applications_count' => (int) ($u->applications_count ?? 0),
+                'profile_frame' => $u->jobSeekerProfile?->profile_frame ?? 'default',
+            ]);
+
+        $recentJobSeekers = User::selectRaw('id, first_name, last_name, email, role, status, created_at,
+            (SELECT COUNT(*) FROM job_applications WHERE job_applications.user_id = users.id) as applications_count')
+            ->where('role', 'job_seeker')
+            ->with('jobSeekerProfile:user_id,profile_frame')
+            ->latest()
+            ->take(10)
+            ->get()
+            ->map(fn($u) => [
+                'id' => $u->id,
+                'first_name' => $u->first_name,
+                'last_name' => $u->last_name,
+                'email' => $u->email,
+                'role' => $u->role,
+                'status' => $u->status,
+                'created_at' => $u->created_at,
+                'applications_count' => (int) ($u->applications_count ?? 0),
+                'profile_frame' => $u->jobSeekerProfile?->profile_frame ?? 'default',
+            ]);
 
         return Inertia::render('Admin/Dashboard', [
             'stats' => [
@@ -64,12 +94,7 @@ class DashboardController extends Controller
             'applicationTrends' => $trends,
             'recentJobs' => $recentJobs,
             'recentUsers' => $recentUsers,
-            'recentJobSeekers' => User::selectRaw('id, first_name, last_name, email, role, status, created_at,
-                (SELECT COUNT(*) FROM job_applications WHERE job_applications.user_id = users.id) as applications_count')
-                ->where('role', 'job_seeker')
-                ->latest()
-                ->take(10)
-                ->get(),
+            'recentJobSeekers' => $recentJobSeekers,
             'pendingCount' => User::where('role', 'employer')
                 ->whereHas('employerProfile', fn($q) => $q->where('is_verified', false))
                 ->count(),

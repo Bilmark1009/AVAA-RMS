@@ -20,7 +20,9 @@ interface ApplicationUser {
     email: string;
     phone?: string | null;
     avatar?: string | null;
+    profile_frame?: 'default' | 'open_to_work' | 'not_open_to_work' | null;
     profile?: {
+        profile_frame?: 'default' | 'open_to_work' | 'not_open_to_work' | null;
         professional_title?: string;
         current_job_title?: string;
         current_company?: string;
@@ -49,19 +51,37 @@ interface Props {
 }
 
 /* ── Helpers ── */
-const AVATAR_COLORS = [
-    "bg-avaa-dark",
-    "bg-teal-700",
-    "bg-emerald-700",
-    "bg-slate-600",
-    "bg-cyan-700",
-    "bg-stone-600",
-];
-function avatarColor(id: number) {
-    return AVATAR_COLORS[id % AVATAR_COLORS.length];
+const AVATAR_COLORS = ['bg-avaa-dark', 'bg-teal-700', 'bg-emerald-700', 'bg-slate-600', 'bg-cyan-700', 'bg-stone-600'];
+function avatarColor(id: number) { return AVATAR_COLORS[id % AVATAR_COLORS.length]; }
+function getInitials(first: string, last: string) { return `${(first[0] ?? '')}${(last[0] ?? '')}`.toUpperCase(); }
+function getProfileFrame(frame?: string | null) {
+    return frame === 'open_to_work' || frame === 'not_open_to_work' ? frame : 'default';
 }
-function getInitials(first: string, last: string) {
-    return `${first[0] ?? ""}${last[0] ?? ""}`.toUpperCase();
+function profileFrameRingClass(frame?: string | null) {
+    if (frame === 'open_to_work') return 'ring-2 ring-emerald-400';
+    if (frame === 'not_open_to_work') return 'ring-2 ring-red-400';
+    return '';
+}
+function profileFrameLabel(frame?: string | null) {
+    if (frame === 'open_to_work') return { text: 'Available', cls: 'bg-emerald-500 text-white', icon: null };
+    if (frame === 'not_open_to_work') return { text: 'Unavailable', cls: 'bg-red-500 text-white', icon: null };
+    return null;
+}
+
+function ProfileFrameBadge({ frame, size = 'sm' }: { frame?: string | null; size?: 'xs' | 'sm' }) {
+    const badge = profileFrameLabel(frame);
+    if (!badge) return null;
+    const px = size === 'xs' ? 'px-2 py-0.5 text-[8px]' : 'px-2.5 py-0.5 text-[10px]';
+    return (
+        <span className={`inline-flex items-center gap-1 font-bold rounded-full whitespace-nowrap shadow ${badge.cls} ${px}`}>
+            {badge.icon && (
+                <svg width="6" height="6" viewBox="0 0 10 10" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
+                    <line x1="1" y1="1" x2="9" y2="9" /><line x1="9" y1="1" x2="1" y2="9" />
+                </svg>
+            )}
+            {badge.text}
+        </span>
+    );
 }
 function timeAgo(dateStr: string) {
     const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
@@ -186,6 +206,7 @@ function RejectModal({
     }, []);
 
     const fullName = `${app.user.first_name} ${app.user.last_name}`;
+    const frame = getProfileFrame(app.user.profile_frame ?? app.user.profile?.profile_frame);
 
     const handleSubmit = () => {
         if (!reason.trim()) return;
@@ -228,16 +249,18 @@ function RejectModal({
 
                 {/* Avatar + Name */}
                 <div className="px-6 -mt-8 flex items-end gap-3 flex-shrink-0 relative z-10 mb-3">
-                    <ImageInitialsFallback
-                        src={app.user.avatar}
-                        alt={fullName}
-                        initials={getInitials(
-                            app.user.first_name,
-                            app.user.last_name,
-                        )}
-                        className={`w-16 h-16 rounded-2xl ring-4 ring-white shadow-md overflow-hidden ${app.user.avatar ? "bg-white" : avatarColor(app.user.id)}`}
-                        textClassName="text-white text-xl font-bold flex items-center justify-center"
-                    />
+                    <div className="relative">
+                        <ImageInitialsFallback
+                            src={app.user.avatar}
+                            alt={fullName}
+                            initials={getInitials(app.user.first_name, app.user.last_name)}
+                            className={`w-16 h-16 rounded-2xl ring-4 ring-white shadow-md overflow-hidden ${profileFrameRingClass(frame)} ${app.user.avatar ? 'bg-white' : avatarColor(app.user.id)}`}
+                            textClassName="text-white text-xl font-bold flex items-center justify-center"
+                        />
+                        <span className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 z-20">
+                            <ProfileFrameBadge frame={frame} size="xs" />
+                        </span>
+                    </div>
                     <div className="pb-1">
                         <h2 className="text-lg font-bold text-avaa-dark">
                             {fullName}
@@ -357,7 +380,8 @@ function ApproveModal({
     }, []);
 
     const fullName = `${app.user.first_name} ${app.user.last_name}`;
-    const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
+    const frame = getProfileFrame(app.user.profile_frame ?? app.user.profile?.profile_frame);
+    const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
 
     const handleSubmit = () => {
         if (
@@ -406,16 +430,18 @@ function ApproveModal({
 
                 {/* Avatar + Name */}
                 <div className="px-6 -mt-8 flex items-end gap-3 flex-shrink-0 relative z-10 mb-3">
-                    <ImageInitialsFallback
-                        src={app.user.avatar}
-                        alt={fullName}
-                        initials={getInitials(
-                            app.user.first_name,
-                            app.user.last_name,
-                        )}
-                        className={`w-16 h-16 rounded-2xl ring-4 ring-white shadow-md overflow-hidden ${app.user.avatar ? "bg-white" : avatarColor(app.user.id)}`}
-                        textClassName="text-white text-xl font-bold flex items-center justify-center"
-                    />
+                    <div className="relative">
+                        <ImageInitialsFallback
+                            src={app.user.avatar}
+                            alt={fullName}
+                            initials={getInitials(app.user.first_name, app.user.last_name)}
+                            className={`w-16 h-16 rounded-2xl ring-4 ring-white shadow-md overflow-hidden ${profileFrameRingClass(frame)} ${app.user.avatar ? 'bg-white' : avatarColor(app.user.id)}`}
+                            textClassName="text-white text-xl font-bold flex items-center justify-center"
+                        />
+                        <span className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 z-20">
+                            <ProfileFrameBadge frame={frame} size="xs" />
+                        </span>
+                    </div>
                     <div className="pb-1">
                         <h2 className="text-lg font-bold text-avaa-dark">
                             {fullName}
@@ -729,12 +755,10 @@ function ApplicantModal({
     const ad = app.application_data;
     const fullName = ad?.full_name ?? `${u.first_name} ${u.last_name}`;
     const initials = getInitials(u.first_name, u.last_name);
-    const resumePath =
-        app.resume_path ?? u.profile?.resume_path ?? ad?.existing_resume;
-    const resumeName = resumePath ? resumePath.split("/").pop() : null;
-    const resumeViewUrl = resumePath
-        ? route("applications.resume", { application: app.id })
-        : null;
+    const frame = getProfileFrame(u.profile_frame ?? u.profile?.profile_frame);
+    const resumePath = (app.resume_path) ?? (u.profile?.resume_path) ?? (ad?.existing_resume);
+    const resumeName = resumePath ? resumePath.split('/').pop() : null;
+    const resumeViewUrl = resumePath ? route('applications.resume', { application: app.id }) : null;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -753,13 +777,18 @@ function ApplicantModal({
                 </div>
 
                 <div className="px-6 -mt-10 flex items-end gap-4 flex-shrink-0 relative z-10 mb-2">
-                    <ImageInitialsFallback
-                        src={u.avatar}
-                        alt={fullName}
-                        initials={initials}
-                        className={`w-20 h-20 rounded-2xl ring-4 ring-white shadow-md overflow-hidden ${u.avatar ? "bg-white" : avatarColor(u.id)}`}
-                        textClassName="text-white text-2xl font-bold flex items-center justify-center"
-                    />
+                    <div className="relative">
+                        <ImageInitialsFallback
+                            src={u.avatar}
+                            alt={fullName}
+                            initials={initials}
+                            className={`w-20 h-20 rounded-2xl ring-4 ring-white shadow-md overflow-hidden ${profileFrameRingClass(frame)} ${u.avatar ? 'bg-white' : avatarColor(u.id)}`}
+                            textClassName="text-white text-2xl font-bold flex items-center justify-center"
+                        />
+                        <span className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 z-20">
+                            <ProfileFrameBadge frame={frame} size="xs" />
+                        </span>
+                    </div>
                     <div className="pb-1">
                         <h2 className="text-lg font-bold text-avaa-dark">
                             {fullName}
@@ -1351,193 +1380,76 @@ export default function JobApplications({
                         </thead>
                         <tbody className="divide-y divide-gray-50">
                             {filtered.length === 0 ? (
-                                <tr>
-                                    <td colSpan={5}>
-                                        <div className="flex flex-col items-center justify-center py-20 text-center">
-                                            <div className="w-16 h-16 rounded-2xl bg-avaa-primary-light flex items-center justify-center text-avaa-teal mb-4">
-                                                <svg
-                                                    width="28"
-                                                    height="28"
-                                                    viewBox="0 0 24 24"
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    strokeWidth="1.6"
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                >
-                                                    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-                                                    <circle
-                                                        cx="9"
-                                                        cy="7"
-                                                        r="4"
-                                                    />
-                                                </svg>
-                                            </div>
-                                            <p className="text-avaa-dark font-semibold mb-1">
-                                                No applicants found
-                                            </p>
-                                            <p className="text-sm text-avaa-muted">
-                                                {applications.length === 0
-                                                    ? "No one has applied to this job yet."
-                                                    : "No applicants match your filters."}
-                                            </p>
+                                <tr><td colSpan={5}>
+                                    <div className="flex flex-col items-center justify-center py-20 text-center">
+                                        <div className="w-16 h-16 rounded-2xl bg-avaa-primary-light flex items-center justify-center text-avaa-teal mb-4">
+                                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /></svg>
                                         </div>
-                                    </td>
-                                </tr>
-                            ) : (
-                                filtered.map((app) => {
-                                    const fullName = `${app.user.first_name} ${app.user.last_name}`;
-                                    const initials = getInitials(
-                                        app.user.first_name,
-                                        app.user.last_name,
-                                    );
-                                    const subTitle =
-                                        app.application_data
-                                            ?.current_job_title ??
-                                        app.user.profile?.professional_title ??
-                                        app.user.profile?.current_job_title ??
-                                        "";
-                                    const resumePath =
-                                        app.resume_path ??
-                                        app.user.profile?.resume_path;
-                                    const resumeUrl = resumePath
-                                        ? route("applications.resume", {
-                                              application: app.id,
-                                          })
-                                        : null;
-                                    const resumeDownloadUrl = resumePath
-                                        ? `${route("applications.resume", { application: app.id })}?download=1`
-                                        : null;
-                                    const resumeName = resumePath
-                                        ? resumePath.split("/").pop()
-                                        : null;
+                                        <p className="text-avaa-dark font-semibold mb-1">No applicants found</p>
+                                        <p className="text-sm text-avaa-muted">{applications.length === 0 ? 'No one has applied to this job yet.' : 'No applicants match your filters.'}</p>
+                                    </div>
+                                </td></tr>
+                            ) : filtered.map(app => {
+                                const fullName = `${app.user.first_name} ${app.user.last_name}`;
+                                const initials = getInitials(app.user.first_name, app.user.last_name);
+                                const frame = getProfileFrame(app.user.profile_frame ?? app.user.profile?.profile_frame);
+                                const subTitle = (app.application_data?.current_job_title) ?? (app.user.profile?.professional_title) ?? (app.user.profile?.current_job_title) ?? '';
+                                const resumePath = (app.resume_path) ?? (app.user.profile?.resume_path);
+                                const resumeUrl = resumePath ? route('applications.resume', { application: app.id }) : null;
+                                const resumeDownloadUrl = resumePath ? `${route('applications.resume', { application: app.id })}?download=1` : null;
+                                const resumeName = resumePath ? resumePath.split('/').pop() : null;
 
-                                    return (
-                                        <tr
-                                            key={app.id}
-                                            className="hover:bg-gray-50/60 transition-colors"
-                                        >
-                                            <td className="px-5 py-4">
-                                                <div className="flex items-center gap-3">
-                                                    {/* Avatar Fix: Handles external Google URLs vs local storage */}
+                                return (
+                                    <tr key={app.id} className="hover:bg-gray-50/60 transition-colors">
+                                        <td className="px-5 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="relative flex-shrink-0">
                                                     <ImageInitialsFallback
-                                                        src={
-                                                            app.user.avatar?.startsWith(
-                                                                "http",
-                                                            )
-                                                                ? app.user
-                                                                      .avatar
-                                                                : app.user
-                                                                        .avatar
-                                                                  ? `/storage/${app.user.avatar}`
-                                                                  : null
-                                                        }
+                                                        src={app.user.avatar}
                                                         alt={fullName}
                                                         initials={initials}
-                                                        className={`w-10 h-10 rounded-full flex-shrink-0 overflow-hidden shadow-sm border border-gray-100 ${app.user.avatar ? "bg-white" : avatarColor(app.user.id)}`}
+                                                        className={`w-9 h-9 rounded-full overflow-hidden ${profileFrameRingClass(frame)} ${app.user.avatar ? 'bg-white' : avatarColor(app.user.id)}`}
                                                         textClassName="text-white text-xs font-bold flex items-center justify-center"
                                                     />
-
-                                                    <div className="min-w-0 flex flex-col">
-                                                        <div className="flex items-center gap-2">
-                                                            {/* The name now acts as a Link to the Timeline */}
-                                                            <Link
-                                                                href={route(
-                                                                    "employer.applicants.timeline",
-                                                                    app.user.id,
-                                                                )}
-                                                                className="text-base font-bold text-avaa-dark hover:text-avaa-teal hover:underline decoration-2 underline-offset-4 transition-all truncate"
-                                                            >
-                                                                {fullName}
-                                                            </Link>
-
-                                                            {/* Optional: Small badge to indicate this leads to a history page */}
-                                                            <span className="bg-slate-100 text-slate-500 text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-tight">
-                                                                History
-                                                            </span>
-                                                        </div>
-
-                                                        {subTitle && (
-                                                            <p className="text-sm text-avaa-muted truncate flex items-center gap-1">
-                                                                {subTitle}
-                                                            </p>
-                                                        )}
+                                                    <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-10">
+                                                        <ProfileFrameBadge frame={frame} size="xs" />
+                                                    </span>
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <button onClick={() => setViewApp(app)} className="text-base font-semibold text-avaa-dark hover:text-avaa-teal transition-colors truncate block text-left">{fullName}</button>
+                                                    {subTitle && <p className="text-sm text-avaa-muted truncate">{subTitle}</p>}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-4">
+                                            {resumeUrl ? (
+                                                <div className="max-w-[220px]">
+                                                    <a href={resumeUrl} target="_blank" rel="noreferrer" className="text-sm text-avaa-teal hover:underline truncate block">{resumeName}</a>
+                                                    <div className="mt-1 flex items-center gap-3">
+                                                        <a href={resumeUrl} target="_blank" rel="noreferrer" className="text-xs font-medium text-avaa-dark hover:text-avaa-teal hover:underline">View</a>
+                                                        <a href={resumeDownloadUrl ?? '#'} className="text-xs font-medium text-avaa-dark hover:text-avaa-teal hover:underline">Download</a>
                                                     </div>
                                                 </div>
-                                            </td>
-                                            <td className="px-4 py-4">
-                                                {resumeUrl ? (
-                                                    <div className="max-w-[220px]">
-                                                        <a
-                                                            href={resumeUrl}
-                                                            target="_blank"
-                                                            rel="noreferrer"
-                                                            className="text-sm text-avaa-teal hover:underline truncate block"
-                                                        >
-                                                            {resumeName}
-                                                        </a>
-                                                        <div className="mt-1 flex items-center gap-3">
-                                                            <a
-                                                                href={resumeUrl}
-                                                                target="_blank"
-                                                                rel="noreferrer"
-                                                                className="text-xs font-medium text-avaa-dark hover:text-avaa-teal hover:underline"
-                                                            >
-                                                                View
-                                                            </a>
-                                                            <a
-                                                                href={
-                                                                    resumeDownloadUrl ??
-                                                                    "#"
-                                                                }
-                                                                className="text-xs font-medium text-avaa-dark hover:text-avaa-teal hover:underline"
-                                                            >
-                                                                Download
-                                                            </a>
-                                                        </div>
-                                                    </div>
-                                                ) : (
-                                                    <span className="text-sm text-gray-400 italic">
-                                                        —
-                                                    </span>
-                                                )}
-                                            </td>
-                                            <td className="px-4 py-4">
-                                                <span className="text-base text-gray-600">
-                                                    {app.created_at}
+                                            ) : <span className="text-sm text-gray-400 italic">—</span>}
+                                        </td>
+                                        <td className="px-4 py-4"><span className="text-base text-gray-600">{app.created_at}</span></td>
+                                        <td className="px-4 py-4">
+                                            <AppStatusChip status={app.status} />
+                                        </td>
+                                        <td className="px-4 py-4 text-right">
+                                            {app.status === 'withdrawn' ? (
+                                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-50 text-slate-500 border border-slate-200">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                                                    Withdrawn by applicant
                                                 </span>
-                                            </td>
-                                            <td className="px-4 py-4">
-                                                <AppStatusChip
-                                                    status={app.status}
-                                                />
-                                            </td>
-                                            <td className="px-4 py-4 text-right">
-                                                {app.status === "withdrawn" ? (
-                                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-50 text-slate-500 border border-slate-200">
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                                                        Withdrawn by applicant
-                                                    </span>
-                                                ) : (
-                                                    <OptionsMenu
-                                                        app={app}
-                                                        jobId={job.id}
-                                                        onView={() =>
-                                                            setViewApp(app)
-                                                        }
-                                                        onReject={() =>
-                                                            setRejectApp(app)
-                                                        }
-                                                        onApprove={() =>
-                                                            setApproveApp(app)
-                                                        }
-                                                    />
-                                                )}
-                                            </td>
-                                        </tr>
-                                    );
-                                })
-                            )}
+                                            ) : (
+                                                <OptionsMenu app={app} jobId={job.id} onView={() => setViewApp(app)}
+                                                    onReject={() => setRejectApp(app)} onApprove={() => setApproveApp(app)} />
+                                            )}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>

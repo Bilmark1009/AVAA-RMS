@@ -248,6 +248,14 @@ export default function ReportView({ reports = [], filters }: Props) {
         setSelectedReport(null);
     };
 
+    const refreshReports = () => {
+        try {
+            router.get(route('admin.reports.index'), { status, tab }, { preserveState: true, preserveScroll: true });
+        } catch (e) {
+            // preview mode
+        }
+    };
+
     const handleTabChange = (newTab: 'job_posts' | 'messages') => {
         setTab(newTab);
         setStatus('pending');
@@ -373,7 +381,10 @@ export default function ReportView({ reports = [], filters }: Props) {
                         report={selectedReport}
                         tab={tab}
                         onClose={closeAllModals}
-                        onConfirm={closeAllModals}
+                        onConfirm={() => {
+                            closeAllModals();
+                            refreshReports();
+                        }}
                     />
                 )}
 
@@ -382,7 +393,10 @@ export default function ReportView({ reports = [], filters }: Props) {
                         report={selectedReport}
                         tab={tab}
                         onClose={closeAllModals}
-                        onConfirm={closeAllModals}
+                        onConfirm={() => {
+                            closeAllModals();
+                            refreshReports();
+                        }}
                     />
                 )}
 
@@ -391,7 +405,10 @@ export default function ReportView({ reports = [], filters }: Props) {
                         report={selectedReport}
                         tab={tab}
                         onClose={closeAllModals}
-                        onConfirm={closeAllModals}
+                        onConfirm={() => {
+                            closeAllModals();
+                            refreshReports();
+                        }}
                     />
                 )}
             </AppLayout>
