@@ -198,7 +198,7 @@ function SummaryCard({ report, type, onViewAppeal }: { report: Report; type: 'ap
                         {subtitle && <p className="text-sm text-gray-400 mt-0.5">{subtitle}</p>}
                     </div>
                     <div className="flex items-center gap-2">
-                        {hasAppeal && (
+                        {hasAppeal ? (
                             <span className={`text-xs font-bold px-3 py-1 rounded-full border whitespace-nowrap ${
                                 report.appeal_status === 'pending'
                                     ? 'bg-yellow-50 text-yellow-600 border-yellow-100'
@@ -208,14 +208,15 @@ function SummaryCard({ report, type, onViewAppeal }: { report: Report; type: 'ap
                             }`}>
                                 Appeal {report.appeal_status || 'pending'}
                             </span>
+                        ) : (
+                            <span className={`text-xs font-bold px-3 py-1 rounded-full border whitespace-nowrap ${
+                                isApproved
+                                    ? 'bg-[#76a09a]/10 text-[#76a09a] border-[#76a09a]/20'
+                                    : 'bg-gray-100 text-gray-500 border-gray-200'
+                            }`}>
+                                {isApproved ? 'Approved' : 'Declined'}
+                            </span>
                         )}
-                        <span className={`text-xs font-bold px-3 py-1 rounded-full border whitespace-nowrap ${
-                            isApproved
-                                ? 'bg-[#76a09a]/10 text-[#76a09a] border-[#76a09a]/20'
-                                : 'bg-gray-100 text-gray-500 border-gray-200'
-                        }`}>
-                            {isApproved ? 'Approved' : 'Declined'}
-                        </span>
                     </div>
                 </div>
 
@@ -528,7 +529,19 @@ export default function ReportView({ reports = [], filters, focusReportId = null
                                     </div>
                                 </div>
 
-                                {selectedReport.appeal_decision_note && (
+                                {selectedReport.appeal_status === 'pending' && (
+                                    <div>
+                                        <p className="text-sm font-semibold text-gray-900 mb-2">Admin Decision Note <span className="text-gray-400 font-normal">(optional)</span></p>
+                                        <textarea
+                                            id="appeal-decision-note"
+                                            placeholder="Add a note about your decision..."
+                                            rows={3}
+                                            className="w-full rounded-lg border border-gray-200 bg-gray-50 text-gray-800 text-sm px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all placeholder-gray-400 resize-none"
+                                        />
+                                    </div>
+                                )}
+
+                                {selectedReport.appeal_decision_note && selectedReport.appeal_status !== 'pending' && (
                                     <div>
                                         <p className="text-sm font-semibold text-gray-900 mb-2">Admin Decision Note</p>
                                         <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
@@ -543,7 +556,9 @@ export default function ReportView({ reports = [], filters, focusReportId = null
                                     <>
                                         <button 
                                             onClick={() => {
-                                                router.patch(route('admin.appeals.reject', selectedReport.id), {}, { 
+                                                const noteEl = document.getElementById('appeal-decision-note') as HTMLTextAreaElement | null;
+                                                const decisionNote = noteEl?.value?.trim() || '';
+                                                router.patch(route('admin.appeals.reject', selectedReport.id), { decision_note: decisionNote }, { 
                                                     onSuccess: () => {
                                                         closeAllModals();
                                                         refreshReports();
@@ -552,11 +567,13 @@ export default function ReportView({ reports = [], filters, focusReportId = null
                                             }}
                                             className="px-4 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-xl hover:bg-red-50 transition-colors"
                                         >
-                                            Reject Appeal
+                                            Decline Appeal
                                         </button>
                                         <button 
                                             onClick={() => {
-                                                router.patch(route('admin.appeals.approve', selectedReport.id), {}, { 
+                                                const noteEl = document.getElementById('appeal-decision-note') as HTMLTextAreaElement | null;
+                                                const decisionNote = noteEl?.value?.trim() || '';
+                                                router.patch(route('admin.appeals.approve', selectedReport.id), { decision_note: decisionNote }, { 
                                                     onSuccess: () => {
                                                         closeAllModals();
                                                         refreshReports();

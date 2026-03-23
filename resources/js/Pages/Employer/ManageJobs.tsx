@@ -286,7 +286,9 @@ function JobCard({ job, onEdit, onAppeal }: { job: JobListing; onEdit: () => voi
                             <p className="text-xs text-gray-400 mt-0.5 truncate">{job.company}</p>
                         </div>
                     </div>
-                    <OptionsMenu job={job} onEdit={onEdit} />
+                    {!(job.report_id && job.report_status === 'resolved') && (
+                        <OptionsMenu job={job} onEdit={onEdit} />
+                    )}
                 </div>
 
                 {/* Status + type badges */}

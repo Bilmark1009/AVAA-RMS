@@ -225,6 +225,7 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         // ─────────────────────────────────────────────────────────────────
 
         Route::get('/interviews', [InterviewController::class, 'index'])->name('interviews.index');
+        Route::post('/interviews', [InterviewController::class, 'store'])->name('interviews.store');
         Route::put('/interviews/{interview}', [InterviewController::class, 'update'])->name('interviews.update');
         Route::patch('/interviews/{interview}/status', [InterviewController::class, 'updateStatus'])->name('interviews.status');
         Route::post('/interviews/{interview}/pass', [InterviewController::class, 'passInterview'])->name('interviews.pass');
