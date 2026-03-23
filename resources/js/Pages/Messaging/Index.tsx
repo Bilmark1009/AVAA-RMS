@@ -1177,7 +1177,7 @@ const [showBlockModal, setShowBlockModal] = useState(false);
                 if (msg.body.includes('[BLOCKED_USER_MESSAGE]')) {
                     return {
                         ...msg,
-                        body: 'You cannot message this person.',
+                        body: msg.body.replace('[BLOCKED_USER_MESSAGE]', ''), // Show the actual reason from backend
                         type: 'system' as const,
                         sender: {
                             id: 0,
@@ -1236,7 +1236,7 @@ const [showBlockModal, setShowBlockModal] = useState(false);
                                 // Replace with user-friendly system message
                                 return {
                                     ...msg,
-                                    body: 'You cannot message this person.',
+                                    body: msg.body.replace('[BLOCKED_USER_MESSAGE]', ''), // Show the actual reason from backend
                                     type: 'system' as const,
                                     sender: {
                                         id: 0,
@@ -1309,7 +1309,7 @@ const [showBlockModal, setShowBlockModal] = useState(false);
                     if (msg.body.includes('[BLOCKED_USER_MESSAGE]')) {
                         return {
                             ...msg,
-                            body: 'You cannot message this person.',
+                            body: msg.body.replace('[BLOCKED_USER_MESSAGE]', ''), // Show the actual reason from backend
                             type: 'system' as const,
                             sender: {
                                 id: 0,
@@ -1329,7 +1329,7 @@ const [showBlockModal, setShowBlockModal] = useState(false);
                         id: Date.now() + Math.random(), // unique ID
                         conversation_id: convo.id,
                         sender_id: 0, // system message
-                        body: 'You cannot message this person.',
+                        body: 'This user has blocked you.', // More specific message for this case
                         type: 'system',
                         created_at: new Date().toISOString(),
                         sender: {
@@ -1353,13 +1353,16 @@ const [showBlockModal, setShowBlockModal] = useState(false);
                 setLoadingConvo(false);
             },
             onError: (error: any) => {
-                // Handle 403 when opening conversation (user is blocked)
+                // Handle 403 when opening conversation (user is blocked, suspended, etc.)
                 if (error.response?.status === 403) {
+                    const errorMessage = error.response?.data?.error || 'You cannot message this person.';
+                    const reasonMessage = error.response?.data?.reason || errorMessage;
+                    
                     const blockedSystemMessage: Message = {
                         id: Date.now(),
                         conversation_id: convo.id,
                         sender_id: 0, // system message
-                        body: 'You cannot message this person.',
+                        body: reasonMessage,
                         type: 'system',
                         created_at: new Date().toISOString(),
                         sender: {
@@ -1372,7 +1375,7 @@ const [showBlockModal, setShowBlockModal] = useState(false);
                     };
                     setMessages([blockedSystemMessage]);
                     setActiveConvo(convo);
-                    toast.show('You cannot message this person');
+                    toast.show(errorMessage);
                 }
                 setLoadingConvo(false);
             },
@@ -1458,13 +1461,16 @@ const [showBlockModal, setShowBlockModal] = useState(false);
                 return prev.map(c => c.id === activeConvo.id ? updated : c);
             });
         } catch (error: any) {
-            // Handle 403 Forbidden - user is blocked
+            // Handle 403 Forbidden - user is blocked, suspended, etc.
             if (error.response?.status === 403) {
+                const errorMessage = error.response?.data?.error || 'You cannot message this person.';
+                const reasonMessage = error.response?.data?.reason || errorMessage;
+                
                 const blockedSystemMessage: Message = {
                     id: Date.now(), // temporary ID
                     conversation_id: activeConvo.id,
                     sender_id: 0, // system message
-                    body: 'You cannot message this person.',
+                    body: reasonMessage,
                     type: 'system',
                     created_at: new Date().toISOString(),
                     sender: {
@@ -1476,7 +1482,7 @@ const [showBlockModal, setShowBlockModal] = useState(false);
                     }
                 };
                 setMessages(prev => [...prev, blockedSystemMessage]);
-                toast.show('You cannot message this person');
+                toast.show(errorMessage);
             } else {
                 toast.show('Failed to send message');
             }
