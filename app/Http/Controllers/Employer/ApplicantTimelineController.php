@@ -20,10 +20,8 @@ class ApplicantTimelineController extends Controller
         // Eager load profile, manual experiences, and other related data
         $user->load([
             'jobSeekerProfile', 
-            'workExperiences' => function($query) {
-                $query->orderBy('start_date', 'desc');
-            }
-        ]); 
+            'timelineEvents',
+        ]);
 
         // Fetch system-verified placements via job_applications
         $applications = JobApplication::with(['jobListing.company'])
@@ -75,6 +73,8 @@ class ApplicantTimelineController extends Controller
             // Placements tracked within the AVAA system
             'currentPosition' => $applications->whereNull('contract_ended_at')->first(),
             'pastPlacements' => $applications->whereNotNull('contract_ended_at')->values(),
+
+            'timelineEvents' => $user->timelineEvents,
 
             // Manual history from the work_experiences table
             'manualExperiences' => $user->workExperiences->map(function($exp) {
@@ -175,7 +175,7 @@ class ApplicantTimelineController extends Controller
     {
         abort_if($application->jobListing->employer_id !== $request->user()->id, 403);
 
-        $application->load(['user.jobSeekerProfile', 'user.workExperiences', 'user.documents','jobListing']);
+        $application->load(['user.jobSeekerProfile', 'user.timelineEvents', 'user.workExperiences', 'user.documents','jobListing']);
 
         $user = $application->user;
         $profile = $user->jobSeekerProfile;
@@ -215,10 +215,17 @@ class ApplicantTimelineController extends Controller
             ];
         }
 
+        // Fetch system-verified placements via job_applications
+        $applications = JobApplication::with(['jobListing.company', 'jobListing.employer'])
+            ->where('user_id', $user->id)
+            ->whereNotNull('hired_at')
+            ->orderBy('hired_at', 'desc')
+            ->get();
+
         return Inertia::render('Employer/ApplicantTimeline', [
             'applicant' => [
                 'id' => $user->id,
-                'full_name' => $user->first_name . ' ' . $user->last_name,
+                'full_name' => trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')),
                 'first_name' => $user->first_name,
                 'avatar' => $user->avatar,
                 'email' => $user->email,
@@ -227,7 +234,7 @@ class ApplicantTimelineController extends Controller
                 'about' => $profile?->about, 
                 'resume_path' => $resumePath,
                 'location' => $profile 
-                    ? "{$profile->city}, {$profile->state}, {$profile->country}" 
+                    ? trim(($profile->city ?? '') . ', ' . ($profile->state ?? '') . ', ' . ($profile->country ?? ''), ', ')
                     : 'Location not provided',
                 'skills' => is_string($profile?->skills) 
                     ? json_decode($profile->skills, true) 
@@ -248,20 +255,11 @@ class ApplicantTimelineController extends Controller
                 ]
             ],
 
-           'currentPosition' => [
-                'job_title' => $application->jobListing->title,
-                'company' => $application->jobListing->company->name 
-                             ?? $application->jobListing->employer->company_name 
-                             ?? 'AVAA Partner',
-                'start_date' => $application->hired_at 
-                    ? $application->hired_at->format('M d, Y') 
-                    : 'Joined Recently',
-                'is_current' => true,
-                'description' => "Currently hired as " . $application->jobListing->title . " via AVAA Platform"
-            ],
-
+            'currentPosition' => $applications->whereNull('contract_ended_at')->first(),
+            'pastPlacements' => $applications->whereNotNull('contract_ended_at')->values(),
+            
+            'timelineEvents' => $user->timelineEvents,
             'manualExperiences' => $manualExperiences,
-            'pastPlacements' => [],
         ]);
     }
 }

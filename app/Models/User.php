@@ -66,6 +66,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(WorkExperience::class)->orderByDesc('is_current')->orderByDesc('start_date');
     }
 
+    public function timelineEvents(): HasMany
+    {
+        return $this->hasMany(UserTimelineEvent::class)->orderByDesc('event_date');
+    }
+
     /**
      * Full name accessor — returns "First Last".
      */

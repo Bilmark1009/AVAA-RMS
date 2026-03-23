@@ -7,6 +7,7 @@ interface Props {
     currentPosition: any;
     pastPlacements: any[];
     manualExperiences: any[];
+    timelineEvents?: any[];
 }
 
 export default function ApplicantTimeline({
@@ -14,6 +15,7 @@ export default function ApplicantTimeline({
     currentPosition,
     pastPlacements = [],
     manualExperiences = [],
+    timelineEvents = [],
 }: Props) {
     if (!applicant) return null;
 
@@ -174,11 +176,30 @@ export default function ApplicantTimeline({
                                     />
                                 ))}
 
+                            {/* Status Change Events */}
+                            {timelineEvents &&
+                                timelineEvents.length > 0 &&
+                                timelineEvents.map((evt: any) => (
+                                    <TimelineItem
+                                        key={`event-${evt.id}`}
+                                        placement={{
+                                            job_title: evt.event_type === 'status_change' ? 'Status Update' : 'Event',
+                                            company: evt.description,
+                                            start_date: new Date(evt.event_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+                                            end_date: new Date(evt.event_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+                                            description: "",
+                                        }}
+                                        isCurrent={false}
+                                        isManual={true}
+                                    />
+                                ))}
+
                             {/* Empty State */}
                             {(!currentPosition ||
                                 Object.keys(currentPosition).length === 0) &&
                                 pastPlacements.length === 0 &&
-                                manualExperiences.length === 0 && (
+                                manualExperiences.length === 0 &&
+                                (!timelineEvents || timelineEvents.length === 0) && (
                                     <div className="flex items-center gap-4 ml-6 py-4">
                                         <div className="w-12 h-12 rounded-xl bg-gray-50 border border-dashed border-gray-200 flex items-center justify-center flex-shrink-0">
                                             <svg className="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
