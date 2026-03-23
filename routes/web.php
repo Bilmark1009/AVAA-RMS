@@ -47,6 +47,26 @@ Route::get('/', function () {
     return \Inertia\Inertia::render('Welcome');
 })->name('home');
 
+// Shared job link redirect
+Route::get('/j/{job}', function ($job) {
+    if (!Auth::check()) {
+        return redirect()->route('home');
+    }
+
+    /** @var \App\Models\User $user */
+    $user = Auth::user();
+
+    if ($user->role === 'employer') {
+        return redirect()->route('employer.jobs.show', $job);
+    } elseif ($user->role === 'job_seeker') {
+        return redirect()->route('job-seeker.jobs.show', $job);
+    } elseif ($user->role === 'admin') {
+        return redirect()->route('admin.jobs.show', $job);
+    }
+
+    return redirect()->route('home');
+})->name('shared.job.show');
+
 // Registration
 Route::middleware('guest')->group(function () {
     Route::get('/register', [RegisteredUserController::class, 'showRoleSelection'])->name('register');
