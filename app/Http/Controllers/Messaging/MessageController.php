@@ -65,15 +65,34 @@ class MessageController extends Controller
         $user = $request->user();
         $this->authorizeParticipant($conversation, $user->id);
 
+        // Check if user is suspended
+        if ($user->isSuspended()) {
+            return response()->json([
+                'error' => 'Your account is suspended',
+                'reason' => 'You cannot send messages while your account is suspended.',
+                'suspension_remaining' => $user->suspension_remaining,
+            ], 403);
+        }
+
         // Check if user is blocked by any participant
         $otherParticipant = $conversation->otherParticipant($user->id);
         if ($otherParticipant && !$user->canMessage($otherParticipant)) {
-            return response()->json([
-                'error' => 'You cannot message this user.',
-                'reason' => $user->hasBlocked($otherParticipant) 
-                    ? 'You have blocked this user.' 
-                    : 'This user has blocked you.',
-            ], 403);
+            if ($user->hasBlocked($otherParticipant)) {
+                return response()->json([
+                    'error' => 'Cannot send message',
+                    'reason' => 'You have blocked this user.',
+                ], 403);
+            } elseif ($user->isBlockedBy($otherParticipant)) {
+                return response()->json([
+                    'error' => 'Cannot send message',
+                    'reason' => 'This user has blocked you.',
+                ], 403);
+            } elseif ($otherParticipant->isSuspended()) {
+                return response()->json([
+                    'error' => 'Cannot send message',
+                    'reason' => 'This user\'s account is suspended and cannot receive messages.',
+                ], 403);
+            }
         }
 
         try {

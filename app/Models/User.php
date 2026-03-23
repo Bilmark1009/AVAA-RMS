@@ -29,6 +29,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'password',
         'role',
         'status',
+        'suspended_until',
+        'suspension_reason',
         'profile_completed',
         'last_login_at',
         'google_id',
@@ -45,6 +47,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'email_verified_at' => 'datetime',
         'email_otp_expires_at' => 'datetime',
         'last_login_at' => 'datetime',
+        'suspended_until' => 'datetime',
         'profile_completed' => 'boolean',
         'password' => 'hashed',
     ];
@@ -224,12 +227,80 @@ class User extends Authenticatable implements MustVerifyEmail
             return false;
         }
 
+        // Check if current user is suspended
+        if ($this->isSuspended()) {
+            return false;
+        }
+
+        // Check if the other user is suspended
+        if ($user->isSuspended()) {
+            return false;
+        }
+
         // Check if either user has blocked the other
         if ($this->hasBlocked($user) || $this->isBlockedBy($user)) {
             return false;
         }
 
         return true;
+    }
+
+    /**
+     * Check if the user is currently suspended.
+     */
+    public function isSuspended(): bool
+    {
+        // Check if status is suspended
+        if ($this->status === 'suspended') {
+            // If there's a suspension_until date, check if it's still valid
+            if ($this->suspended_until) {
+                return now()->lt($this->suspended_until);
+            }
+            // If no suspension_until date, suspension is indefinite
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Suspend a user for a specific duration.
+     */
+    public function suspend(string $reason, ?\DateTime $until = null): void
+    {
+        $this->update([
+            'status' => 'suspended',
+            'suspension_reason' => $reason,
+            'suspended_until' => $until,
+        ]);
+    }
+
+    /**
+     * Lift a user's suspension.
+     */
+    public function liftSuspension(): void
+    {
+        $this->update([
+            'status' => 'active',
+            'suspension_reason' => null,
+            'suspended_until' => null,
+        ]);
+    }
+
+    /**
+     * Get suspension remaining time in human readable format.
+     */
+    public function getSuspensionRemainingAttribute(): ?string
+    {
+        if (!$this->isSuspended()) {
+            return null;
+        }
+
+        if ($this->suspended_until) {
+            return now()->diffForHumans($this->suspended_until, true);
+        }
+
+        return 'Indefinite';
     }
 
     private function blockedUsersTableAvailable(): bool
