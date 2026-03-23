@@ -2,7 +2,7 @@ import { Head, router, usePage } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-
+import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
 /* ── Types ── */
 interface JobListing {
     id: number;
@@ -35,6 +35,7 @@ interface JobListing {
     report_reason?: string;
     reported_at?: string;
     report_count?: number;
+    logo_url?: string | null;
 }
 
 interface Props {
@@ -275,21 +276,31 @@ function JobCard({ job, onEdit, onAppeal }: { job: JobListing; onEdit: () => voi
             <div className="h-1 bg-gradient-to-r from-[#6D9886] to-[#4a7360]" />
 
             <div className="p-5 flex flex-col flex-1">
-                {/* Header row */}
-                <div className="flex items-start justify-between gap-2 mb-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                        <div className={`w-11 h-11 rounded-xl ${avatarColor(job.id)} flex items-center justify-center text-white text-sm font-bold flex-shrink-0 shadow-sm`}>
-                            {getInitials(job.company || job.title)}
-                        </div>
-                        <div className="min-w-0">
-                            <p className="text-sm font-bold text-gray-900 group-hover:text-[#6D9886] transition-colors leading-tight line-clamp-2">{job.title}</p>
-                            <p className="text-xs text-gray-400 mt-0.5 truncate">{job.company}</p>
-                        </div>
+               {/* Header row */}
+<div className="flex items-start justify-between gap-2 mb-3">
+    <div className="flex items-center gap-3 min-w-0">
+        {/* Updated Container */}
+        <div className={`w-11 h-11 rounded-xl ${avatarColor(job.id)} flex items-center justify-center text-white text-sm font-bold flex-shrink-0 shadow-sm overflow-hidden`}>
+                        <ImageInitialsFallback
+                            src={job.logo_url} 
+                            alt={job.company}
+                            initials={getInitials(job.company || job.title)}
+                            className="w-full h-full object-cover"
+                            textClassName="text-white text-sm font-bold"
+                        />
                     </div>
-                    {!(job.report_id && job.report_status === 'resolved') && (
-                        <OptionsMenu job={job} onEdit={onEdit} />
-                    )}
-                </div>
+        
+        <div className="min-w-0">
+            <p className="text-sm font-bold text-gray-900 group-hover:text-[#6D9886] transition-colors leading-tight line-clamp-2">
+                {job.title}
+            </p>
+            <p className="text-xs text-gray-400 mt-0.5 truncate">
+                {job.company}
+            </p>
+        </div>
+    </div>
+    <OptionsMenu job={job} onEdit={onEdit} />
+</div>
 
                 {/* Status + type badges */}
                 <div className="flex flex-wrap gap-1.5 mb-3">

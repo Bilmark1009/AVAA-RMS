@@ -565,15 +565,26 @@ function SidebarShell({
 /* ─────────────────────────────────────────
    ADMIN LAYOUT
 ───────────────────────────────────────── */
+/* ─────────────────────────────────────────
+   ADMIN LAYOUT
+───────────────────────────────────────── */
 function AdminLayout({ children, activeNav, pageTitle, pageSubtitle, user, initials, sideNavItems }: AppLayoutProps & { user: any; initials: string; sideNavItems: NavItem[] }) {
     const [collapsed, setCollapsed] = useState(false);
 
     const adminBottomExtra = (
         !collapsed ? (
             <div className="flex items-center gap-3 px-3 py-2 mb-1">
-                <div className="w-8 h-8 rounded-full bg-avaa-dark flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                    {initials}
+                {/* CHANGE START: Use ImageInitialsFallback instead of a static div */}
+                <div className="w-8 h-8 rounded-full bg-avaa-dark flex items-center justify-center text-white text-xs font-bold flex-shrink-0 overflow-hidden">
+                    <ImageInitialsFallback
+                        src={user.avatar} // This ensures the new profile pic is used
+                        alt={`${user.first_name} ${user.last_name}`}
+                        initials={initials}
+                        className="w-full h-full object-cover"
+                        textClassName="text-white text-xs font-bold"
+                    />
                 </div>
+                {/* CHANGE END */}
                 <div className="min-w-0">
                     <p className="text-xs font-semibold text-avaa-dark truncate">{user.first_name} {user.last_name}</p>
                     <p className="text-[10px] text-avaa-muted truncate">Chief Systems Administrator</p>
@@ -600,7 +611,7 @@ function AdminLayout({ children, activeNav, pageTitle, pageSubtitle, user, initi
 }
 
 /* ─────────────────────────────────────────
-   EMPLOYER LAYOUT
+    EMPLOYER LAYOUT
 ───────────────────────────────────────── */
 function EmployerLayout({ children, activeNav, pageTitle, pageSubtitle, user, initials, sideNavItems }: AppLayoutProps & { user: any; initials: string; sideNavItems: NavItem[] }) {
     const [collapsed, setCollapsed] = useState(false);
@@ -611,11 +622,21 @@ function EmployerLayout({ children, activeNav, pageTitle, pageSubtitle, user, in
                 href={safeRoute('employer.profile.show')}
                 className="flex items-center gap-3 px-3 py-2 mb-1 rounded-xl hover:bg-avaa-primary-light transition-colors group"
             >
-                <div className="w-8 h-8 rounded-full bg-avaa-dark flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                    {initials}
+                {/* Updated to use ImageInitialsFallback */}
+                <div className="w-8 h-8 rounded-full bg-avaa-dark flex items-center justify-center text-white text-xs font-bold flex-shrink-0 overflow-hidden">
+                    <ImageInitialsFallback
+                        src={user.avatar}
+                        alt={`${user.first_name} ${user.last_name}`}
+                        initials={initials}
+                        className="w-full h-full object-cover"
+                        textClassName="text-white text-xs font-bold"
+                    />
                 </div>
+                
                 <div className="min-w-0">
-                    <p className="text-xs font-semibold text-avaa-dark truncate">{user.first_name} {user.last_name}</p>
+                    <p className="text-xs font-semibold text-avaa-dark truncate group-hover:text-avaa-primary transition-colors">
+                        {user.first_name} {user.last_name}
+                    </p>
                     <p className="text-[10px] text-avaa-muted truncate">Employer</p>
                 </div>
             </Link>
@@ -637,72 +658,78 @@ function EmployerLayout({ children, activeNav, pageTitle, pageSubtitle, user, in
         </SidebarShell>
     );
 }
-
 /* ─────────────────────────────────────────
-   JOB SEEKER LAYOUT (new sidebar layout)
+   JOB SEEKER LAYOUT (new sidebar layout)
 ───────────────────────────────────────── */
 function JobSeekerLayout({ children, activeNav, pageTitle, pageSubtitle, user, initials, sideNavItems }: AppLayoutProps & { user: any; initials: string; sideNavItems: NavItem[] }) {
-    const [collapsed, setCollapsed] = useState(false);
+    const [collapsed, setCollapsed] = useState(false);
 
-    const jobSeekerBottomExtra = (
-        !collapsed ? (
-            <Link
-                href={safeRoute('job-seeker.profile.show')}
-                className="flex items-center gap-3 px-3 py-2 mb-1 rounded-xl hover:bg-avaa-primary-light transition-colors group"
-            >
-                <div className="relative w-8 h-8 flex-shrink-0">
-                    <div className="w-8 h-8 rounded-full bg-avaa-dark flex items-center justify-center text-white text-xs font-bold overflow-hidden">
-                        {initials}
-                    </div>
-                    {/* Frame ring indicator */}
-                    {user.jobSeekerProfile?.profile_frame === 'open_to_work' && (
-                        <span className="absolute inset-0 rounded-full ring-2 ring-emerald-400 pointer-events-none" />
-                    )}
-                    {user.jobSeekerProfile?.profile_frame === 'not_open_to_work' && (
-                        <span className="absolute inset-0 rounded-full ring-2 ring-red-400 pointer-events-none" />
-                    )}
-                </div>
-                <div className="min-w-0">
-                    <p className="text-xs font-semibold text-avaa-dark truncate">{user.first_name} {user.last_name}</p>
-                    {user.jobSeekerProfile?.profile_frame === 'open_to_work' && (
-                        <span className="inline-flex items-center text-[9px] font-bold px-1.5 py-px rounded-full bg-emerald-500 text-white mt-0.5">
-                            Available
-                        </span>
-                    )}
-                    {user.jobSeekerProfile?.profile_frame === 'not_open_to_work' && (
-                        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-px rounded-full bg-red-500 text-white mt-0.5">
-                            Unavailable
-                        </span>
-                    )}
-                    {!user.jobSeekerProfile?.profile_frame || user.jobSeekerProfile?.profile_frame === 'default' ? (
-                        <p className="text-[10px] text-avaa-muted truncate">Job Seeker</p>
-                    ) : null}
-                </div>
-            </Link>
-        ) : null
-    );
+    const jobSeekerBottomExtra = (
+        !collapsed ? (
+            <Link
+                href={safeRoute('job-seeker.profile.show')}
+                className="flex items-center gap-3 px-3 py-2 mb-1 rounded-xl hover:bg-avaa-primary-light transition-colors group"
+            >
+                <div className="relative w-8 h-8 flex-shrink-0">
+                    {/* UPDATED: Added ImageInitialsFallback here */}
+                    <div className="w-8 h-8 rounded-full bg-avaa-dark flex items-center justify-center text-white text-xs font-bold overflow-hidden">
+                        <ImageInitialsFallback
+                            src={user.avatar}
+                            alt={`${user.first_name} ${user.last_name}`}
+                            initials={initials}
+                            className="w-full h-full object-cover"
+                            textClassName="text-white text-xs font-bold"
+                        />
+                    </div>
+                    
+                    {/* Frame ring indicator remains unchanged */}
+                    {user.jobSeekerProfile?.profile_frame === 'open_to_work' && (
+                        <span className="absolute inset-0 rounded-full ring-2 ring-emerald-400 pointer-events-none z-10" />
+                    )}
+                    {user.jobSeekerProfile?.profile_frame === 'not_open_to_work' && (
+                        <span className="absolute inset-0 rounded-full ring-2 ring-red-400 pointer-events-none z-10" />
+                    )}
+                </div>
+                <div className="min-w-0">
+                    <p className="text-xs font-semibold text-avaa-dark truncate group-hover:text-avaa-primary transition-colors">
+                        {user.first_name} {user.last_name}
+                    </p>
+                    {user.jobSeekerProfile?.profile_frame === 'open_to_work' && (
+                        <span className="inline-flex items-center text-[9px] font-bold px-1.5 py-px rounded-full bg-emerald-500 text-white mt-0.5">
+                            Available
+                        </span>
+                    )}
+                    {user.jobSeekerProfile?.profile_frame === 'not_open_to_work' && (
+                        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-px rounded-full bg-red-500 text-white mt-0.5">
+                            Unavailable
+                        </span>
+                    )}
+                    {!user.jobSeekerProfile?.profile_frame || user.jobSeekerProfile?.profile_frame === 'default' ? (
+                        <p className="text-[10px] text-avaa-muted truncate">Job Seeker</p>
+                    ) : null}
+                </div>
+            </Link>
+        ) : null
+    );
 
-    const frameStatus = user.jobSeekerProfile?.profile_frame as 'open_to_work' | 'not_open_to_work' | 'default' | null ?? null;
+    const frameStatus = user.jobSeekerProfile?.profile_frame as 'open_to_work' | 'not_open_to_work' | 'default' | null ?? null;
 
-    // Minimalist top bar — no search bar, just page title / notifications / avatar
-    return (
-        <SidebarShell
-            activeNav={activeNav}
-            pageTitle={pageTitle}
-            pageSubtitle={pageSubtitle}
-            user={user}
-            initials={initials}
-            sideNavItems={sideNavItems}
-            logoLinkHref={safeRoute('job-seeker.jobs.browse')}
-            sidebarBottomExtra={jobSeekerBottomExtra}
-            frameStatus={frameStatus}
-        // No topBarExtras — keep the top bar minimal
-        >
-            {children}
-        </SidebarShell>
-    );
+    return (
+        <SidebarShell
+            activeNav={activeNav}
+            pageTitle={pageTitle}
+            pageSubtitle={pageSubtitle}
+            user={user}
+            initials={initials}
+            sideNavItems={sideNavItems}
+            logoLinkHref={safeRoute('job-seeker.jobs.browse')}
+            sidebarBottomExtra={jobSeekerBottomExtra}
+            frameStatus={frameStatus}
+        >
+            {children}
+        </SidebarShell>
+    );
 }
-
 /* ─────────────────────────────────────────
    LAYOUT (main entry point)
 ───────────────────────────────────────── */
