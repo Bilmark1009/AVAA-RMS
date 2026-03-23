@@ -44,6 +44,10 @@ export interface Report {
     declined_date?: string;
     evidence?: string[];          // URLs of uploaded screenshots
     message_content?: string | null;
+    appeal_message?: string;
+    appeal_status?: 'pending' | 'approved' | 'rejected';
+    appealed_at?: string;
+    appeal_decision_note?: string;
 }
 
 export type ModalType = 'details' | 'decline' | 'suspend' | 'ban' | null;
@@ -391,10 +395,11 @@ export function DeclineModal({ report, onClose, onConfirm, tab }: {
 
         setSubmitting(true);
         try {
-            // Use router.patch for decline action
-            await router.patch(route('admin.reports.decline', report.id), { 
+            router.patch(route('admin.reports.decline', report.id), { 
                 decline_reason: reason 
             }, {
+                preserveState: true,
+                preserveScroll: true,
                 onSuccess: () => {
                     showNotification('success', 'Report declined successfully');
                     onConfirm();
@@ -540,10 +545,11 @@ export function SuspendModal({ report, onClose, onConfirm, tab }: {
     const handleConfirm = async () => {
         setSubmitting(true);
         try {
-            // Use the dedicated suspend route - MUST use await for callbacks to work
-            await router.patch(route('admin.reports.suspend', report.id), { 
+            router.patch(route('admin.reports.suspend', report.id), { 
                 action_note: `Suspended for ${duration}` 
             }, {
+                preserveState: true,
+                preserveScroll: true,
                 onSuccess: () => {
                     showNotification('success', 'Job posting has been suspended successfully.');
                     onConfirm();
@@ -710,10 +716,11 @@ export function BanModal({ report, onClose, onConfirm, tab }: {
 
         setSubmitting(true);
         try {
-            // Use the dedicated ban route - MUST use await for callbacks to work
-            await router.patch(route('admin.reports.ban', report.id), { 
+            router.patch(route('admin.reports.ban', report.id), { 
                 action_note: 'Account banned' 
             }, {
+                preserveState: true,
+                preserveScroll: true,
                 onSuccess: () => {
                     showNotification('success', 'Job posting has been permanently removed successfully.');
                     onConfirm();
