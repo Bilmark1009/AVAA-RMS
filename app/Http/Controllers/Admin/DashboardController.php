@@ -83,7 +83,7 @@ class DashboardController extends Controller
 
         return Inertia::render('Admin/Dashboard', [
             'stats' => [
-                'total' => User::count(),
+                'total' => User::whereIn('role', ['employer', 'job_seeker'])->count(),
                 'employers' => User::where('role', 'employer')->count(),
                 'jobSeekers' => User::where('role', 'job_seeker')->count(),
             ],

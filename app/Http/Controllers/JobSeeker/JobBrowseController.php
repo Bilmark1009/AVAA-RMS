@@ -6,6 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\JobListing;
 use App\Models\SavedJob;
 use App\Models\JobApplication;
+use App\Models\Report;
+use App\Models\User;
+use App\Notifications\AdminJobReportedNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -64,7 +67,7 @@ class JobBrowseController extends Controller
 
         // IDs the current user has applied to
         $appliedJobIds = JobApplication::where('user_id', $user->id)
-            ->whereNotIn('status', ['withdrawn', 'accepted', 'hired'])
+            ->whereNotIn('status', ['withdrawn', 'accepted'])
             ->pluck('job_listing_id')
             ->toArray();
 
@@ -103,7 +106,7 @@ class JobBrowseController extends Controller
 
         $savedJobIds = SavedJob::where('user_id', $user->id)->pluck('job_listing_id')->toArray();
         $appliedJobIds = JobApplication::where('user_id', $user->id)
-            ->whereNotIn('status', ['withdrawn', 'accepted', 'hired'])
+            ->whereNotIn('status', ['withdrawn', 'accepted'])
             ->pluck('job_listing_id')
             ->toArray();
 
@@ -197,6 +200,7 @@ class JobBrowseController extends Controller
         $savedIds = SavedJob::where('user_id', $user->id)->pluck('job_listing_id');
 
         $query = JobListing::whereIn('id', $savedIds)
+            ->where('status', 'active')
             ->with(['employer:id,first_name,last_name', 'employer.employerProfile:id,user_id,company_name,logo_path']);
 
         if ($search = $request->input('search')) {
@@ -227,7 +231,7 @@ class JobBrowseController extends Controller
         $jobs = $query->latest()->get();
 
         $appliedJobIds = JobApplication::where('user_id', $user->id)
-            ->whereNotIn('status', ['withdrawn', 'accepted', 'hired'])
+            ->whereNotIn('status', ['withdrawn', 'accepted'])
             ->pluck('job_listing_id')
             ->toArray();
 
@@ -238,7 +242,9 @@ class JobBrowseController extends Controller
 
         $shaped = $jobs->map(fn($job) => $this->shapeJob($job, $savedIds->toArray(), $appliedJobIds, $applicationStatuses));
 
-        $allSaved        = JobListing::whereIn('id', $savedIds)->get();
+        $allSaved        = JobListing::whereIn('id', $savedIds)
+            ->where('status', 'active')
+            ->get();
         $availableSkills = $allSaved->flatMap(fn($j) => $j->skills_required ?? [])->unique()->values()->toArray();
         $availableCompanies = $allSaved
             ->map(fn($j) => $j->employer?->employerProfile?->company_name ?? $j->employer?->first_name)
@@ -285,13 +291,18 @@ class JobBrowseController extends Controller
             'description' => 'nullable|string|max:1000',
         ]);
 
-        \App\Models\Report::create([
+        $report = Report::create([
             'job_listing_id' => $job->id,
             'reporter_id'    => Auth::id(),
             'reason'         => $validated['reason'],
             'details'        => $validated['description'],
             'status'         => 'pending',
         ]);
+
+        // Notify all admins immediately so they can review the exact reported job.
+        User::where('role', 'admin')->each(
+            fn ($admin) => $admin->notify(new AdminJobReportedNotification($report, $job))
+        );
 
         return back()->with('success', 'Thank you! We have received your report and will review it shortly.');
     }

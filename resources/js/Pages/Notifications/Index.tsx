@@ -1,7 +1,8 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import { AppNotification, PageProps } from '@/types';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import axios from 'axios';
 
 /* ─── Icons ───────────────────────────────────────────────────────────────── */
 const IcoBell = () => (
@@ -36,6 +37,31 @@ const IcoRejected = () => (
         <line x1="15.5" y1="8.5" x2="8.5" y2="15.5" />
     </svg>
 );
+const IcoReportAlert = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="12" cy="12" r="11" fill="#FF1E12" />
+        <rect x="11" y="5.2" width="2" height="10" rx="1" fill="#FFFFFF" />
+        <circle cx="12" cy="18.2" r="1.4" fill="#FFFFFF" />
+    </svg>
+);
+const IcoAppealChat = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <rect x="1.5" y="1.5" width="21" height="21" rx="6" fill="#F08A4B" />
+        <path d="M7.2 8.2H16.8C17.46 8.2 18 8.74 18 9.4V14.2C18 14.86 17.46 15.4 16.8 15.4H11.1L8 17.9V15.4H7.2C6.54 15.4 6 14.86 6 14.2V9.4C6 8.74 6.54 8.2 7.2 8.2Z" stroke="#FFFFFF" strokeWidth="1.8" strokeLinejoin="round" fill="none" />
+    </svg>
+);
+const IcoAppealApproved = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="12" cy="12" r="11" fill="#47A447" />
+        <path d="M6.3 12.8L10.2 16.6L17.7 9.3" stroke="#000000" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+);
+const IcoAppealDisapproved = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="12" cy="12" r="11" fill="#FF424D" />
+        <path d="M8 8L16 16M16 8L8 16" stroke="#000000" strokeWidth="2.6" strokeLinecap="round" />
+    </svg>
+);
 const IcoTrash = () => (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" />
@@ -58,40 +84,39 @@ function safeRoute(name: string, params?: Record<string, unknown>): string {
     try { return route(name, params); } catch { return '#'; }
 }
 
-function readCsrfMetaToken(): string {
-    return (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null)?.content ?? '';
+function notificationApiUrl(path = ''): string {
+    return `/notifications${path}`;
 }
 
-function readXsrfCookieToken(): string {
-    const match = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/);
-    return match ? decodeURIComponent(match[1]) : '';
-}
-
-function buildCsrfHeaders(): Record<string, string> {
-    const csrf = readCsrfMetaToken();
-    const xsrf = readXsrfCookieToken();
-
-    return {
-        'Accept': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest',
-        ...(csrf ? { 'X-CSRF-TOKEN': csrf } : {}),
-        ...(xsrf ? { 'X-XSRF-TOKEN': xsrf } : {}),
-    };
+function emitUnreadCountSync(unreadCount: number): void {
+    if (typeof window === 'undefined') return;
+    window.dispatchEvent(new CustomEvent('notifications:unread-updated', { detail: { unreadCount } }));
 }
 
 function resolveIcon(type: string) {
+    if (type.includes('AdminJobReportedNotification')) return { icon: <IcoReportAlert />, color: 'bg-transparent text-inherit' };
+    if (type.includes('EmployerJobSuspendedNotification')) return { icon: <IcoAppealChat />, color: 'bg-transparent text-inherit' };
+    if (type.includes('AdminAppealSubmittedNotification')) return { icon: <IcoAppealChat />, color: 'bg-transparent text-inherit' };
+    if (type.includes('EmployerAppealApprovedNotification')) return { icon: <IcoAppealApproved />, color: 'bg-transparent text-inherit' };
+    if (type.includes('EmployerAppealDisapprovedNotification')) return { icon: <IcoAppealDisapproved />, color: 'bg-transparent text-inherit' };
     if (type.includes('Rejected')) return { icon: <IcoRejected />, color: 'bg-rose-100 text-rose-600' };
     if (type.includes('Interview')) return { icon: <IcoBriefcase />, color: 'bg-purple-100 text-purple-500' };
     if (type.includes('Application')) return { icon: <IcoBriefcase />, color: 'bg-blue-100 text-blue-500' };
     if (type.includes('Message')) return { icon: <IcoMsg />, color: 'bg-green-100 text-green-600' };
     if (type.includes('Verified')) return { icon: <IcoShield />, color: 'bg-avaa-primary-light text-avaa-teal' };
-    if (type.includes('Job')) return { icon: <IcoBriefcase />, color: 'bg-indigo-100 text-indigo-500' };
     if (type.includes('User')) return { icon: <IcoUser />, color: 'bg-orange-100 text-orange-500' };
     return { icon: <IcoBell />, color: 'bg-gray-100 text-avaa-muted' };
 }
 
 function resolveLink(notification: AppNotification, role: string): string {
     const { type, data } = notification;
+
+    // Collaboration invites should always go to the invitations queue,
+    // including older notifications that may contain stale job-detail links.
+    if (type.includes('CollaborationInvite') && role === 'employer') {
+        return safeRoute('employer.jobs.invitations');
+    }
+
     if (data.link) return data.link as string;
 
     if (type.includes('Interview') && role === 'job_seeker')
@@ -163,7 +188,7 @@ function NotifRow({
     onRead, onUnread, onDelete,
 }: {
     notification: AppNotification; role: string;
-    onRead: (id: string) => void;
+    onRead: (id: string) => Promise<void> | void;
     onUnread: (id: string) => void;
     onDelete: (id: string) => void;
 }) {
@@ -173,7 +198,9 @@ function NotifRow({
 
     const handleNavigate = () => {
         if (isUnread) onRead(notification.id);
-        if (link !== '#') router.visit(link);
+        if (link && link !== '#') {
+            router.visit(link);
+        }
     };
 
     return (
@@ -298,78 +325,117 @@ export default function NotificationsIndex({ notifications }: Props) {
     const [confirm, setConfirm] = useState<'delete-all' | null>(null);
     const [processing, setProcessing] = useState(false);
 
+    const serverSyncKey = useMemo(() => {
+        const rows = notifications.data
+            .map((n) => `${n.id}:${n.read_at ?? ''}:${n.created_at}`)
+            .join('|');
+
+        return `${notifications.current_page}:${notifications.total}:${rows}`;
+    }, [notifications.current_page, notifications.total, notifications.data]);
+
     // Keep local state in sync when server-provided data changes (e.g., pagination or revisit).
     useEffect(() => {
         setItems(notifications.data);
-    }, [notifications.data]);
+    }, [serverSyncKey, notifications.data]);
 
     const unread = items.filter(n => !n.read_at).length;
 
     async function apiPatch(url: string) {
-        const res = await fetch(url, {
-            method: 'PATCH',
-            headers: buildCsrfHeaders(),
-            credentials: 'same-origin',
-        });
-
-        return res.ok;
+        try {
+            await axios.patch(url);
+            return true;
+        } catch {
+            return false;
+        }
     }
     async function apiPost(url: string) {
-        const res = await fetch(url, {
-            method: 'POST',
-            headers: buildCsrfHeaders(),
-            credentials: 'same-origin',
-        });
-
-        return res.ok;
+        try {
+            await axios.post(url);
+            return true;
+        } catch {
+            return false;
+        }
     }
     async function apiDelete(url: string) {
-        const res = await fetch(url, {
-            method: 'DELETE',
-            headers: buildCsrfHeaders(),
-            credentials: 'same-origin',
-        });
-
-        return res.ok;
+        try {
+            await axios.delete(url);
+            return true;
+        } catch {
+            return false;
+        }
     }
 
     const handleRead = async (id: string) => {
-        const ok = await apiPatch(safeRoute('notifications.read', { id }));
-        if (!ok) return;
-        setItems(prev => prev.map(n => n.id === id ? { ...n, read_at: new Date().toISOString() } : n));
+        const target = items.find((n) => String(n.id) === String(id));
+        if (!target || target.read_at) return;
+
+        const nextItems = items.map(n => String(n.id) === String(id) ? { ...n, read_at: new Date().toISOString() } : n);
+        setItems(nextItems);
+        emitUnreadCountSync(nextItems.filter(n => !n.read_at).length);
+
+        const ok = await apiPatch(notificationApiUrl(`/${encodeURIComponent(id)}/read`));
+        if (!ok) {
+            setItems(items);
+            emitUnreadCountSync(items.filter(n => !n.read_at).length);
+        }
     };
 
     const handleUnread = async (id: string) => {
-        const ok = await apiPatch(safeRoute('notifications.unread', { id }));
-        if (!ok) return;
-        setItems(prev => prev.map(n => n.id === id ? { ...n, read_at: null } : n));
+        const target = items.find((n) => String(n.id) === String(id));
+        if (!target || !target.read_at) return;
+
+        const nextItems = items.map(n => String(n.id) === String(id) ? { ...n, read_at: null } : n);
+        setItems(nextItems);
+        emitUnreadCountSync(nextItems.filter(n => !n.read_at).length);
+
+        const ok = await apiPatch(notificationApiUrl(`/${encodeURIComponent(id)}/unread`));
+        if (!ok) {
+            setItems(items);
+            emitUnreadCountSync(items.filter(n => !n.read_at).length);
+        }
     };
 
     const handleDelete = async (id: string) => {
-        const ok = await apiDelete(safeRoute('notifications.destroy', { id }));
-        if (!ok) return;
-        setItems(prev => prev.filter(n => n.id !== id));
+        const nextItems = items.filter(n => String(n.id) !== String(id));
+        setItems(nextItems);
+        emitUnreadCountSync(nextItems.filter(n => !n.read_at).length);
+
+        const ok = await apiDelete(notificationApiUrl(`/${encodeURIComponent(id)}`));
+        if (!ok) {
+            setItems(items);
+            emitUnreadCountSync(items.filter(n => !n.read_at).length);
+        }
     };
 
     const handleMarkAllRead = async () => {
         setProcessing(true);
-        const ok = await apiPost(safeRoute('notifications.mark-all-read'));
+        const nextItems = items.map(n => n.read_at ? n : { ...n, read_at: new Date().toISOString() });
+        setItems(nextItems);
+        emitUnreadCountSync(0);
+
+        const ok = await apiPost(notificationApiUrl('/mark-all-read'));
         if (!ok) {
+            setItems(items);
+            emitUnreadCountSync(items.filter(n => !n.read_at).length);
             setProcessing(false);
             return;
         }
-        setItems(prev => prev.map(n => ({ ...n, read_at: new Date().toISOString() })));
         setProcessing(false);
     };
 
     const handleDeleteAll = async () => {
         setProcessing(true);
-        const ok = await apiDelete(safeRoute('notifications.destroy-all'));
+        const prevItems = items;
+        setItems([]);
+        emitUnreadCountSync(0);
+
+        const ok = await apiDelete(notificationApiUrl('/destroy-all'));
         if (!ok) {
+            setItems(prevItems);
+            emitUnreadCountSync(prevItems.filter(n => !n.read_at).length);
             setProcessing(false);
             return;
         }
-        setItems([]);
         setConfirm(null);
         setProcessing(false);
     };
