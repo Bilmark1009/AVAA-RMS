@@ -44,6 +44,10 @@ export interface Report {
     declined_date?: string;
     evidence?: string[];          // URLs of uploaded screenshots
     message_content?: string | null;
+    appeal_message?: string | null;
+    appealed_at?: string | null;
+    appeal_status?: 'pending' | 'approved' | 'rejected' | null;
+    appeal_decision_note?: string | null;
 }
 
 export type ModalType = 'details' | 'decline' | 'suspend' | 'ban' | null;
@@ -136,11 +140,12 @@ function InfoRow({ label, value, valueClass = 'text-gray-800' }: { label: string
 }
 
 /* ── Job Details Modal ── */
-export function JobDetailsModal({ report, onClose, onDecline, onSuspend }: {
+export function JobDetailsModal({ report, onClose, onDecline, onSuspend, onBan }: {
     report: Report;
     onClose: () => void;
     onDecline: () => void;
     onSuspend: () => void;
+    onBan: () => void;
 }) {
     const [activeModal, setActiveModal] = useState<'decline' | 'suspend' | null>(null);
 
@@ -232,6 +237,9 @@ export function JobDetailsModal({ report, onClose, onDecline, onSuspend }: {
                             <button onClick={() => setActiveModal('suspend')} className="px-5 py-2.5 rounded-xl text-sm font-semibold text-orange-500 border border-orange-200 hover:bg-orange-50 transition-colors flex items-center gap-2">
                                 <IcoWarning /> Suspend
                             </button>
+                            <button onClick={() => onBan()} className="px-5 py-2.5 rounded-xl text-sm font-semibold text-red-600 border border-red-300 hover:bg-red-50 transition-colors flex items-center gap-2">
+                                <IcoCircleOff /> Ban Account
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -260,11 +268,12 @@ export function JobDetailsModal({ report, onClose, onDecline, onSuspend }: {
 }
 
 /* ── Message Details Modal ── */
-export function MessageDetailsModal({ report, onClose, onDecline, onSuspend }: {
+export function MessageDetailsModal({ report, onClose, onDecline, onSuspend, onBan }: {
     report: Report;
     onClose: () => void;
     onDecline: () => void;
     onSuspend: () => void;
+    onBan: () => void;
 }) {
     return (
         <ModalOverlay>
@@ -364,6 +373,9 @@ export function MessageDetailsModal({ report, onClose, onDecline, onSuspend }: {
                         <button onClick={onSuspend} className="px-5 py-2.5 rounded-xl text-sm font-semibold text-orange-500 border border-orange-200 hover:bg-orange-50 transition-colors flex items-center gap-2">
                             <IcoWarning /> Suspend
                         </button>
+                        <button onClick={onBan} className="px-5 py-2.5 rounded-xl text-sm font-semibold text-red-600 border border-red-300 hover:bg-red-50 transition-colors flex items-center gap-2">
+                            <IcoCircleOff /> Ban Account
+                        </button>
                     </div>
                 </div>
             </div>
@@ -390,10 +402,11 @@ export function DeclineModal({ report, onClose, onConfirm, tab }: {
 
         setSubmitting(true);
         try {
-            // Use router.patch for decline action
-            await router.patch(route('admin.reports.decline', report.id), { 
+            router.patch(route('admin.reports.decline', report.id), { 
                 decline_reason: reason 
             }, {
+                preserveState: true,
+                preserveScroll: true,
                 onSuccess: () => {
                     showNotification('success', 'Report declined successfully');
                     onConfirm();
@@ -401,12 +414,12 @@ export function DeclineModal({ report, onClose, onConfirm, tab }: {
                 onError: (errors: any) => {
                     console.error('Error declining report:', errors);
                     showNotification('error', 'Failed to decline report. Please try again.');
+                    setSubmitting(false);
                 }
             });
         } catch (error) {
             console.error('Unexpected error:', error);
             showNotification('error', 'An unexpected error occurred');
-        } finally {
             setSubmitting(false);
         }
     };
@@ -539,10 +552,11 @@ export function SuspendModal({ report, onClose, onConfirm, tab }: {
     const handleConfirm = async () => {
         setSubmitting(true);
         try {
-            // Use the dedicated suspend route - MUST use await for callbacks to work
-            await router.patch(route('admin.reports.suspend', report.id), { 
+            router.patch(route('admin.reports.suspend', report.id), { 
                 action_note: `Suspended for ${duration}` 
             }, {
+                preserveState: true,
+                preserveScroll: true,
                 onSuccess: () => {
                     showNotification('success', 'Job posting has been suspended');
                     onConfirm();
@@ -550,12 +564,12 @@ export function SuspendModal({ report, onClose, onConfirm, tab }: {
                 onError: (errors: any) => {
                     console.error('Error suspending account:', errors);
                     showNotification('error', 'Failed to suspend account. Please try again.');
+                    setSubmitting(false);
                 }
             });
         } catch (error) {
             console.error('Unexpected error:', error);
             showNotification('error', 'An unexpected error occurred');
-        } finally {
             setSubmitting(false);
         }
     };
@@ -709,10 +723,11 @@ export function BanModal({ report, onClose, onConfirm, tab }: {
 
         setSubmitting(true);
         try {
-            // Use the dedicated ban route - MUST use await for callbacks to work
-            await router.patch(route('admin.reports.ban', report.id), { 
+            router.patch(route('admin.reports.ban', report.id), { 
                 action_note: 'Account banned' 
             }, {
+                preserveState: true,
+                preserveScroll: true,
                 onSuccess: () => {
                     showNotification('success', 'Job posting has been permanently removed');
                     onConfirm();
@@ -720,12 +735,12 @@ export function BanModal({ report, onClose, onConfirm, tab }: {
                 onError: (errors: any) => {
                     console.error('Error banning account:', errors);
                     showNotification('error', 'Failed to ban account. Please try again.');
+                    setSubmitting(false);
                 }
             });
         } catch (error) {
             console.error('Unexpected error:', error);
             showNotification('error', 'An unexpected error occurred');
-        } finally {
             setSubmitting(false);
         }
     };

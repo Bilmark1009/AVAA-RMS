@@ -121,8 +121,10 @@ function parseSkills(raw?: string | null): string[] {
 }
 
 /* ── Effective status helper ── */
-function effectiveStatus(user: User): 'active' | 'inactive' {
+function effectiveStatus(user: User): 'active' | 'inactive' | 'banned' | 'suspended' {
     if (user.deleted_at) return 'inactive';
+    if (user.status === 'banned') return 'banned';
+    if (user.status === 'suspended') return 'suspended';
     return user.status === 'active' ? 'active' : 'inactive';
 }
 
@@ -430,6 +432,15 @@ export default function AdminUsers({ users, filters }: Props) {
         });
     };
 
+    /* ── Reactivate (for banned users) ── */
+    const doReactivate = (user: User) => {
+        if (!confirm(`Are you sure you want to reactivate ${user.first_name} ${user.last_name}'s account? This will lift the ban and restore access.`)) return;
+        setProcessingId(user.id);
+        router.patch(route('admin.users.status', user.id), {}, {
+            onFinish: () => setProcessingId(null),
+        });
+    };
+
     const ROLE_LABELS: Record<string, string> = { job_seeker: 'Job Seekers', employer: 'Employers', all: 'All Users' };
 
     return (
@@ -548,7 +559,7 @@ export default function AdminUsers({ users, filters }: Props) {
                                         const skills = parseSkills(user.jobSeekerProfile?.skills);
                                         const frame = getProfileFrame(user.jobSeekerProfile?.profile_frame);
                                         const company = user.employerProfile?.company_name;
-                                        const isActive = effectiveStatus(user) === 'active';
+                                        const isActive = effectiveStatus(user);
                                         const isDeleted = !!user.deleted_at;
                                         const isBusy = processingId === user.id;
 
@@ -604,11 +615,23 @@ export default function AdminUsers({ users, filters }: Props) {
                                                 {/* Status */}
                                                 <td className="px-6 py-4">
                                                     <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold
-                                                        ${isActive
+                                                        ${isActive === 'banned'
+                                                            ? 'bg-red-50 text-red-700 border border-red-100'
+                                                            : isActive === 'suspended'
+                                                            ? 'bg-orange-50 text-orange-700 border border-orange-100'
+                                                            : isActive === 'active'
                                                             ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
                                                             : 'bg-gray-100 text-gray-500 border border-gray-200'}`}>
-                                                        <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-gray-400'}`} />
-                                                        {isActive ? 'Active' : 'Inactive'}
+                                                        <span className={`w-1.5 h-1.5 rounded-full ${
+                                                            isActive === 'banned' ? 'bg-red-500'
+                                                            : isActive === 'suspended' ? 'bg-orange-500'
+                                                            : isActive === 'active' ? 'bg-emerald-500'
+                                                            : 'bg-gray-400'
+                                                        }`} />
+                                                        {isActive === 'banned' ? 'Banned'
+                                                            : isActive === 'suspended' ? 'Suspended'
+                                                            : isActive === 'active' ? 'Active'
+                                                            : 'Inactive'}
                                                     </span>
                                                 </td>
 
@@ -636,6 +659,15 @@ export default function AdminUsers({ users, filters }: Props) {
                                                                 onClick={() => doRestore(user)}
                                                                 disabled={isBusy}
                                                                 title="Restore user"
+                                                                className="p-2 rounded-lg text-emerald-500 hover:bg-emerald-50 transition-colors disabled:opacity-40"
+                                                            >
+                                                                <IcoRestore />
+                                                            </button>
+                                                        ) : isActive === 'banned' ? (
+                                                            <button
+                                                                onClick={() => doReactivate(user)}
+                                                                disabled={isBusy}
+                                                                title="Reactivate banned account"
                                                                 className="p-2 rounded-lg text-emerald-500 hover:bg-emerald-50 transition-colors disabled:opacity-40"
                                                             >
                                                                 <IcoRestore />
@@ -669,7 +701,7 @@ export default function AdminUsers({ users, filters }: Props) {
                             {users.data.map((user, i) => {
                                 const initials = `${(user.first_name ?? '').charAt(0)}${(user.last_name ?? '').charAt(0)}`.toUpperCase();
                                 const frame = getProfileFrame(user.jobSeekerProfile?.profile_frame);
-                                const isActive = effectiveStatus(user) === 'active';
+                                const isActive = effectiveStatus(user);
                                 const isDeleted = !!user.deleted_at;
                                 const isBusy = processingId === user.id;
                                 const appCount = user.job_applications_count ?? 0;
@@ -713,10 +745,17 @@ export default function AdminUsers({ users, filters }: Props) {
 
                                         <div className="flex items-center justify-between mt-3">
                                             <span className={`text-xs font-semibold px-2 py-1 rounded-full
-                                                ${isActive
+                                                ${isActive === 'banned'
+                                                    ? 'bg-red-50 text-red-700'
+                                                    : isActive === 'suspended'
+                                                    ? 'bg-orange-50 text-orange-700'
+                                                    : isActive === 'active'
                                                     ? 'bg-emerald-50 text-emerald-700'
                                                     : 'bg-gray-100 text-gray-500'}`}>
-                                                {isActive ? 'Active' : 'Inactive'}
+                                                {isActive === 'banned' ? 'Banned'
+                                                    : isActive === 'suspended' ? 'Suspended'
+                                                    : isActive === 'active' ? 'Active'
+                                                    : 'Inactive'}
                                             </span>
 
                                             <div className="flex gap-1">
@@ -731,6 +770,15 @@ export default function AdminUsers({ users, filters }: Props) {
                                                     <button
                                                         onClick={() => doRestore(user)}
                                                         disabled={isBusy}
+                                                        className="p-1.5 text-emerald-500 hover:bg-emerald-50 transition-colors disabled:opacity-40"
+                                                    >
+                                                        <IcoRestore />
+                                                    </button>
+                                                ) : isActive === 'banned' ? (
+                                                    <button
+                                                        onClick={() => doReactivate(user)}
+                                                        disabled={isBusy}
+                                                        title="Reactivate banned account"
                                                         className="p-1.5 text-emerald-500 hover:bg-emerald-50 transition-colors disabled:opacity-40"
                                                     >
                                                         <IcoRestore />

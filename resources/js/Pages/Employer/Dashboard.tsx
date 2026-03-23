@@ -28,7 +28,7 @@ interface Props {
 }
 
 /* ── Icons ─────────────────────────────────────────────────── */
-const IcoActiveUsers = () => (
+const IcoActiveApplicants = () => (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" />
         <path d="M23 21v-2a4 4 0 00-3-3.87" /><path d="M16 3.13a4 4 0 010 7.75" />
@@ -439,10 +439,10 @@ export default function EmployerDashboard({
                 {/* ── Stat Cards ── */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
                     <StatCard
-                        label="Active Users"
+                        label="Total Employees"
                         value={activeUsersCount}
-                        sub="Active on platform"
-                        icon={<IcoActiveUsers />}
+                        sub="Your hired employees"
+                        icon={<IcoActiveApplicants />}
                         color="bg-emerald-50 text-emerald-600"
                         badge="+12%"
                     />

@@ -6,7 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Mail\AccountBanned;
 use App\Mail\AccountSuspended;
 use App\Models\Report;
+use App\Notifications\EmployerAppealApprovedNotification;
+use App\Notifications\EmployerAppealDisapprovedNotification;
+use App\Notifications\EmployerJobSuspendedNotification;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -146,7 +150,7 @@ class AdminReportController extends Controller
                 'message_content'       => $r->message?->content ?? null,
                 'status'                => $r->status,
                 'action_taken'          => $r->action_taken,
-                'employer_status'       => 'Active',
+                'employer_status'       => $this->resolveEmployerStatus($r),
                 'approved_by'           => $r->status === 'resolved' && $r->actionBy
                     ? "{$r->actionBy->first_name} {$r->actionBy->last_name}"
                     : null,
@@ -172,6 +176,7 @@ class AdminReportController extends Controller
                 'status' => $status,
                 'tab'    => $tab,
             ],
+            'focusReportId' => $request->query('report') ? (int) $request->query('report') : null,
         ]);
     }
 
@@ -192,6 +197,9 @@ class AdminReportController extends Controller
             'action_at' => now(),
             'action_note' => $request->action_note,
         ]);
+
+        // Auto-ban check: if employer has 5+ distinct jobs with approved reports
+        $this->checkAndAutoBanEmployer($report);
 
         return redirect()->back()->with('success', 'Report approved and marked as resolved.');
     }
@@ -263,6 +271,9 @@ class AdminReportController extends Controller
             'action_note' => $request->action_note,
         ]);
 
+        // Auto-ban check: if employer has 5+ distinct jobs with approved reports
+        $autoBanned = $this->checkAndAutoBanEmployer($report);
+
         // Send suspension email
         try {
             Mail::to($user->email)->send(new AccountSuspended(
@@ -274,8 +285,11 @@ class AdminReportController extends Controller
             ));
         } catch (\Exception $e) {
             // Log but don't fail the request if email fails
-            \Log::error('Failed to send suspension email: ' . $e->getMessage());
+            Log::error('Failed to send suspension email: ' . $e->getMessage());
         }
+
+        // Send in-app notification with deep link to the appeal modal.
+        $user->notify(new EmployerJobSuspendedNotification($job, $report));
 
         return redirect()->back()->with('success', 'Job posting suspended successfully. Notification sent to employer.');
     }
@@ -327,7 +341,7 @@ class AdminReportController extends Controller
             ));
         } catch (\Exception $e) {
             // Log but don't fail the request if email fails
-            \Log::error('Failed to send ban email: ' . $e->getMessage());
+            Log::error('Failed to send ban email: ' . $e->getMessage());
         }
 
         return redirect()->back()->with('success', 'Job posting permanently removed successfully. Notification sent to employer.');
@@ -350,11 +364,12 @@ class AdminReportController extends Controller
         }
 
         $jobListing = $report->jobListing;
+        $employer = $jobListing?->employer;
 
         // Update the appeal status
         $report->update([
             'appeal_status' => 'approved',
-            'appeal_decision_note' => 'Appeal approved - suspension/ban lifted.',
+            'appeal_decision_note' => $request->input('decision_note', 'Appeal approved - suspension/ban lifted.'),
         ]);
 
         // If there's a job listing, restore it to active status
@@ -364,22 +379,34 @@ class AdminReportController extends Controller
                 'updated_at' => now(),
             ]);
 
-            // Also update report status to dismissed since appeal was granted
-            $report->update([
-                'status' => 'dismissed',
-            ]);
+            // Dismiss ALL resolved reports for this employer's jobs — resets report count to zero
+            $employerId = $jobListing->employer_id;
+            if ($employerId) {
+                Report::whereHas('jobListing', fn($q) => $q->where('employer_id', $employerId))
+                    ->where('status', 'resolved')
+                    ->update(['status' => 'dismissed']);
+            }
+
+            // If the employer was auto-banned, lift the ban since report count is now reset
+            $employer = $jobListing->employer;
+            if ($employer && $employer->status === 'banned') {
+                $employer->update(['status' => 'active']);
+            }
         }
 
         // Send notification email to employer
         try {
-            $employer = $jobListing?->employer;
             if ($employer) {
                 \Illuminate\Support\Facades\Mail::to($employer->email)->send(
                     new \App\Mail\AppealApprovedNotification($jobListing, $employer, $report)
                 );
             }
         } catch (\Exception $e) {
-            \Log::error('Failed to send appeal approval email', ['exception' => $e->getMessage()]);
+            Log::error('Failed to send appeal approval email', ['exception' => $e->getMessage()]);
+        }
+
+        if ($employer && $jobListing) {
+            $employer->notify(new EmployerAppealApprovedNotification($jobListing, $report));
         }
 
         return redirect()->back()->with('success', 'Appeal approved! Job posting has been restored.');
@@ -401,24 +428,102 @@ class AdminReportController extends Controller
             return redirect()->back()->with('error', 'This appeal has already been processed.');
         }
 
+        $jobListing = $report->jobListing;
+        $employer = $jobListing?->employer;
+
         // Update the appeal status
         $report->update([
             'appeal_status' => 'rejected',
-            'appeal_decision_note' => 'Appeal rejected - original action remains in effect.',
+            'appeal_decision_note' => $request->input('decision_note', 'Appeal declined - original action remains in effect.'),
         ]);
 
         // Send notification email to employer
         try {
-            $employer = $report->jobListing?->employer;
             if ($employer) {
                 \Illuminate\Support\Facades\Mail::to($employer->email)->send(
-                    new \App\Mail\AppealRejectedNotification($report->jobListing, $employer, $report)
+                    new \App\Mail\AppealRejectedNotification($jobListing, $employer, $report)
                 );
             }
         } catch (\Exception $e) {
-            \Log::error('Failed to send appeal rejection email', ['exception' => $e->getMessage()]);
+            Log::error('Failed to send appeal rejection email', ['exception' => $e->getMessage()]);
         }
 
-        return redirect()->back()->with('success', 'Appeal rejected. The original action remains in effect.');
+        if ($employer && $jobListing) {
+            $employer->notify(new EmployerAppealDisapprovedNotification($jobListing, $report));
+        }
+
+        return redirect()->back()->with('success', 'Appeal declined. The original action remains in effect.');
+    }
+
+    /* ══════════════════════════════════════════════════════════════════════
+       Private helpers
+    ══════════════════════════════════════════════════════════════════════ */
+
+    /**
+     * Check if an employer has 5+ distinct jobs with approved (resolved) reports.
+     * If so, auto-ban the employer account.
+     *
+     * @return bool Whether an auto-ban was triggered.
+     */
+    private function checkAndAutoBanEmployer(Report $report): bool
+    {
+        // Determine the employer user from job report
+        $employerId = $report->jobListing?->employer_id;
+        if (!$employerId) {
+            return false;
+        }
+
+        $employer = User::find($employerId);
+        if (!$employer || $employer->status === 'banned') {
+            return false;
+        }
+
+        // Count distinct job listings that have resolved reports for this employer
+        $distinctResolvedJobCount = Report::whereHas('jobListing', fn($q) => $q->where('employer_id', $employerId))
+            ->where('status', 'resolved')
+            ->distinct('job_listing_id')
+            ->count('job_listing_id');
+
+        if ($distinctResolvedJobCount >= 5) {
+            $employer->update(['status' => 'banned']);
+
+            // Deactivate all remaining active jobs
+            JobListing::where('employer_id', $employerId)
+                ->where('status', 'active')
+                ->update(['status' => 'inactive']);
+
+            // Send ban notification email
+            try {
+                Mail::to($employer->email)->send(new AccountBanned(
+                    user: $employer,
+                    report: $report,
+                    activeJobsCount: 0,
+                    reportReason: 'Multiple policy violations (5+ approved reports on different job postings)'
+                ));
+            } catch (\Exception $e) {
+                \Log::error('Failed to send auto-ban email: ' . $e->getMessage());
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Resolve the actual employer status for a report entry.
+     */
+    private function resolveEmployerStatus(Report $r): string
+    {
+        $user = $r->jobListing?->employer ?? $r->reportedUser;
+        if (!$user) {
+            return 'Unknown';
+        }
+
+        return match ($user->status) {
+            'banned'    => 'Banned',
+            'suspended' => 'Suspended',
+            default     => 'Active',
+        };
     }
 }

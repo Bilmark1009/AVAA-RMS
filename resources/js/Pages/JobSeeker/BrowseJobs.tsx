@@ -58,6 +58,17 @@ function formatSalary(min?: number | null, max?: number | null, currency = 'USD'
     return `Up to ${fmt(max!)}`;
 }
 
+function statusLabel(stage?: string | null) {
+    const s = (stage || '').toString().toLowerCase();
+    if (s === 'interviewing' || s === 'approved') return 'Hired';
+    if (s === 'pending') return 'Pending';
+    if (s === 'withdrawn') return 'Withdrawn';
+    if (s === 'rejected') return 'Rejected';
+    if (s === 'hired') return 'Hired';
+    if (s === 'contract_ended') return 'Contract Ended';
+    return (stage || 'Unknown').toString();
+}
+
 /* ─────────────────────────────────────────
    JOB CARD
 ───────────────────────────────────────── */
@@ -69,15 +80,14 @@ function JobCard({ job, saved, onSave, onApply, onView }: {
     const status = (job.application_status || '').toLowerCase();
     const isRejected = status === 'rejected';
     const isEnded = status === 'contract_ended';
+    const isHired = status === 'hired';
     const isApplied = Boolean(job.has_applied);
 
-    const applyLabel = isRejected
-        ? 'Rejected'
-        : isEnded
-            ? 'Ended'
-            : isApplied
-                ? 'Applied ✓'
-                : 'Apply Now';
+    const applyLabel = isApplied
+        ? statusLabel(job.application_status)
+        : 'Apply Now';
+
+    const isDisabled = isApplied || isRejected || isEnded || isHired;
 
     return (
         <div className="bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-md hover:border-gray-300 transition-all flex flex-col gap-4 min-w-0 overflow-hidden">
@@ -156,13 +166,31 @@ function JobCard({ job, saved, onSave, onApply, onView }: {
                         className="px-3 py-2 sm:px-4 border border-gray-300 text-gray-700 hover:border-avaa-primary hover:text-avaa-teal text-sm font-semibold rounded-xl transition-colors min-w-0">
                         View Details
                     </button>
-                    <button onClick={onApply} disabled={isApplied}
-                        className="px-3 py-2 sm:px-4 bg-avaa-primary hover:bg-avaa-primary-hover text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-60 disabled:cursor-not-allowed min-w-0">
+                    <button onClick={onApply} disabled={isDisabled}
+                        className={`px-3 py-2 sm:px-4 text-sm font-semibold rounded-xl transition-colors disabled:opacity-60 disabled:cursor-not-allowed min-w-0 ${
+                            isRejected || isEnded
+                                ? 'bg-red-100 text-red-700 border border-red-200'
+                                : isHired
+                                    ? 'bg-green-100 text-green-700 border border-green-200'
+                                    : isApplied
+                                        ? (status === 'interviewing' || status === 'approved')
+                                            ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                                            : status === 'pending'
+                                                ? 'bg-amber-100 text-amber-700 border border-amber-200'
+                                                : 'bg-gray-100 text-gray-700 border border-gray-200'
+                                        : 'bg-avaa-primary hover:bg-avaa-primary-hover text-white'
+                        }`}>
                         <span className="inline-flex items-center gap-1.5">
                             {applyLabel}
                             {isRejected && (
                                 <span aria-hidden="true" className="text-[12px] leading-none">✘</span>
                             )}
+                            {isHired && (
+                                <span aria-hidden="true" className="text-[12px] leading-none">✓</span>
+                            )}
+                            {status === 'interviewing' || status === 'approved' ? (
+                                <span aria-hidden="true" className="text-[12px] leading-none">🎯</span>
+                            ) : null}
                         </span>
                     </button>
                 </div>
