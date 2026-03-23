@@ -44,6 +44,10 @@ export interface Report {
     declined_date?: string;
     evidence?: string[];          // URLs of uploaded screenshots
     message_content?: string | null;
+    appeal_message?: string | null;
+    appealed_at?: string | null;
+    appeal_status?: 'pending' | 'approved' | 'rejected' | null;
+    appeal_decision_note?: string | null;
 }
 
 export type ModalType = 'details' | 'decline' | 'suspend' | 'ban' | null;

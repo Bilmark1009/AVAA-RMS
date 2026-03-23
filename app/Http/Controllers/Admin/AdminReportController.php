@@ -6,7 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Mail\AccountBanned;
 use App\Mail\AccountSuspended;
 use App\Models\Report;
+use App\Notifications\EmployerAppealApprovedNotification;
+use App\Notifications\EmployerAppealDisapprovedNotification;
+use App\Notifications\EmployerJobSuspendedNotification;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -172,6 +176,7 @@ class AdminReportController extends Controller
                 'status' => $status,
                 'tab'    => $tab,
             ],
+            'focusReportId' => $request->query('report') ? (int) $request->query('report') : null,
         ]);
     }
 
@@ -274,8 +279,11 @@ class AdminReportController extends Controller
             ));
         } catch (\Exception $e) {
             // Log but don't fail the request if email fails
-            \Log::error('Failed to send suspension email: ' . $e->getMessage());
+            Log::error('Failed to send suspension email: ' . $e->getMessage());
         }
+
+        // Send in-app notification with deep link to the appeal modal.
+        $user->notify(new EmployerJobSuspendedNotification($job, $report));
 
         return redirect()->back()->with('success', 'Job posting suspended successfully. Notification sent to employer.');
     }
@@ -327,7 +335,7 @@ class AdminReportController extends Controller
             ));
         } catch (\Exception $e) {
             // Log but don't fail the request if email fails
-            \Log::error('Failed to send ban email: ' . $e->getMessage());
+            Log::error('Failed to send ban email: ' . $e->getMessage());
         }
 
         return redirect()->back()->with('success', 'Job posting permanently removed successfully. Notification sent to employer.');
@@ -350,6 +358,7 @@ class AdminReportController extends Controller
         }
 
         $jobListing = $report->jobListing;
+        $employer = $jobListing?->employer;
 
         // Update the appeal status
         $report->update([
@@ -372,14 +381,17 @@ class AdminReportController extends Controller
 
         // Send notification email to employer
         try {
-            $employer = $jobListing?->employer;
             if ($employer) {
                 \Illuminate\Support\Facades\Mail::to($employer->email)->send(
                     new \App\Mail\AppealApprovedNotification($jobListing, $employer, $report)
                 );
             }
         } catch (\Exception $e) {
-            \Log::error('Failed to send appeal approval email', ['exception' => $e->getMessage()]);
+            Log::error('Failed to send appeal approval email', ['exception' => $e->getMessage()]);
+        }
+
+        if ($employer && $jobListing) {
+            $employer->notify(new EmployerAppealApprovedNotification($jobListing, $report));
         }
 
         return redirect()->back()->with('success', 'Appeal approved! Job posting has been restored.');
@@ -401,6 +413,9 @@ class AdminReportController extends Controller
             return redirect()->back()->with('error', 'This appeal has already been processed.');
         }
 
+        $jobListing = $report->jobListing;
+        $employer = $jobListing?->employer;
+
         // Update the appeal status
         $report->update([
             'appeal_status' => 'rejected',
@@ -409,14 +424,17 @@ class AdminReportController extends Controller
 
         // Send notification email to employer
         try {
-            $employer = $report->jobListing?->employer;
             if ($employer) {
                 \Illuminate\Support\Facades\Mail::to($employer->email)->send(
-                    new \App\Mail\AppealRejectedNotification($report->jobListing, $employer, $report)
+                    new \App\Mail\AppealRejectedNotification($jobListing, $employer, $report)
                 );
             }
         } catch (\Exception $e) {
-            \Log::error('Failed to send appeal rejection email', ['exception' => $e->getMessage()]);
+            Log::error('Failed to send appeal rejection email', ['exception' => $e->getMessage()]);
+        }
+
+        if ($employer && $jobListing) {
+            $employer->notify(new EmployerAppealDisapprovedNotification($jobListing, $report));
         }
 
         return redirect()->back()->with('success', 'Appeal rejected. The original action remains in effect.');

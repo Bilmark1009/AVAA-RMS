@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
 
 import {
@@ -41,6 +41,7 @@ const IcoChat = () => (
 interface Props {
     reports?: Report[];
     filters?: { status: string; tab: string };
+    focusReportId?: number | null;
 }
 
 
@@ -270,7 +271,7 @@ function SummaryCard({ report, type, onViewAppeal }: { report: Report; type: 'ap
 }
 
 /* ── Main Component ── */
-export default function ReportView({ reports = [], filters }: Props) {
+export default function ReportView({ reports = [], filters, focusReportId = null }: Props) {
     const [tab, setTab] = useState<'job_posts' | 'messages'>(
         (filters?.tab as 'job_posts' | 'messages') ?? 'job_posts'
     );
@@ -287,6 +288,21 @@ export default function ReportView({ reports = [], filters }: Props) {
         setModal(null);
         setSelectedReport(null);
     };
+
+    useEffect(() => {
+        if (!focusReportId) return;
+
+        const target = reports.find((r) => r.id === focusReportId);
+        if (target && status === 'pending') {
+            setSelectedReport(target);
+            setModal('details');
+        }
+
+        if (target && status === 'appeals' && target.appeal_message) {
+            setSelectedReport(target);
+            setModal('appeal');
+        }
+    }, [focusReportId, reports, status]);
 
     const refreshReports = () => {
         try {
@@ -422,7 +438,6 @@ export default function ReportView({ reports = [], filters }: Props) {
                             onClose={closeAllModals}
                             onDecline={() => setModal('decline')}
                             onSuspend={() => setModal('suspend')}
-                            onBan={() => setModal('ban')}
                         />
                     ) : (
                         <JobDetailsModal
@@ -430,7 +445,6 @@ export default function ReportView({ reports = [], filters }: Props) {
                             onClose={closeAllModals}
                             onDecline={() => setModal('decline')}
                             onSuspend={() => setModal('suspend')}
-                            onBan={() => setModal('ban')}
                         />
                     )
                 )}

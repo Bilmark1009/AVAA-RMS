@@ -71,6 +71,7 @@ class JobListingController extends Controller
                 'is_owner'           => $isOwner,
                 'report_id'          => $pendingReport?->id,
                 'report_status'      => $pendingReport?->status,
+                'appeal_status'      => $pendingReport?->appeal_status,
                 'report_reason'      => $pendingReport?->reason,
                 'reported_at'        => $pendingReport?->created_at?->toISOString(),
                 'report_count'       => $job->reports()->count(),
