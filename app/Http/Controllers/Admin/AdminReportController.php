@@ -119,9 +119,8 @@ class AdminReportController extends Controller
                     ->count()
                 : 0;
 
-            // Exclude dismissed reports (declined or appeal-approved) from the total count
             $totalReportsCount = $hasCountTarget
-                ? (clone $baseCountQuery)->where('status', '<>', 'dismissed')->count()
+                ? (clone $baseCountQuery)->count()
                 : 0;
 
             return [
