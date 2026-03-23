@@ -64,7 +64,7 @@ class JobBrowseController extends Controller
 
         // IDs the current user has applied to
         $appliedJobIds = JobApplication::where('user_id', $user->id)
-            ->whereNotIn('status', ['withdrawn', 'accepted', 'hired'])
+            ->whereNotIn('status', ['withdrawn', 'accepted'])
             ->pluck('job_listing_id')
             ->toArray();
 
@@ -103,7 +103,7 @@ class JobBrowseController extends Controller
 
         $savedJobIds = SavedJob::where('user_id', $user->id)->pluck('job_listing_id')->toArray();
         $appliedJobIds = JobApplication::where('user_id', $user->id)
-            ->whereNotIn('status', ['withdrawn', 'accepted', 'hired'])
+            ->whereNotIn('status', ['withdrawn', 'accepted'])
             ->pluck('job_listing_id')
             ->toArray();
 
@@ -227,7 +227,7 @@ class JobBrowseController extends Controller
         $jobs = $query->latest()->get();
 
         $appliedJobIds = JobApplication::where('user_id', $user->id)
-            ->whereNotIn('status', ['withdrawn', 'accepted', 'hired'])
+            ->whereNotIn('status', ['withdrawn', 'accepted'])
             ->pluck('job_listing_id')
             ->toArray();
 

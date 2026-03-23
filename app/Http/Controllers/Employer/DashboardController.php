@@ -7,6 +7,7 @@ use App\Models\JobApplication;
 use App\Models\JobListing;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -22,7 +23,14 @@ class DashboardController extends Controller
             ->update(['read_at' => now()]);
 
         // ── Dashboard statistics ─────────────────────────────────────────
-        $activeUsersCount = User::where('status', 'active')->count();
+        $activeUsersCount = DB::table('users')
+            ->join('job_applications', 'users.id', '=', 'job_applications.user_id')
+            ->join('job_listings', 'job_applications.job_listing_id', '=', 'job_listings.id')
+            ->where('users.status', 'active')
+            ->where('job_listings.employer_id', $user->id)
+            ->where('job_applications.status', 'hired')
+            ->distinct('users.id')
+            ->count();
         $jobsPostedCount = JobListing::where('employer_id', $user->id)->count();
         $applicationsCount = JobApplication::whereHas('jobListing', fn($q) => $q->where('employer_id', $user->id))->count();
         $totalVisitsCount = JobApplication::count(); // total applications on platform

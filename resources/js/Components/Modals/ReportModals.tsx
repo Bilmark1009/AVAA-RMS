@@ -44,6 +44,10 @@ export interface Report {
     declined_date?: string;
     evidence?: string[];          // URLs of uploaded screenshots
     message_content?: string | null;
+    appeal_message?: string | null;
+    appealed_at?: string | null;
+    appeal_status?: string | null;
+    appeal_decision_note?: string | null;
     appeal_message?: string;
     appeal_status?: 'pending' | 'approved' | 'rejected';
     appealed_at?: string;
@@ -140,11 +144,12 @@ function InfoRow({ label, value, valueClass = 'text-gray-800' }: { label: string
 }
 
 /* ── Job Details Modal ── */
-export function JobDetailsModal({ report, onClose, onDecline, onSuspend }: {
+export function JobDetailsModal({ report, onClose, onDecline, onSuspend, onBan }: {
     report: Report;
     onClose: () => void;
     onDecline: () => void;
     onSuspend: () => void;
+    onBan: () => void;
 }) {
     const [activeModal, setActiveModal] = useState<'decline' | 'suspend' | null>(null);
 
@@ -236,6 +241,9 @@ export function JobDetailsModal({ report, onClose, onDecline, onSuspend }: {
                             <button onClick={() => setActiveModal('suspend')} className="px-5 py-2.5 rounded-xl text-sm font-semibold text-orange-500 border border-orange-200 hover:bg-orange-50 transition-colors flex items-center gap-2">
                                 <IcoWarning /> Suspend
                             </button>
+                            <button onClick={() => onBan()} className="px-5 py-2.5 rounded-xl text-sm font-semibold text-red-600 border border-red-300 hover:bg-red-50 transition-colors flex items-center gap-2">
+                                <IcoCircleOff /> Ban Account
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -264,11 +272,12 @@ export function JobDetailsModal({ report, onClose, onDecline, onSuspend }: {
 }
 
 /* ── Message Details Modal ── */
-export function MessageDetailsModal({ report, onClose, onDecline, onSuspend }: {
+export function MessageDetailsModal({ report, onClose, onDecline, onSuspend, onBan }: {
     report: Report;
     onClose: () => void;
     onDecline: () => void;
     onSuspend: () => void;
+    onBan: () => void;
 }) {
     return (
         <ModalOverlay>
@@ -367,6 +376,9 @@ export function MessageDetailsModal({ report, onClose, onDecline, onSuspend }: {
                         </button>
                         <button onClick={onSuspend} className="px-5 py-2.5 rounded-xl text-sm font-semibold text-orange-500 border border-orange-200 hover:bg-orange-50 transition-colors flex items-center gap-2">
                             <IcoWarning /> Suspend
+                        </button>
+                        <button onClick={onBan} className="px-5 py-2.5 rounded-xl text-sm font-semibold text-red-600 border border-red-300 hover:bg-red-50 transition-colors flex items-center gap-2">
+                            <IcoCircleOff /> Ban Account
                         </button>
                     </div>
                 </div>

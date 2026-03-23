@@ -340,7 +340,7 @@ export default function AdminDashboard({
                 {/* ── ROW 1: Stat Cards ── */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                     <StatCard
-                        label="Active Users"
+                        label="Actives"
                         value={stats.total}
                         sub="Users currently active"
                         trend="↑ +12%"
