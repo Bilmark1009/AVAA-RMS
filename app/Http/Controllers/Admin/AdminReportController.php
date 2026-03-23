@@ -119,8 +119,9 @@ class AdminReportController extends Controller
                     ->count()
                 : 0;
 
+            // Exclude dismissed reports (declined or appeal-approved) from the total count
             $totalReportsCount = $hasCountTarget
-                ? (clone $baseCountQuery)->count()
+                ? (clone $baseCountQuery)->where('status', '<>', 'dismissed')->count()
                 : 0;
 
             return [
@@ -263,6 +264,35 @@ class AdminReportController extends Controller
             'action_note' => $request->action_note,
         ]);
 
+        // ── Auto-ban check ─────────────────────────────────────────────────
+        // If this employer has accumulated 5 or more approved (resolved) reports
+        // across all their job posts, automatically ban their account.
+        $autoBanned = false;
+        $approvedReportCount = \App\Models\Report::whereHas(
+            'jobListing',
+            fn ($q) => $q->where('employer_id', $user->id)
+        )
+            ->where('status', 'resolved')
+            ->count();
+
+        if ($approvedReportCount >= 5 && $user->status !== 'banned') {
+            $user->update(['status' => 'banned']);
+            $autoBanned = true;
+
+            // Send ban notification email
+            try {
+                Mail::to($user->email)->send(new AccountBanned(
+                    user: $user,
+                    report: $report,
+                    activeJobsCount: $approvedReportCount,
+                    reportReason: 'Repeated policy violations (5+ approved reports)'
+                ));
+            } catch (\Exception $e) {
+                \Log::error('Failed to send auto-ban email: ' . $e->getMessage());
+            }
+        }
+        // ───────────────────────────────────────────────────────────────────
+
         // Send suspension email
         try {
             Mail::to($user->email)->send(new AccountSuspended(
@@ -275,6 +305,10 @@ class AdminReportController extends Controller
         } catch (\Exception $e) {
             // Log but don't fail the request if email fails
             \Log::error('Failed to send suspension email: ' . $e->getMessage());
+        }
+
+        if ($autoBanned) {
+            return redirect()->back()->with('success', 'Job posting suspended successfully. Employer account has been automatically banned due to 5+ approved reports.');
         }
 
         return redirect()->back()->with('success', 'Job posting suspended successfully. Notification sent to employer.');

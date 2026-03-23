@@ -152,6 +152,7 @@ export function JobDetailsModal({ report, onClose, onDecline, onSuspend }: {
     const handleSuspendConfirm = () => {
         setActiveModal(null);
         onSuspend();
+        onClose();
     };
 
     return (
@@ -401,12 +402,12 @@ export function DeclineModal({ report, onClose, onConfirm, tab }: {
                 onError: (errors: any) => {
                     console.error('Error declining report:', errors);
                     showNotification('error', 'Failed to decline report. Please try again.');
+                    setSubmitting(false);
                 }
             });
         } catch (error) {
             console.error('Unexpected error:', error);
             showNotification('error', 'An unexpected error occurred');
-        } finally {
             setSubmitting(false);
         }
     };
@@ -544,18 +545,18 @@ export function SuspendModal({ report, onClose, onConfirm, tab }: {
                 action_note: `Suspended for ${duration}` 
             }, {
                 onSuccess: () => {
-                    showNotification('success', 'Job posting has been suspended');
+                    showNotification('success', 'Job posting has been suspended successfully.');
                     onConfirm();
                 },
                 onError: (errors: any) => {
                     console.error('Error suspending account:', errors);
-                    showNotification('error', 'Failed to suspend account. Please try again.');
+                    showNotification('error', 'Failed to suspend job posting. Please try again.');
+                    setSubmitting(false);
                 }
             });
         } catch (error) {
             console.error('Unexpected error:', error);
             showNotification('error', 'An unexpected error occurred');
-        } finally {
             setSubmitting(false);
         }
     };
@@ -714,18 +715,18 @@ export function BanModal({ report, onClose, onConfirm, tab }: {
                 action_note: 'Account banned' 
             }, {
                 onSuccess: () => {
-                    showNotification('success', 'Job posting has been permanently removed');
+                    showNotification('success', 'Job posting has been permanently removed successfully.');
                     onConfirm();
                 },
                 onError: (errors: any) => {
                     console.error('Error banning account:', errors);
-                    showNotification('error', 'Failed to ban account. Please try again.');
+                    showNotification('error', 'Failed to remove job posting. Please try again.');
+                    setSubmitting(false);
                 }
             });
         } catch (error) {
             console.error('Unexpected error:', error);
             showNotification('error', 'An unexpected error occurred');
-        } finally {
             setSubmitting(false);
         }
     };
