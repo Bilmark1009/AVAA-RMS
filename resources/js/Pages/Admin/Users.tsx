@@ -432,6 +432,15 @@ export default function AdminUsers({ users, filters }: Props) {
         });
     };
 
+    /* ── Reactivate (for banned users) ── */
+    const doReactivate = (user: User) => {
+        if (!confirm(`Are you sure you want to reactivate ${user.first_name} ${user.last_name}'s account? This will lift the ban and restore access.`)) return;
+        setProcessingId(user.id);
+        router.patch(route('admin.users.status', user.id), {}, {
+            onFinish: () => setProcessingId(null),
+        });
+    };
+
     const ROLE_LABELS: Record<string, string> = { job_seeker: 'Job Seekers', employer: 'Employers', all: 'All Users' };
 
     return (
@@ -654,6 +663,15 @@ export default function AdminUsers({ users, filters }: Props) {
                                                             >
                                                                 <IcoRestore />
                                                             </button>
+                                                        ) : isActive === 'banned' ? (
+                                                            <button
+                                                                onClick={() => doReactivate(user)}
+                                                                disabled={isBusy}
+                                                                title="Reactivate banned account"
+                                                                className="p-2 rounded-lg text-emerald-500 hover:bg-emerald-50 transition-colors disabled:opacity-40"
+                                                            >
+                                                                <IcoRestore />
+                                                            </button>
                                                         ) : (
                                                             <>
                                                                 <button
@@ -752,6 +770,15 @@ export default function AdminUsers({ users, filters }: Props) {
                                                     <button
                                                         onClick={() => doRestore(user)}
                                                         disabled={isBusy}
+                                                        className="p-1.5 text-emerald-500 hover:bg-emerald-50 transition-colors disabled:opacity-40"
+                                                    >
+                                                        <IcoRestore />
+                                                    </button>
+                                                ) : isActive === 'banned' ? (
+                                                    <button
+                                                        onClick={() => doReactivate(user)}
+                                                        disabled={isBusy}
+                                                        title="Reactivate banned account"
                                                         className="p-1.5 text-emerald-500 hover:bg-emerald-50 transition-colors disabled:opacity-40"
                                                     >
                                                         <IcoRestore />

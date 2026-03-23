@@ -394,10 +394,11 @@ export function DeclineModal({ report, onClose, onConfirm, tab }: {
 
         setSubmitting(true);
         try {
-            // Use router.patch for decline action
-            await router.patch(route('admin.reports.decline', report.id), { 
+            router.patch(route('admin.reports.decline', report.id), { 
                 decline_reason: reason 
             }, {
+                preserveState: true,
+                preserveScroll: true,
                 onSuccess: () => {
                     showNotification('success', 'Report declined successfully');
                     onConfirm();
@@ -405,12 +406,12 @@ export function DeclineModal({ report, onClose, onConfirm, tab }: {
                 onError: (errors: any) => {
                     console.error('Error declining report:', errors);
                     showNotification('error', 'Failed to decline report. Please try again.');
+                    setSubmitting(false);
                 }
             });
         } catch (error) {
             console.error('Unexpected error:', error);
             showNotification('error', 'An unexpected error occurred');
-        } finally {
             setSubmitting(false);
         }
     };
@@ -543,10 +544,11 @@ export function SuspendModal({ report, onClose, onConfirm, tab }: {
     const handleConfirm = async () => {
         setSubmitting(true);
         try {
-            // Use the dedicated suspend route - MUST use await for callbacks to work
-            await router.patch(route('admin.reports.suspend', report.id), { 
+            router.patch(route('admin.reports.suspend', report.id), { 
                 action_note: `Suspended for ${duration}` 
             }, {
+                preserveState: true,
+                preserveScroll: true,
                 onSuccess: () => {
                     showNotification('success', 'Job posting has been suspended');
                     onConfirm();
@@ -554,12 +556,12 @@ export function SuspendModal({ report, onClose, onConfirm, tab }: {
                 onError: (errors: any) => {
                     console.error('Error suspending account:', errors);
                     showNotification('error', 'Failed to suspend account. Please try again.');
+                    setSubmitting(false);
                 }
             });
         } catch (error) {
             console.error('Unexpected error:', error);
             showNotification('error', 'An unexpected error occurred');
-        } finally {
             setSubmitting(false);
         }
     };
@@ -713,10 +715,11 @@ export function BanModal({ report, onClose, onConfirm, tab }: {
 
         setSubmitting(true);
         try {
-            // Use the dedicated ban route - MUST use await for callbacks to work
-            await router.patch(route('admin.reports.ban', report.id), { 
+            router.patch(route('admin.reports.ban', report.id), { 
                 action_note: 'Account banned' 
             }, {
+                preserveState: true,
+                preserveScroll: true,
                 onSuccess: () => {
                     showNotification('success', 'Job posting has been permanently removed');
                     onConfirm();
@@ -724,12 +727,12 @@ export function BanModal({ report, onClose, onConfirm, tab }: {
                 onError: (errors: any) => {
                     console.error('Error banning account:', errors);
                     showNotification('error', 'Failed to ban account. Please try again.');
+                    setSubmitting(false);
                 }
             });
         } catch (error) {
             console.error('Unexpected error:', error);
             showNotification('error', 'An unexpected error occurred');
-        } finally {
             setSubmitting(false);
         }
     };
