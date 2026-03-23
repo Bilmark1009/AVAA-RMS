@@ -59,4 +59,21 @@ class JobSeekerProfile extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    protected static function booted()
+    {
+        static::updated(function ($profile) {
+            if ($profile->isDirty('open_to_work')) {
+                $status = $profile->open_to_work ? 'Open to Work' : 'Not Open to Work';
+                \App\Models\UserTimelineEvent::create([
+                    'user_id' => $profile->user_id,
+                    'event_type' => 'status_change',
+                    'description' => "Status changed to {$status}",
+                    'metadata' => [
+                        'status' => $profile->open_to_work ? 'open_to_work' : 'not_open_to_work',
+                    ],
+                ]);
+            }
+        });
+    }
 }

@@ -20,11 +20,7 @@ class ApplicantTimelineController extends Controller
         // Eager load profile, manual experiences, and other related data
         $user->load([
             'jobSeekerProfile', 
-            'workExperiences' => function($query) {
-                $query->orderBy('start_date', 'desc');
-            }
-        ]); 
-
+            'timelineEvents',
         // Fetch system-verified placements via job_applications
         $applications = JobApplication::with(['jobListing.company'])
             ->where('user_id', $user->id)
@@ -75,6 +71,8 @@ class ApplicantTimelineController extends Controller
             // Placements tracked within the AVAA system
             'currentPosition' => $applications->whereNull('contract_ended_at')->first(),
             'pastPlacements' => $applications->whereNotNull('contract_ended_at')->values(),
+
+            'timelineEvents' => $user->timelineEvents,
 
             // Manual history from the work_experiences table
             'manualExperiences' => $user->workExperiences->map(function($exp) {
@@ -175,7 +173,7 @@ class ApplicantTimelineController extends Controller
     {
         abort_if($application->jobListing->employer_id !== $request->user()->id, 403);
 
-        $application->load(['user.jobSeekerProfile', 'user.workExperiences', 'user.documents','jobListing']);
+        $application->load(['user.jobSeekerProfile', 'user.timelineEvents', 'user.workExperiences', 'user.documents','jobListing']);
 
         $user = $application->user;
         $profile = $user->jobSeekerProfile;
@@ -248,17 +246,19 @@ class ApplicantTimelineController extends Controller
                 ]
             ],
 
-           'currentPosition' => [
+            'currentPosition' => [
                 'job_title' => $application->jobListing->title,
-                'company' => $application->jobListing->company->name 
-                             ?? $application->jobListing->employer->company_name 
+                'company' => $application->jobListing->company->name
+                             ?? $application->jobListing->employer->company_name
                              ?? 'AVAA Partner',
-                'start_date' => $application->hired_at 
-                    ? $application->hired_at->format('M d, Y') 
+                'start_date' => $application->hired_at
+                    ? $application->hired_at->format('M d, Y')
                     : 'Joined Recently',
                 'is_current' => true,
                 'description' => "Currently hired as " . $application->jobListing->title . " via AVAA Platform"
             ],
+
+            'timelineEvents' => $user->timelineEvents,
 
             'manualExperiences' => $manualExperiences,
             'pastPlacements' => [],
