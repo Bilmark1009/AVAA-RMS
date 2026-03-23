@@ -46,12 +46,8 @@ export interface Report {
     message_content?: string | null;
     appeal_message?: string | null;
     appealed_at?: string | null;
-    appeal_status?: string | null;
+    appeal_status?: 'pending' | 'approved' | 'rejected' | null;
     appeal_decision_note?: string | null;
-    appeal_message?: string;
-    appeal_status?: 'pending' | 'approved' | 'rejected';
-    appealed_at?: string;
-    appeal_decision_note?: string;
 }
 
 export type ModalType = 'details' | 'decline' | 'suspend' | 'ban' | null;

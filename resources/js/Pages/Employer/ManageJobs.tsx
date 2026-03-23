@@ -31,6 +31,7 @@ interface JobListing {
     is_owner?: boolean;
     report_id?: number;
     report_status?: 'pending' | 'resolved' | 'dismissed';
+    appeal_status?: 'pending' | 'approved' | 'rejected' | 'info_requested' | null;
     report_reason?: string;
     reported_at?: string;
     report_count?: number;
@@ -377,13 +378,19 @@ function JobCard({ job, onEdit, onAppeal }: { job: JobListing; onEdit: () => voi
                     <div className="mb-3 p-3 bg-orange-50 border border-orange-100 rounded-xl">
                         <p className="text-xs font-semibold text-orange-600 mb-1">⏸️ Job Posting Suspended</p>
                         <p className="text-xs text-orange-600 mb-2">Admin has suspended this job posting due to reported violations. Your account remains fully functional. Check your email for details.</p>
-                        <button
-                            onClick={e => { e.stopPropagation(); onAppeal?.(); }}
-                            className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold rounded-lg transition-colors"
-                        >
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                            Appeal Suspension
-                        </button>
+                        {job.appeal_status === 'pending' ? (
+                            <p className="mt-2 text-xs text-orange-700 font-semibold">
+                                Your appeal has been sent. Please wait for a response from the admin team.
+                            </p>
+                        ) : (
+                            <button
+                                onClick={e => { e.stopPropagation(); onAppeal?.(); }}
+                                className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold rounded-lg transition-colors"
+                            >
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                Appeal Suspension
+                            </button>
+                        )}
                     </div>
                 )}
                 {job.report_id && job.report_status === 'dismissed' && (
@@ -901,6 +908,34 @@ export default function ManageJobs({ user, profile, jobs, isVerified, pendingInv
             return () => clearTimeout(timer);
         }
     }, [page.props.flash]);
+
+    // Open the appeal modal when navigated from a suspension notification link.
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('open_appeal') !== '1') return;
+
+        const jobId = Number(params.get('job_id'));
+        const reportId = Number(params.get('report_id'));
+
+        const targetJob = jobs.find((j) => {
+            const matchJob = Number.isFinite(jobId) ? j.id === jobId : true;
+            const matchReport = Number.isFinite(reportId) ? j.report_id === reportId : true;
+            return matchJob && matchReport && j.status === 'inactive' && !!j.report_id && j.appeal_status !== 'pending';
+        });
+
+        if (!targetJob) return;
+
+        setSelectedJobForAppeal(targetJob);
+        setAppealModalOpen(true);
+
+        const next = new URL(window.location.href);
+        next.searchParams.delete('open_appeal');
+        next.searchParams.delete('job_id');
+        next.searchParams.delete('report_id');
+        window.history.replaceState({}, '', `${next.pathname}${next.search}`);
+    }, [jobs]);
 
     // Auto-refresh page every 10 seconds to check for report status changes
     useEffect(() => {
