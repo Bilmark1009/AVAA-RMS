@@ -83,13 +83,38 @@ class ConversationController extends Controller
         $request->validate(['user_id' => 'required|exists:users,id']);
 
         $current = $request->user();
+        
+        // Check if current user is suspended
+        if ($current->isSuspended()) {
+            $remainingTime = $current->suspension_remaining;
+            $message = $remainingTime 
+                ? "You cannot start conversations while your account is suspended. Suspension remaining: {$remainingTime}."
+                : 'You cannot start conversations while your account is suspended.';
+            return back()->with('error', $message);
+        }
+
         $target = User::findOrFail($request->user_id);
+        
+        // Check if target user is suspended
+        if ($target->isSuspended()) {
+            $remainingTime = $target->suspension_remaining;
+            $message = $remainingTime 
+                ? "This user is currently suspended and cannot be contacted. Suspension remaining: {$remainingTime}."
+                : 'This user is currently suspended and cannot be contacted.';
+            return back()->with('error', $message);
+        }
 
         $this->enforceRolePair($current, $target);
 
         // Check if users can message each other
         if (!$current->canMessage($target)) {
-            return back()->with('error', 'You cannot start a conversation with this user.');
+            if ($current->hasBlocked($target)) {
+                return back()->with('error', 'You cannot start a conversation because you have blocked this user.');
+            } elseif ($current->isBlockedBy($target)) {
+                return back()->with('error', 'You cannot start a conversation because this user has blocked you.');
+            } else {
+                return back()->with('error', 'You cannot start a conversation with this user.');
+            }
         }
 
         $conversation = Conversation::findOrCreateDirect($current, $target);
@@ -159,6 +184,16 @@ class ConversationController extends Controller
     public function startGroup(Request $request): RedirectResponse
     {
         $current = $request->user();
+        
+        // Check if current user is suspended
+        if ($current->isSuspended()) {
+            $remainingTime = $current->suspension_remaining;
+            $message = $remainingTime 
+                ? "You cannot create group conversations while your account is suspended. Suspension remaining: {$remainingTime}."
+                : 'You cannot create group conversations while your account is suspended.';
+            return back()->with('error', $message);
+        }
+        
         abort_unless($current->role === 'employer', 403, 'Only employers can create group chats.');
 
         $request->validate([
@@ -176,13 +211,18 @@ class ConversationController extends Controller
             return back()->with('error', 'You must select at least 2 job seekers to create a group chat.');
         }
 
-        // Filter out job seekers who have blocked the employer or were blocked by him
+        // Filter out suspended job seekers and those who have blocked the employer or were blocked by him
         $validParticipantIds = $participants->filter(function ($u) use ($current) {
+            // Check if participant is suspended
+            if ($u->isSuspended()) {
+                return false;
+            }
+            
             return $current->canMessage($u);
         })->pluck('id')->all();
 
         if (count($validParticipantIds) < 2) {
-            return back()->with('error', 'Group creation failed: Not enough eligible participants (respecting blocking logic).');
+            return back()->with('error', 'Group creation failed: Not enough eligible participants (respecting suspension and blocking logic).');
         }
 
         $conversation = Conversation::create([
@@ -359,27 +399,47 @@ class ConversationController extends Controller
     {
         return $conversation->messages()
             ->with('sender:id,first_name,last_name,avatar,role')
+            ->with('attachments')
             ->whereNull('deleted_at')
             ->when($clearedAt, fn($q) => $q->where('created_at', '>', $clearedAt))
             ->orderBy('created_at')
             ->get()
-            ->map(fn($m) => [
-                'id' => $m->id,
-                'conversation_id' => $m->conversation_id,
-                'sender_id' => $m->sender_id,
-                'body' => $m->body,
-                'type' => $m->type,
-                'attachment_url' => $m->attachment_url,
-                'attachment_name' => $m->attachment_name,
-                'created_at' => $m->created_at->toISOString(),
-                'sender' => [
-                    'id' => $m->sender->id,
-                    'first_name' => $m->sender->first_name,
-                    'last_name' => $m->sender->last_name,
-                    'avatar' => $m->sender->avatar,
-                    'role' => $m->sender->role,
-                ],
-            ])
+            ->map(function ($m) {
+                $formatted = [
+                    'id' => $m->id,
+                    'conversation_id' => $m->conversation_id,
+                    'sender_id' => $m->sender_id,
+                    'body' => $m->body,
+                    'type' => $m->type,
+                    'attachment_url' => $m->attachment_url,
+                    'attachment_name' => $m->attachment_name,
+                    'has_attachments' => $m->has_attachments,
+                    'created_at' => $m->created_at->toISOString(),
+                    'sender' => [
+                        'id' => $m->sender->id,
+                        'first_name' => $m->sender->first_name,
+                        'last_name' => $m->sender->last_name,
+                        'avatar' => $m->sender->avatar,
+                        'role' => $m->sender->role,
+                    ],
+                ];
+                
+                // Add attachments with computed attributes
+                $formatted['attachments'] = $m->attachments->map(function ($attachment) {
+                    return [
+                        'id' => $attachment->id,
+                        'file_url' => $attachment->file_url,
+                        'original_name' => $attachment->original_name,
+                        'mime_type' => $attachment->mime_type,
+                        'file_size' => $attachment->file_size,
+                        'file_size_formatted' => $attachment->file_size_formatted,
+                        'is_image' => $attachment->is_image,
+                        'file_extension' => $attachment->file_extension,
+                    ];
+                });
+                
+                return $formatted;
+            })
             ->all();
     }
 
@@ -392,6 +452,7 @@ class ConversationController extends Controller
 
         $users = User::where('role', $targetRole)
             ->where('id', '!=', $current->id)
+            ->where('status', 'active') // Only show active users
             ->where(function ($query) use ($q) {
                 if ($q !== '') {
                     $query->where('email', 'like', "%{$q}%");
@@ -415,6 +476,10 @@ class ConversationController extends Controller
             ])
             ->limit(20)
             ->get()
+            ->filter(function ($user) use ($current) {
+                // Additional filter to exclude suspended users (since status might be 'suspended' but user still active)
+                return !$user->isSuspended() && $current->canMessage($user);
+            })
             ->map(fn($u) => [
                 'id' => $u->id,
                 'name' => "{$u->first_name} {$u->last_name}",

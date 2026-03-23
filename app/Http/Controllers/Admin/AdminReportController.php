@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Mail\AccountBanned;
 use App\Mail\AccountSuspended;
+use App\Models\JobListing;
 use App\Models\Report;
+use App\Models\User;
 use App\Notifications\EmployerAppealApprovedNotification;
 use App\Notifications\EmployerAppealDisapprovedNotification;
 use App\Notifications\EmployerJobSuspendedNotification;
@@ -100,7 +102,7 @@ class AdminReportController extends Controller
             )->values()->all();
 
             $activeJobsCount = $jobListing?->employer_id
-                ? \App\Models\JobListing::where('employer_id', $jobListing->employer_id)
+                ? JobListing::where('employer_id', $jobListing->employer_id)
                     ->where('status', 'active')
                     ->count()
                 : 0;
@@ -235,32 +237,48 @@ class AdminReportController extends Controller
             'action_note' => 'nullable|string|max:500',
         ]);
 
-        // Get the reported job if this is a job report
+        // Get the reported user (for message reports) or job owner (for job reports)
+        $user = null;
         $job = $report->jobListing;
-        if (!$job) {
-            return redirect()->back()->with('error', 'This report is not for a job posting.');
-        }
-
-        // Only deactivate the specific reported job
-        $job->update([
-            'status' => 'inactive',
-            'updated_at' => now(),
-        ]);
-
-        // Get the employer for notification
-        $user = $job->employer;
-        if (!$user) {
-            return redirect()->back()->with('error', 'Employer not found.');
+        
+        if ($job) {
+            // This is a job report - suspend the employer
+            $user = $job->employer;
+            if (!$user) {
+                return redirect()->back()->with('error', 'Employer not found.');
+            }
+            
+            // Deactivate the specific reported job
+            $job->update([
+                'status' => 'inactive',
+                'updated_at' => now(),
+            ]);
+        } else {
+            // This is a message report - suspend the reported user
+            $user = $report->reportedUser;
+            if (!$user) {
+                return redirect()->back()->with('error', 'Reported user not found.');
+            }
         }
 
         // Extract duration from action_note (e.g., "Suspended for 7 Days")
         $duration = '7 Days';
+        $suspendedUntil = null;
+        
         if ($request->action_note) {
-            preg_match('/(\d+\s+Days?)/', $request->action_note, $matches);
+            preg_match('/(\d+)\s+(Days?)/', $request->action_note, $matches);
             if ($matches) {
+                $days = (int) $matches[1];
                 $duration = $matches[0];
+                $suspendedUntil = now()->addDays($days);
             }
         }
+
+        // Suspend the user
+        $user->suspend(
+            reason: $request->action_note ?? 'Policy violation',
+            until: $suspendedUntil
+        );
 
         // Update report
         $report->update([
@@ -305,7 +323,7 @@ class AdminReportController extends Controller
             Mail::to($user->email)->send(new AccountSuspended(
                 user: $user,
                 report: $report,
-                activeJobsCount: 1,  // Only this one job was suspended
+                activeJobsCount: $job ? 1 : 0,
                 reportReason: $report->reason_title ?? 'Policy Violation',
                 duration: $duration
             ));
@@ -315,9 +333,15 @@ class AdminReportController extends Controller
         }
 
         // Send in-app notification with deep link to the appeal modal.
-        $user->notify(new EmployerJobSuspendedNotification($job, $report));
+        if ($job) {
+            $user->notify(new EmployerJobSuspendedNotification($job, $report));
+        }
 
-        return redirect()->back()->with('success', 'Job posting suspended successfully. Notification sent to employer.');
+        $message = $job 
+            ? 'Job posting suspended and user account suspended successfully. Notification sent to employer.'
+            : 'User account suspended successfully. Notification sent to user.';
+
+        return redirect()->back()->with('success', $message);
     }
 
     /**
@@ -391,6 +415,7 @@ class AdminReportController extends Controller
 
         $jobListing = $report->jobListing;
         $employer = $jobListing?->employer;
+        $reportedUser = $report->reportedUser;
 
         // Update the appeal status
         $report->update([
@@ -414,17 +439,34 @@ class AdminReportController extends Controller
             }
 
             // If the employer was auto-banned, lift the ban since report count is now reset
-            $employer = $jobListing->employer;
             if ($employer && $employer->status === 'banned') {
                 $employer->update(['status' => 'active']);
             }
+
+            // Lift suspension if employer was suspended
+            if ($employer && $employer->isSuspended()) {
+                $employer->liftSuspension();
+            }
         }
 
-        // Send notification email to employer
+        // For message reports, lift suspension on the reported user
+        if ($reportedUser && $reportedUser->isSuspended()) {
+            $reportedUser->liftSuspension();
+        }
+
+        // Send notification email to affected user(s)
         try {
             if ($employer) {
-                \Illuminate\Support\Facades\Mail::to($employer->email)->send(
+                Mail::to($employer->email)->send(
                     new \App\Mail\AppealApprovedNotification($jobListing, $employer, $report)
+                );
+            }
+            
+            // For message reports, also send email to reported user if different from employer
+            if ($reportedUser && (!$employer || $reportedUser->id !== $employer->id)) {
+                // Create a simple notification email for message report appeals
+                Mail::to($reportedUser->email)->send(
+                    new \App\Mail\AppealApprovedNotification(null, $reportedUser, $report)
                 );
             }
         } catch (\Exception $e) {
@@ -435,7 +477,7 @@ class AdminReportController extends Controller
             $employer->notify(new EmployerAppealApprovedNotification($jobListing, $report));
         }
 
-        return redirect()->back()->with('success', 'Appeal approved! Job posting has been restored.');
+        return redirect()->back()->with('success', 'Appeal approved! Suspension lifted and job posting has been restored.');
     }
 
     /**
@@ -466,7 +508,7 @@ class AdminReportController extends Controller
         // Send notification email to employer
         try {
             if ($employer) {
-                \Illuminate\Support\Facades\Mail::to($employer->email)->send(
+                Mail::to($employer->email)->send(
                     new \App\Mail\AppealRejectedNotification($jobListing, $employer, $report)
                 );
             }
