@@ -377,22 +377,18 @@ class AdminReportController extends Controller
                 'updated_at' => now(),
             ]);
 
-            // Also update report status to dismissed since appeal was granted
-            $report->update([
-                'status' => 'dismissed',
-            ]);
+            // Dismiss ALL resolved reports for this employer's jobs — resets report count to zero
+            $employerId = $jobListing->employer_id;
+            if ($employerId) {
+                Report::whereHas('jobListing', fn($q) => $q->where('employer_id', $employerId))
+                    ->where('status', 'resolved')
+                    ->update(['status' => 'dismissed']);
+            }
 
-            // If the employer was auto-banned, lift the ban when appeal is approved
+            // If the employer was auto-banned, lift the ban since report count is now reset
             $employer = $jobListing->employer;
             if ($employer && $employer->status === 'banned') {
-                // Re-check: only un-ban if they now have fewer than 5 active resolved reports
-                $resolvedCount = Report::whereHas('jobListing', fn($q) => $q->where('employer_id', $employer->id))
-                    ->where('status', 'resolved')
-                    ->distinct('job_listing_id')
-                    ->count('job_listing_id');
-                if ($resolvedCount < 5) {
-                    $employer->update(['status' => 'active']);
-                }
+                $employer->update(['status' => 'active']);
             }
         }
 
