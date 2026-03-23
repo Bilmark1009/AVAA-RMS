@@ -327,7 +327,7 @@ class JobBrowseController extends Controller
             'senderName'       => "{$currentUser->first_name} {$currentUser->last_name}",
             'senderEmail'      => $currentUser->email,
             'personalMessage'  => $personalMessage,
-            'jobUrl'           => route('job-seeker.jobs.show', $job->id),
+            'jobUrl'           => route('shared.job.show', $job->id),
         ], function ($message) use ($recipientEmail, $job) {
             $message->to($recipientEmail)
                     ->subject("Check out this job: {$job->title}");

@@ -299,7 +299,16 @@ function JobCard({ job, onEdit, onAppeal }: { job: JobListing; onEdit: () => voi
             </p>
         </div>
     </div>
-    <OptionsMenu job={job} onEdit={onEdit} />
+    {!isClickable ? (
+        <div className="p-1.5 text-red-500 flex-shrink-0">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+            </svg>
+        </div>
+    ) : (
+        <OptionsMenu job={job} onEdit={onEdit} />
+    )}
 </div>
 
                 {/* Status + type badges */}

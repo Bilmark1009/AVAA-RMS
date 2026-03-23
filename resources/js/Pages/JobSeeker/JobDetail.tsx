@@ -654,9 +654,9 @@ export default function JobDetail({
     const [linkCopied, setLinkCopied] = useState(false);
 
     const handleShareJob = async () => {
-        // Generate a clean shareable URL using the named route (no extra query params)
-        const jobUrl = route('job-seeker.jobs.show', { job: job.id });
-        const fullUrl = `${window.location.origin}${jobUrl}`;
+        // Generate a clean shareable URL using the named route
+        const jobUrl = route('shared.job.show', { job: job.id });
+        const fullUrl = new URL(jobUrl, window.location.origin).toString();
         try {
             await navigator.clipboard.writeText(fullUrl);
             setLinkCopied(true);

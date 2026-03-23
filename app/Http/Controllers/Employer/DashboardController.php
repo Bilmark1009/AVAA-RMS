@@ -48,7 +48,32 @@ class DashboardController extends Controller
                 'count' => $count
             ];
         }
+        // ── Weekly applications data for chart ───────────────────────────────
+        $weeklyApplications = [];
+        for ($i = 7; $i >= 0; $i--) {
+            $startDate = now()->subWeeks($i)->startOfWeek();
+            $endDate = now()->subWeeks($i)->endOfWeek();
+            $count = JobApplication::whereHas('jobListing', fn($q) => $q->where('employer_id', $user->id))
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->count();
+            $weeklyApplications[] = [
+                'week' => 'Wk ' . (8 - $i),
+                'count' => $count
+            ];
+        }
 
+        // ── Yearly applications data for chart ───────────────────────────────
+        $yearlyApplications = [];
+        for ($i = 5; $i >= 0; $i--) {
+            $year = now()->subYears($i)->year;
+            $count = JobApplication::whereHas('jobListing', fn($q) => $q->where('employer_id', $user->id))
+                ->whereYear('created_at', $year)
+                ->count();
+            $yearlyApplications[] = [
+                'year' => (string)$year,
+                'count' => $count
+            ];
+        }
         // ── Recent posted jobs (latest 6) ────────────────────────────────
         $recentJobs = JobListing::where('employer_id', $user->id)
             ->withCount('applications')
@@ -73,6 +98,8 @@ class DashboardController extends Controller
             'applicationsCount' => $applicationsCount,
             'totalVisitsCount' => $totalVisitsCount,
             'monthlyApplications' => $monthlyApplications,
+            'weeklyApplications' => $weeklyApplications,
+            'yearlyApplications' => $yearlyApplications,
             'recentJobs' => $recentJobs,
         ]);
     }
