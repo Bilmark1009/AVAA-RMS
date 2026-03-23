@@ -573,11 +573,47 @@ function ApplicationDetailsModal({
                                             </svg>
                                         )}
                                     </div>
-                                    <div className="min-w-0">
+                                    <div className="min-w-0 flex-1">
                                         <p className="text-xs text-gray-500">{statusHeading}</p>
                                         <p className="text-sm font-bold text-avaa-dark">{statusSubHeading}</p>
                                         {isInterviewing && app.interview?.location_or_link && (
-                                            <p className="text-xs text-gray-500 mt-1 truncate">{app.interview.location_or_link}</p>
+                                            <div className="mt-2.5 pt-2.5 border-t border-avaa-primary/20">
+                                                <div className="flex items-start gap-2">
+                                                    <div className="w-5 h-5 rounded-md bg-white/50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                        {app.interview.interview_type === 'Online Interview' ? (
+                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-avaa-primary">
+                                                                <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                                                                <line x1="8" y1="21" x2="16" y2="21" />
+                                                                <line x1="12" y1="17" x2="12" y2="21" />
+                                                            </svg>
+                                                        ) : (
+                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-avaa-primary">
+                                                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                                                                <circle cx="12" cy="10" r="3" />
+                                                            </svg>
+                                                        )}
+                                                    </div>
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="text-xs text-gray-600 font-semibold">
+                                                            {app.interview.interview_type === 'Online Interview' ? 'Meeting Link' : 'Location'}
+                                                        </p>
+                                                        {app.interview.interview_type === 'Online Interview' && (app.interview.location_or_link?.includes('http') || app.interview.location_or_link?.includes('www')) ? (
+                                                            <a
+                                                                href={app.interview.location_or_link}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="text-xs text-avaa-primary hover:text-avaa-primary-hover font-semibold underline break-all mt-0.5 block"
+                                                            >
+                                                                {app.interview.location_or_link}
+                                                            </a>
+                                                        ) : (
+                                                            <p className="text-xs text-gray-700 font-medium mt-0.5 break-words">
+                                                                {app.interview.location_or_link}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
                                         )}
                                     </div>
                                 </div>
@@ -696,11 +732,64 @@ function ApplicationDetailsModal({
                                         </p>
                                         
                                         {isInterviewing && app.interview && (
-                                            <div className="mt-3 bg-[#f0fdf9] border border-[#c2eadd] rounded-lg p-3 flex items-center gap-2.5 text-[13px] text-[#1b6b53] font-semibold">
-                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                                                    <rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" />
-                                                </svg>
-                                                <span>Scheduled: {app.interview.date_label ?? 'TBD'} · {app.interview.time_label ?? ''}</span>
+                                            <div className="mt-3 space-y-2">
+                                                <div className="bg-[#f0fdf9] border border-[#c2eadd] rounded-lg p-3 flex items-center gap-2.5 text-[13px] text-[#1b6b53] font-semibold">
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                                                        <rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" />
+                                                    </svg>
+                                                    <span>Scheduled: {app.interview.date_label ?? 'TBD'} · {app.interview.time_label ?? ''}</span>
+                                                </div>
+                                                
+                                                {app.interview.location_or_link && (
+                                                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-2.5">
+                                                        <div className="flex-shrink-0 mt-0.5">
+                                                            {app.interview.interview_type === 'Online Interview' ? (
+                                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600">
+                                                                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                                                                    <line x1="8" y1="21" x2="16" y2="21" />
+                                                                    <line x1="12" y1="17" x2="12" y2="21" />
+                                                                </svg>
+                                                            ) : (
+                                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600">
+                                                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                                                                    <circle cx="12" cy="10" r="3" />
+                                                                </svg>
+                                                            )}
+                                                        </div>
+                                                        <div className="min-w-0 flex-1">
+                                                            <p className="text-[12px] text-blue-700 font-semibold">
+                                                                {app.interview.interview_type === 'Online Interview' ? 'Meeting Link' : 'Location'}
+                                                            </p>
+                                                            {app.interview.interview_type === 'Online Interview' && (app.interview.location_or_link?.includes('http') || app.interview.location_or_link?.includes('www')) ? (
+                                                                <a
+                                                                    href={app.interview.location_or_link}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="text-[12px] text-blue-600 hover:text-blue-700 font-semibold underline break-all mt-1 block hover:no-underline"
+                                                                >
+                                                                    {app.interview.location_or_link}
+                                                                </a>
+                                                            ) : (
+                                                                <p className="text-[12px] text-blue-700 font-medium mt-1 break-words">
+                                                                    {app.interview.location_or_link}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                
+                                                {app.interview.interviewer_name && (
+                                                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2.5">
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-amber-600 flex-shrink-0 mt-0.5">
+                                                            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+                                                            <circle cx="12" cy="7" r="4" />
+                                                        </svg>
+                                                        <div className="min-w-0 flex-1">
+                                                            <p className="text-[12px] text-amber-700 font-semibold">Interviewer</p>
+                                                            <p className="text-[12px] text-amber-700 font-medium mt-1">{app.interview.interviewer_name}</p>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
                                     </div>
