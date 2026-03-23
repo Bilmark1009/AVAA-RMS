@@ -271,8 +271,34 @@ class AdminReportController extends Controller
             'action_note' => $request->action_note,
         ]);
 
-        // Auto-ban check: if employer has 5+ distinct jobs with approved reports
-        $autoBanned = $this->checkAndAutoBanEmployer($report);
+        // ── Auto-ban check ─────────────────────────────────────────────────
+        // If this employer has accumulated 5 or more approved (resolved) reports
+        // across all their job posts, automatically ban their account.
+        $autoBanned = false;
+        $approvedReportCount = \App\Models\Report::whereHas(
+            'jobListing',
+            fn ($q) => $q->where('employer_id', $user->id)
+        )
+            ->where('status', 'resolved')
+            ->count();
+
+        if ($approvedReportCount >= 5 && $user->status !== 'banned') {
+            $user->update(['status' => 'banned']);
+            $autoBanned = true;
+
+            // Send ban notification email
+            try {
+                Mail::to($user->email)->send(new AccountBanned(
+                    user: $user,
+                    report: $report,
+                    activeJobsCount: $approvedReportCount,
+                    reportReason: 'Repeated policy violations (5+ approved reports)'
+                ));
+            } catch (\Exception $e) {
+                \Log::error('Failed to send auto-ban email: ' . $e->getMessage());
+            }
+        }
+        // ───────────────────────────────────────────────────────────────────
 
         // Send suspension email
         try {

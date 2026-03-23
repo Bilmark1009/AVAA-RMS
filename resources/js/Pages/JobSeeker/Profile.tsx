@@ -170,13 +170,12 @@ export default function JobSeekerProfilePage({ user, profile, experiences, docum
                                         <span className="absolute inset-0 rounded-2xl animate-pulse bg-red-300 opacity-15 z-0" />
                                     )}
                                     <div
-                                        className={`relative z-10 rounded-2xl p-0.5 transition-all ${
-                                            p.profile_frame === 'open_to_work'
+                                        className={`relative z-10 rounded-2xl p-0.5 transition-all ${p.profile_frame === 'open_to_work'
                                                 ? 'ring-4 ring-emerald-400 shadow-lg shadow-emerald-200'
                                                 : p.profile_frame === 'not_open_to_work'
-                                                ? 'ring-4 ring-red-400 shadow-lg shadow-red-100'
-                                                : 'ring-4 ring-white shadow-md'
-                                        }`}
+                                                    ? 'ring-4 ring-red-400 shadow-lg shadow-red-100'
+                                                    : 'ring-4 ring-white shadow-md'
+                                            }`}
                                     >
                                         <ImageInitialsFallback
                                             src={user.avatar}
@@ -211,12 +210,6 @@ export default function JobSeekerProfilePage({ user, profile, experiences, docum
                             <div className="mb-1">
                                 <div className="flex items-center gap-2.5 mb-0.5 flex-wrap">
                                     <h2 className="text-xl font-bold text-avaa-dark">{fullName}</h2>
-                                    {p.profile_visibility === 'public' && (
-                                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-600">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                                            Available
-                                        </span>
-                                    )}
                                     {/* Profile frame badge inline with name */}
                                     {p.profile_frame === 'open_to_work' && (
                                         <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500 text-white shadow-sm">

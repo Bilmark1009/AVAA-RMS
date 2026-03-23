@@ -157,6 +157,7 @@ export function JobDetailsModal({ report, onClose, onDecline, onSuspend, onBan }
     const handleSuspendConfirm = () => {
         setActiveModal(null);
         onSuspend();
+        onClose();
     };
 
     return (
@@ -558,12 +559,12 @@ export function SuspendModal({ report, onClose, onConfirm, tab }: {
                 preserveState: true,
                 preserveScroll: true,
                 onSuccess: () => {
-                    showNotification('success', 'Job posting has been suspended');
+                    showNotification('success', 'Job posting has been suspended successfully.');
                     onConfirm();
                 },
                 onError: (errors: any) => {
                     console.error('Error suspending account:', errors);
-                    showNotification('error', 'Failed to suspend account. Please try again.');
+                    showNotification('error', 'Failed to suspend job posting. Please try again.');
                     setSubmitting(false);
                 }
             });
@@ -729,12 +730,12 @@ export function BanModal({ report, onClose, onConfirm, tab }: {
                 preserveState: true,
                 preserveScroll: true,
                 onSuccess: () => {
-                    showNotification('success', 'Job posting has been permanently removed');
+                    showNotification('success', 'Job posting has been permanently removed successfully.');
                     onConfirm();
                 },
                 onError: (errors: any) => {
                     console.error('Error banning account:', errors);
-                    showNotification('error', 'Failed to ban account. Please try again.');
+                    showNotification('error', 'Failed to remove job posting. Please try again.');
                     setSubmitting(false);
                 }
             });
