@@ -219,19 +219,30 @@ function ArrowItem({ text }: { text: string }) {
 }
 
 /* ── Status Badge ── */
-function StatusBadge({ status, jobId }: { status: JobListing['status']; jobId: number }) {
+function StatusBadge({ status, jobId, editable = true }: { status: JobListing['status']; jobId: number; editable?: boolean }) {
     const [open, setOpen] = useState(false);
     const ref = useRef<HTMLDivElement>(null);
     useEffect(() => {
+        if (!editable) return;
         const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
         document.addEventListener('mousedown', h);
         return () => document.removeEventListener('mousedown', h);
-    }, []);
+    }, [editable]);
     const cfg = {
         active: { dot: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200', label: 'Active' },
         inactive: { dot: 'bg-gray-400', text: 'text-gray-600', bg: 'bg-gray-50 border-gray-200', label: 'Inactive' },
         draft: { dot: 'bg-amber-400', text: 'text-amber-700', bg: 'bg-amber-50 border-amber-200', label: 'Draft' },
     }[status];
+
+    if (!editable) {
+        return (
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-semibold ${cfg.bg} ${cfg.text}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                {cfg.label}
+            </span>
+        );
+    }
+
     return (
         <div ref={ref} className="relative inline-block">
             <button onClick={() => setOpen(o => !o)}
@@ -391,7 +402,7 @@ export default function JobDetails({ user, profile, job, isVerified }: Props) {
                                     {job.work_arrangement}
                                 </span>
                             )}
-                            <StatusBadge status={job.status} jobId={job.id} />
+                            <StatusBadge status={job.status} jobId={job.id} editable={false} />
                         </div>
 
                         {/* View Applicants CTA */}
