@@ -140,7 +140,7 @@ function InfoRow({ label, value, valueClass = 'text-gray-800' }: { label: string
 }
 
 /* ── Job Details Modal ── */
-export function JobDetailsModal({ report, onClose, onDecline, onSuspend }: {
+export function JobDetailsModal({ report, onClose, onDecline, onSuspend}: {
     report: Report;
     onClose: () => void;
     onDecline: () => void;
