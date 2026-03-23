@@ -2,6 +2,7 @@ import { Head, router, usePage } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import { AppNotification, PageProps } from '@/types';
 import { useEffect, useMemo, useState } from 'react';
+import axios from 'axios';
 
 /* ─── Icons ───────────────────────────────────────────────────────────────── */
 const IcoBell = () => (
@@ -92,27 +93,6 @@ function emitUnreadCountSync(unreadCount: number): void {
     window.dispatchEvent(new CustomEvent('notifications:unread-updated', { detail: { unreadCount } }));
 }
 
-function readCsrfMetaToken(): string {
-    return (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null)?.content ?? '';
-}
-
-function readXsrfCookieToken(): string {
-    const match = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/);
-    return match ? decodeURIComponent(match[1]) : '';
-}
-
-function buildCsrfHeaders(): Record<string, string> {
-    const csrf = readCsrfMetaToken();
-    const xsrf = readXsrfCookieToken();
-
-    return {
-        'Accept': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest',
-        ...(csrf ? { 'X-CSRF-TOKEN': csrf } : {}),
-        ...(xsrf ? { 'X-XSRF-TOKEN': xsrf } : {}),
-    };
-}
-
 function resolveIcon(type: string) {
     if (type.includes('AdminJobReportedNotification')) return { icon: <IcoReportAlert />, color: 'bg-transparent text-inherit' };
     if (type.includes('EmployerJobSuspendedNotification')) return { icon: <IcoAppealChat />, color: 'bg-transparent text-inherit' };
@@ -130,6 +110,13 @@ function resolveIcon(type: string) {
 
 function resolveLink(notification: AppNotification, role: string): string {
     const { type, data } = notification;
+
+    // Collaboration invites should always go to the invitations queue,
+    // including older notifications that may contain stale job-detail links.
+    if (type.includes('CollaborationInvite') && role === 'employer') {
+        return safeRoute('employer.jobs.invitations');
+    }
+
     if (data.link) return data.link as string;
 
     if (type.includes('Interview') && role === 'job_seeker')
@@ -209,9 +196,11 @@ function NotifRow({
     const { icon, color } = resolveIcon(notification.type);
     const link = resolveLink(notification, role);
 
-    const handleNavigate = async () => {
-        if (isUnread) await onRead(notification.id);
-        if (link !== '#') router.visit(link);
+    const handleNavigate = () => {
+        if (isUnread) onRead(notification.id);
+        if (link && link !== '#') {
+            router.visit(link);
+        }
     };
 
     return (
@@ -352,38 +341,35 @@ export default function NotificationsIndex({ notifications }: Props) {
     const unread = items.filter(n => !n.read_at).length;
 
     async function apiPatch(url: string) {
-        const res = await fetch(url, {
-            method: 'PATCH',
-            headers: buildCsrfHeaders(),
-            credentials: 'same-origin',
-        });
-
-        return res.ok;
+        try {
+            await axios.patch(url);
+            return true;
+        } catch {
+            return false;
+        }
     }
     async function apiPost(url: string) {
-        const res = await fetch(url, {
-            method: 'POST',
-            headers: buildCsrfHeaders(),
-            credentials: 'same-origin',
-        });
-
-        return res.ok;
+        try {
+            await axios.post(url);
+            return true;
+        } catch {
+            return false;
+        }
     }
     async function apiDelete(url: string) {
-        const res = await fetch(url, {
-            method: 'DELETE',
-            headers: buildCsrfHeaders(),
-            credentials: 'same-origin',
-        });
-
-        return res.ok;
+        try {
+            await axios.delete(url);
+            return true;
+        } catch {
+            return false;
+        }
     }
 
     const handleRead = async (id: string) => {
-        const target = items.find((n) => n.id === id);
+        const target = items.find((n) => String(n.id) === String(id));
         if (!target || target.read_at) return;
 
-        const nextItems = items.map(n => n.id === id ? { ...n, read_at: new Date().toISOString() } : n);
+        const nextItems = items.map(n => String(n.id) === String(id) ? { ...n, read_at: new Date().toISOString() } : n);
         setItems(nextItems);
         emitUnreadCountSync(nextItems.filter(n => !n.read_at).length);
 
@@ -395,10 +381,10 @@ export default function NotificationsIndex({ notifications }: Props) {
     };
 
     const handleUnread = async (id: string) => {
-        const target = items.find((n) => n.id === id);
+        const target = items.find((n) => String(n.id) === String(id));
         if (!target || !target.read_at) return;
 
-        const nextItems = items.map(n => n.id === id ? { ...n, read_at: null } : n);
+        const nextItems = items.map(n => String(n.id) === String(id) ? { ...n, read_at: null } : n);
         setItems(nextItems);
         emitUnreadCountSync(nextItems.filter(n => !n.read_at).length);
 
@@ -410,7 +396,7 @@ export default function NotificationsIndex({ notifications }: Props) {
     };
 
     const handleDelete = async (id: string) => {
-        const nextItems = items.filter(n => n.id !== id);
+        const nextItems = items.filter(n => String(n.id) !== String(id));
         setItems(nextItems);
         emitUnreadCountSync(nextItems.filter(n => !n.read_at).length);
 
