@@ -439,6 +439,7 @@ export default function ReportView({ reports = [], filters, focusReportId = null
                             onClose={closeAllModals}
                             onDecline={() => setModal('decline')}
                             onSuspend={() => setModal('suspend')}
+                            onBan={() => setModal('ban')}
                         />
                     ) : (
                         <JobDetailsModal
@@ -446,6 +447,7 @@ export default function ReportView({ reports = [], filters, focusReportId = null
                             onClose={closeAllModals}
                             onDecline={() => setModal('decline')}
                             onSuspend={() => setModal('suspend')}
+                            onBan={() => setModal('ban')}
                         />
                     )
                 )}

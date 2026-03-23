@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom';
 import { Link, router, usePage } from '@inertiajs/react';
 import { PageProps, AppNotification } from '@/types';
 
+import axios from 'axios';
+
 /* ─── Icons ─────────────────────────────────────────────────────────────── */
 const IcoBell = () => (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -97,27 +99,6 @@ function emitUnreadCountSync(unreadCount: number): void {
     window.dispatchEvent(new CustomEvent('notifications:unread-updated', { detail: { unreadCount } }));
 }
 
-function readCsrfMetaToken(): string {
-    return (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null)?.content ?? '';
-}
-
-function readXsrfCookieToken(): string {
-    const match = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/);
-    return match ? decodeURIComponent(match[1]) : '';
-}
-
-function buildCsrfHeaders(): Record<string, string> {
-    const csrf = readCsrfMetaToken();
-    const xsrf = readXsrfCookieToken();
-
-    return {
-        'Accept': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest',
-        ...(csrf ? { 'X-CSRF-TOKEN': csrf } : {}),
-        ...(xsrf ? { 'X-XSRF-TOKEN': xsrf } : {}),
-    };
-}
-
 /**
  * Maps a notification type class name to an icon + colour.
  * Add new types here as the codebase grows.
@@ -191,10 +172,12 @@ function NotificationItem({
     const { icon, color } = resolveIcon(notification.type);
     const link = resolveLink(notification, role);
 
-    const handleClick = async () => {
-        if (isUnread) await onMarkRead(notification.id);
+    const handleClick = () => {
+        if (isUnread) onMarkRead(notification.id);
         onClose();
-        router.visit(link);
+        if (link && link !== '#') {
+            router.visit(link);
+        }
     };
 
     return (
@@ -294,12 +277,10 @@ export default function NotificationDropdown() {
     /* ── Fetch notifications from server ── */
     const fetchNotifications = useCallback(async () => {
         try {
-            const res = await fetch(notificationApiUrl('/fetch?limit=5'), {
-                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-                credentials: 'same-origin',
+            const res = await axios.get(notificationApiUrl('/fetch?limit=5'), {
+                headers: { 'Accept': 'application/json' },
             });
-            if (!res.ok) return;
-            const json = await res.json();
+            const json = res.data;
             setNotifications(json.notifications ?? []);
             setUnreadCount(json.unread_count ?? 0);
         } catch {
@@ -311,27 +292,19 @@ export default function NotificationDropdown() {
     useEffect(() => {
         (async () => {
             try {
-                const res = await fetch(notificationApiUrl('/fetch?limit=0'), {
-                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-                    credentials: 'same-origin',
+                const res = await axios.get(notificationApiUrl('/fetch?limit=0'), {
+                    headers: { 'Accept': 'application/json' },
                 });
-                if (res.ok) {
-                    const json = await res.json();
-                    setUnreadCount(json.unread_count ?? 0);
-                }
+                setUnreadCount(res.data.unread_count ?? 0);
             } catch { /* ignore */ }
         })();
 
         pollRef.current = setInterval(async () => {
             try {
-                const res = await fetch(notificationApiUrl('/fetch?limit=0'), {
-                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-                    credentials: 'same-origin',
+                const res = await axios.get(notificationApiUrl('/fetch?limit=0'), {
+                    headers: { 'Accept': 'application/json' },
                 });
-                if (res.ok) {
-                    const json = await res.json();
-                    setUnreadCount(json.unread_count ?? 0);
-                }
+                setUnreadCount(res.data.unread_count ?? 0);
             } catch { /* ignore */ }
         }, 30_000);
         return () => { if (pollRef.current) clearInterval(pollRef.current); };
@@ -349,33 +322,31 @@ export default function NotificationDropdown() {
 
     /* ── Actions ── */
     const markRead = async (id: string) => {
-        const target = notifications.find((n) => n.id === id);
+        const target = notifications.find((n) => String(n.id) === String(id));
         if (!target || target.read_at) return;
 
-        setNotifications(prev => prev.map(n => n.id === id ? { ...n, read_at: new Date().toISOString() } : n));
+        setNotifications(prev => prev.map(n => String(n.id) === String(id) ? { ...n, read_at: new Date().toISOString() } : n));
         setUnreadCount(c => {
             const next = Math.max(0, c - 1);
             emitUnreadCountSync(next);
             return next;
         });
 
-        const res = await fetch(notificationApiUrl(`/${encodeURIComponent(id)}/read`), {
-            method: 'PATCH',
-            headers: buildCsrfHeaders(),
-            credentials: 'same-origin',
-        });
-        if (!res.ok) {
+        try {
+            await axios.patch(notificationApiUrl(`/${encodeURIComponent(id)}/read`), {}, {
+                headers: { 'Accept': 'application/json' },
+            });
+        } catch {
             await fetchNotifications();
-            return;
         }
     };
 
     const deleteOne = async (id: string) => {
-        const target = notifications.find((n) => n.id === id);
+        const target = notifications.find((n) => String(n.id) === String(id));
         if (!target) return;
 
         const wasUnread = !target.read_at;
-        setNotifications(prev => prev.filter(n => n.id !== id));
+        setNotifications(prev => prev.filter(n => String(n.id) !== String(id)));
         if (wasUnread) {
             setUnreadCount(c => {
                 const next = Math.max(0, c - 1);
@@ -384,14 +355,12 @@ export default function NotificationDropdown() {
             });
         }
 
-        const res = await fetch(notificationApiUrl(`/${encodeURIComponent(id)}`), {
-            method: 'DELETE',
-            headers: buildCsrfHeaders(),
-            credentials: 'same-origin',
-        });
-        if (!res.ok) {
+        try {
+            await axios.delete(notificationApiUrl(`/${encodeURIComponent(id)}`), {
+                headers: { 'Accept': 'application/json' },
+            });
+        } catch {
             await fetchNotifications();
-            return;
         }
     };
 
@@ -403,12 +372,11 @@ export default function NotificationDropdown() {
             emitUnreadCountSync(0);
         }
 
-        const res = await fetch(notificationApiUrl('/mark-all-read'), {
-            method: 'POST',
-            headers: buildCsrfHeaders(),
-            credentials: 'same-origin',
-        });
-        if (!res.ok) {
+        try {
+            await axios.post(notificationApiUrl('/mark-all-read'), {}, {
+                headers: { 'Accept': 'application/json' },
+            });
+        } catch {
             await fetchNotifications();
             return;
         }
