@@ -269,6 +269,30 @@ export default function JobDetails({ user, profile, job, isVerified }: Props) {
     /* ── Delete state ── */
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [isDeleting, setIsDeleting]           = useState(false);
+    const [linkCopied, setLinkCopied]           = useState(false);
+
+    const handleShareJob = async () => {
+        // Generate a clean shareable URL using the named route
+        const jobUrl = route('shared.job.show', { job: job.id });
+        const fullUrl = new URL(jobUrl, window.location.origin).toString();
+        try {
+            await navigator.clipboard.writeText(fullUrl);
+            setLinkCopied(true);
+            setTimeout(() => setLinkCopied(false), 3000);
+        } catch {
+            // Fallback for older browsers
+            const textArea = document.createElement('textarea');
+            textArea.value = fullUrl;
+            textArea.style.position = 'fixed';
+            textArea.style.opacity = '0';
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            setLinkCopied(true);
+            setTimeout(() => setLinkCopied(false), 3000);
+        }
+    };
 
     function handleDeleteConfirm() {
         setIsDeleting(true);
@@ -290,6 +314,13 @@ export default function JobDetails({ user, profile, job, isVerified }: Props) {
     return (
         <AppLayout pageTitle="Job Management" pageSubtitle="Monitor and manage job postings." activeNav="Manage Jobs">
             <Head title={`${job.title} — Job Details`} />
+
+            {/* Link Copied Toast */}
+            {linkCopied && (
+                <div className="fixed top-4 right-4 px-6 py-3 rounded-xl text-sm font-semibold text-white bg-green-500 shadow-lg z-[9999] animate-fade-in">
+                    ✓ Link copied to clipboard!
+                </div>
+            )}
 
             {/* Delete confirmation modal */}
             {showDeleteModal && (
@@ -469,19 +500,10 @@ export default function JobDetails({ user, profile, job, isVerified }: Props) {
                     )}
 
                     {/* Footer actions */}
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 py-2 px-1">
-                        <button className="flex items-center justify-center sm:justify-start gap-2 text-sm text-gray-400 hover:text-gray-600 transition-colors">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="flex-shrink-0"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
-                            Report this job posting
+                    <div className="flex justify-end gap-3 py-2 px-1">
+                        <button onClick={handleShareJob} title="Copy link to clipboard" className="p-2 rounded-xl border border-gray-200 text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
                         </button>
-                        <div className="flex items-center justify-center sm:justify-end gap-2">
-                            <button className="p-2 rounded-xl border border-gray-200 text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors">
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
-                            </button>
-                            <button className="p-2 rounded-xl border border-gray-200 text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors">
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M22 17H2a3 3 0 004.73-2.28C6.16 12.76 5 10.6 5 8a7 7 0 0114 0c0 2.6-1.16 4.76-1.73 6.72A3 3 0 0022 17zm-8.27 4a2 2 0 01-3.46 0" /></svg>
-                            </button>
-                        </div>
                     </div>
                 </div>
 
