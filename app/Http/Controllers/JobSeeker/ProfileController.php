@@ -18,7 +18,7 @@ class ProfileController extends Controller
      */
     public function show(Request $request): Response
     {
-        $user = $request->user()->load(['jobSeekerProfile', 'workExperiences', 'documents']);
+        $user = $request->user()->load(['jobSeekerProfile', 'workExperiences', 'documents', 'timelineEvents']);
 
         $documents = $user->documents
             ->sortByDesc('created_at')
@@ -36,6 +36,7 @@ class ProfileController extends Controller
             'user' => $user,
             'profile' => $user->jobSeekerProfile,
             'experiences' => $user->workExperiences,
+            'timelineEvents' => $user->timelineEvents,
             'documents' => $documents,
         ]);
     }

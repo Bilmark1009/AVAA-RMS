@@ -8,6 +8,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -26,10 +27,22 @@ class AuthenticatedSessionController extends Controller
         $request->authenticate();
         $request->session()->regenerate();
 
-        // Update last login timestamp
-        $request->user()->update(['last_login_at' => now()]);
+        // Block banned users from logging in
+        $user = $request->user();
+        if ($user->status === 'banned') {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
 
-        return redirect()->route($request->user()->getDashboardRoute());
+            throw ValidationException::withMessages([
+                'email' => 'Your account has been permanently banned due to policy violations. Please contact support for appeal inquiries.',
+            ]);
+        }
+
+        // Update last login timestamp
+        $user->update(['last_login_at' => now()]);
+
+        return redirect()->route($user->getDashboardRoute());
     }
 
     public function destroy(Request $request): RedirectResponse
@@ -38,7 +51,7 @@ class AuthenticatedSessionController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect('/login')
+        return redirect()->route('home')
             ->withHeaders([
                 'Cache-Control' => 'no-cache, no-store, must-revalidate, max-age=0, private',
                 'Pragma' => 'no-cache',

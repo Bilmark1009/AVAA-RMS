@@ -32,6 +32,8 @@ interface JobSeekerProfile {
     notice_period?: string;
     work_style?: string;
     weekly_hours?: string;
+    open_to_work?: boolean;
+    profile_frame?: string;
 }
 
 interface WorkExperience {
@@ -67,6 +69,7 @@ interface Props {
     };
     profile: JobSeekerProfile | null;
     experiences: WorkExperience[];
+    timelineEvents?: any[];
     documents?: UserDocument[];
 }
 
@@ -106,7 +109,7 @@ const IcoCert = () => (
 /* ══════════════════════════════════════════════
    MAIN PAGE — Figma-aligned read-only profile
 ══════════════════════════════════════════════ */
-export default function JobSeekerProfilePage({ user, profile, experiences, documents = [] }: Props) {
+export default function JobSeekerProfilePage({ user, profile, experiences, timelineEvents = [], documents = [] }: Props) {
     const p = profile ?? ({} as JobSeekerProfile);
     const completeness = p.profile_completeness ?? 0;
     const location = [p.city, p.state, p.country].filter(Boolean).join(', ');
@@ -159,13 +162,42 @@ export default function JobSeekerProfilePage({ user, profile, experiences, docum
                             {/* Avatar row */}
                             <div className="flex items-end justify-between -mt-12 mb-4">
                                 <div className="relative">
-                                    <ImageInitialsFallback
-                                        src={user.avatar}
-                                        alt={fullName}
-                                        initials={initials}
-                                        className="w-24 h-24 rounded-2xl ring-4 ring-white overflow-hidden shadow-md bg-avaa-dark"
-                                        textClassName="text-white text-3xl font-bold flex items-center justify-center"
-                                    />
+                                    {/* Pulsing glow — Open to Work */}
+                                    {p.profile_frame === 'open_to_work' && (
+                                        <span className="absolute inset-0 rounded-2xl animate-ping bg-emerald-400 opacity-20 z-0" />
+                                    )}
+                                    {/* Pulse — Not Open to Work */}
+                                    {p.profile_frame === 'not_open_to_work' && (
+                                        <span className="absolute inset-0 rounded-2xl animate-pulse bg-red-300 opacity-15 z-0" />
+                                    )}
+                                    <div
+                                        className={`relative z-10 rounded-2xl p-0.5 transition-all ${p.profile_frame === 'open_to_work'
+                                                ? 'ring-4 ring-emerald-400 shadow-lg shadow-emerald-200'
+                                                : p.profile_frame === 'not_open_to_work'
+                                                    ? 'ring-4 ring-red-400 shadow-lg shadow-red-100'
+                                                    : 'ring-4 ring-white shadow-md'
+                                            }`}
+                                    >
+                                        <ImageInitialsFallback
+                                            src={user.avatar}
+                                            alt={fullName}
+                                            initials={initials}
+                                            className="w-24 h-24 rounded-2xl overflow-hidden bg-avaa-dark"
+                                            textClassName="text-white text-3xl font-bold flex items-center justify-center"
+                                        />
+                                    </div>
+                                    {/* Open to Work badge */}
+                                    {p.profile_frame === 'open_to_work' && (
+                                        <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-20 bg-emerald-500 text-white text-[9px] font-bold px-2.5 py-0.5 rounded-full whitespace-nowrap shadow-md">
+                                            Available
+                                        </span>
+                                    )}
+                                    {/* Not Open to Work badge */}
+                                    {p.profile_frame === 'not_open_to_work' && (
+                                        <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-20 bg-red-500 text-white text-[9px] font-bold px-2.5 py-0.5 rounded-full whitespace-nowrap shadow-md">
+                                            Unavailable
+                                        </span>
+                                    )}
                                 </div>
                                 <Link
                                     href={route('job-seeker.profile.edit')}
@@ -177,12 +209,17 @@ export default function JobSeekerProfilePage({ user, profile, experiences, docum
 
                             {/* Name, title, status */}
                             <div className="mb-1">
-                                <div className="flex items-center gap-2.5 mb-0.5">
+                                <div className="flex items-center gap-2.5 mb-0.5 flex-wrap">
                                     <h2 className="text-xl font-bold text-avaa-dark">{fullName}</h2>
-                                    {p.profile_visibility === 'public' && (
-                                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-600">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                    {/* Profile frame badge inline with name */}
+                                    {p.profile_frame === 'open_to_work' && (
+                                        <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500 text-white shadow-sm">
                                             Available
+                                        </span>
+                                    )}
+                                    {p.profile_frame === 'not_open_to_work' && (
+                                        <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-red-500 text-white shadow-sm">
+                                            Unavailable
                                         </span>
                                     )}
                                 </div>
@@ -288,11 +325,70 @@ export default function JobSeekerProfilePage({ user, profile, experiences, docum
                                         </div>
                                     </div>
                                 ))}
+
+                                {/* Status Changes (Timeline Events) */}
+                                {timelineEvents && timelineEvents.length > 0 && timelineEvents.map((evt) => (
+                                    <div key={`evt-${evt.id}`} className="flex gap-3 relative">
+                                        <div className="w-10 h-10 rounded-xl border border-gray-200 bg-gray-50 text-gray-500 flex items-center justify-center flex-shrink-0 mt-0.5 relative z-10 shadow-sm">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <circle cx="12" cy="12" r="10" />
+                                                <polyline points="12 6 12 12 16 14" />
+                                            </svg>
+                                        </div>
+                                        <div className="flex-1 min-w-0 py-2">
+                                            <div className="flex items-start justify-between gap-2">
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-700">
+                                                        {evt.event_type === 'status_change' ? 'Status Update' : 'Event'}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500 mt-0.5">
+                                                        {evt.description}
+                                                    </p>
+                                                </div>
+                                                <span className="text-[11px] font-medium text-gray-400 whitespace-nowrap">
+                                                    {formatDate(evt.event_date)}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         ) : (
-                            <p className="text-sm text-gray-400 italic">
-                                No experience added yet.
-                            </p>
+                            <div>
+                                {timelineEvents && timelineEvents.length > 0 ? (
+                                    <div className="space-y-6">
+                                        {timelineEvents.map((evt) => (
+                                            <div key={`evt-${evt.id}`} className="flex gap-3 relative">
+                                                <div className="w-10 h-10 rounded-xl border border-gray-200 bg-gray-50 text-gray-500 flex items-center justify-center flex-shrink-0 mt-0.5 relative z-10 shadow-sm">
+                                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                        <circle cx="12" cy="12" r="10" />
+                                                        <polyline points="12 6 12 12 16 14" />
+                                                    </svg>
+                                                </div>
+                                                <div className="flex-1 min-w-0 py-2">
+                                                    <div className="flex items-start justify-between gap-2">
+                                                        <div>
+                                                            <p className="text-sm font-semibold text-gray-700">
+                                                                {evt.event_type === 'status_change' ? 'Status Update' : 'Event'}
+                                                            </p>
+                                                            <p className="text-xs text-gray-500 mt-0.5">
+                                                                {evt.description}
+                                                            </p>
+                                                        </div>
+                                                        <span className="text-[11px] font-medium text-gray-400 whitespace-nowrap">
+                                                            {formatDate(evt.event_date)}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-gray-400 italic">
+                                        No experience or timeline events added yet.
+                                    </p>
+                                )}
+                            </div>
                         )}
                     </div>
 

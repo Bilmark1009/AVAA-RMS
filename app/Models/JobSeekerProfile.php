@@ -38,6 +38,8 @@ class JobSeekerProfile extends Model
         'notice_period',
         'work_style',
         'weekly_hours',
+        'open_to_work',
+        'profile_frame',
     ];
 
     protected $casts = [
@@ -48,6 +50,7 @@ class JobSeekerProfile extends Model
         'desired_job_types' => 'array',
         'desired_industries' => 'array',
         'willing_to_relocate' => 'boolean',
+        'open_to_work' => 'boolean',
         'expected_salary_min' => 'decimal:2',
         'expected_salary_max' => 'decimal:2',
     ];
@@ -55,5 +58,22 @@ class JobSeekerProfile extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    protected static function booted()
+    {
+        static::updated(function ($profile) {
+            if ($profile->isDirty('open_to_work')) {
+                $status = $profile->open_to_work ? 'Open to Work' : 'Not Open to Work';
+                \App\Models\UserTimelineEvent::create([
+                    'user_id' => $profile->user_id,
+                    'event_type' => 'status_change',
+                    'description' => "Status changed to {$status}",
+                    'metadata' => [
+                        'status' => $profile->open_to_work ? 'open_to_work' : 'not_open_to_work',
+                    ],
+                ]);
+            }
+        });
     }
 }

@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom';
 import { Link, router, usePage } from '@inertiajs/react';
 import { PageProps, AppNotification } from '@/types';
 
+import axios from 'axios';
+
 /* ─── Icons ─────────────────────────────────────────────────────────────── */
 const IcoBell = () => (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -50,6 +52,31 @@ const IcoRejected = () => (
         <line x1="15.5" y1="8.5" x2="8.5" y2="15.5" />
     </svg>
 );
+const IcoReportAlert = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="12" cy="12" r="11" fill="#FF1E12" />
+        <rect x="11" y="5.2" width="2" height="10" rx="1" fill="#FFFFFF" />
+        <circle cx="12" cy="18.2" r="1.4" fill="#FFFFFF" />
+    </svg>
+);
+const IcoAppealChat = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <rect x="1.5" y="1.5" width="21" height="21" rx="6" fill="#F08A4B" />
+        <path d="M7.2 8.2H16.8C17.46 8.2 18 8.74 18 9.4V14.2C18 14.86 17.46 15.4 16.8 15.4H11.1L8 17.9V15.4H7.2C6.54 15.4 6 14.86 6 14.2V9.4C6 8.74 6.54 8.2 7.2 8.2Z" stroke="#FFFFFF" strokeWidth="1.8" strokeLinejoin="round" fill="none" />
+    </svg>
+);
+const IcoAppealApproved = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="12" cy="12" r="11" fill="#47A447" />
+        <path d="M6.3 12.8L10.2 16.6L17.7 9.3" stroke="#000000" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+);
+const IcoAppealDisapproved = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="12" cy="12" r="11" fill="#FF424D" />
+        <path d="M8 8L16 16M16 8L8 16" stroke="#000000" strokeWidth="2.6" strokeLinecap="round" />
+    </svg>
+);
 const IcoBellOff = () => (
     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
@@ -63,11 +90,25 @@ function safeRoute(name: string, params?: Record<string, unknown>): string {
     try { return route(name, params); } catch { return '#'; }
 }
 
+function notificationApiUrl(path = ''): string {
+    return `/notifications${path}`;
+}
+
+function emitUnreadCountSync(unreadCount: number): void {
+    if (typeof window === 'undefined') return;
+    window.dispatchEvent(new CustomEvent('notifications:unread-updated', { detail: { unreadCount } }));
+}
+
 /**
  * Maps a notification type class name to an icon + colour.
  * Add new types here as the codebase grows.
  */
 function resolveIcon(type: string) {
+    if (type.includes('AdminJobReportedNotification')) return { icon: <IcoReportAlert />, color: 'bg-transparent text-inherit' };
+    if (type.includes('EmployerJobSuspendedNotification')) return { icon: <IcoAppealChat />, color: 'bg-transparent text-inherit' };
+    if (type.includes('AdminAppealSubmittedNotification')) return { icon: <IcoAppealChat />, color: 'bg-transparent text-inherit' };
+    if (type.includes('EmployerAppealApprovedNotification')) return { icon: <IcoAppealApproved />, color: 'bg-transparent text-inherit' };
+    if (type.includes('EmployerAppealDisapprovedNotification')) return { icon: <IcoAppealDisapproved />, color: 'bg-transparent text-inherit' };
     if (type.includes('Rejected')) return { icon: <IcoRejected />, color: 'bg-rose-100 text-rose-600' };
     if (type.includes('Interview')) return { icon: <IcoBriefcase />, color: 'bg-purple-100 text-purple-500' };
     if (type.includes('Application')) return { icon: <IcoBriefcase />, color: 'bg-blue-100 text-blue-500' };
@@ -123,7 +164,7 @@ function NotificationItem({
 }: {
     notification: AppNotification;
     role: string;
-    onMarkRead: (id: string) => void;
+    onMarkRead: (id: string) => Promise<void> | void;
     onDelete: (id: string) => void;
     onClose: () => void;
 }) {
@@ -134,7 +175,9 @@ function NotificationItem({
     const handleClick = () => {
         if (isUnread) onMarkRead(notification.id);
         onClose();
-        router.visit(link);
+        if (link && link !== '#') {
+            router.visit(link);
+        }
     };
 
     return (
@@ -199,6 +242,19 @@ export default function NotificationDropdown() {
         setUnreadCount(initialUnread);
     }, [initialUnread]);
 
+    useEffect(() => {
+        const handler = (event: Event) => {
+            const custom = event as CustomEvent<{ unreadCount?: number }>;
+            const nextUnread = custom.detail?.unreadCount;
+            if (typeof nextUnread === 'number') {
+                setUnreadCount(nextUnread);
+            }
+        };
+
+        window.addEventListener('notifications:unread-updated', handler as EventListener);
+        return () => window.removeEventListener('notifications:unread-updated', handler as EventListener);
+    }, []);
+
     /* ── Click-outside closes (button or panel = don't close) ── */
     useEffect(() => {
         const handler = (e: MouseEvent) => {
@@ -221,12 +277,10 @@ export default function NotificationDropdown() {
     /* ── Fetch notifications from server ── */
     const fetchNotifications = useCallback(async () => {
         try {
-            const res = await fetch(safeRoute('notifications.fetch') + '?limit=5', {
-                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-                credentials: 'same-origin',
+            const res = await axios.get(notificationApiUrl('/fetch?limit=5'), {
+                headers: { 'Accept': 'application/json' },
             });
-            if (!res.ok) return;
-            const json = await res.json();
+            const json = res.data;
             setNotifications(json.notifications ?? []);
             setUnreadCount(json.unread_count ?? 0);
         } catch {
@@ -238,27 +292,19 @@ export default function NotificationDropdown() {
     useEffect(() => {
         (async () => {
             try {
-                const res = await fetch(safeRoute('notifications.fetch') + '?limit=0', {
-                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-                    credentials: 'same-origin',
+                const res = await axios.get(notificationApiUrl('/fetch?limit=0'), {
+                    headers: { 'Accept': 'application/json' },
                 });
-                if (res.ok) {
-                    const json = await res.json();
-                    setUnreadCount(json.unread_count ?? 0);
-                }
+                setUnreadCount(res.data.unread_count ?? 0);
             } catch { /* ignore */ }
         })();
 
         pollRef.current = setInterval(async () => {
             try {
-                const res = await fetch(safeRoute('notifications.fetch') + '?limit=0', {
-                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-                    credentials: 'same-origin',
+                const res = await axios.get(notificationApiUrl('/fetch?limit=0'), {
+                    headers: { 'Accept': 'application/json' },
                 });
-                if (res.ok) {
-                    const json = await res.json();
-                    setUnreadCount(json.unread_count ?? 0);
-                }
+                setUnreadCount(res.data.unread_count ?? 0);
             } catch { /* ignore */ }
         }, 30_000);
         return () => { if (pollRef.current) clearInterval(pollRef.current); };
@@ -276,52 +322,64 @@ export default function NotificationDropdown() {
 
     /* ── Actions ── */
     const markRead = async (id: string) => {
-        const res = await fetch(safeRoute('notifications.read', { id }), {
-            method: 'PATCH',
-            headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '',
-            },
-            credentials: 'same-origin',
-            keepalive: true,
+        const target = notifications.find((n) => String(n.id) === String(id));
+        if (!target || target.read_at) return;
+
+        setNotifications(prev => prev.map(n => String(n.id) === String(id) ? { ...n, read_at: new Date().toISOString() } : n));
+        setUnreadCount(c => {
+            const next = Math.max(0, c - 1);
+            emitUnreadCountSync(next);
+            return next;
         });
-        if (!res.ok) return;
-        setNotifications(prev => prev.map(n => n.id === id ? { ...n, read_at: new Date().toISOString() } : n));
-        setUnreadCount(c => Math.max(0, c - 1));
+
+        try {
+            await axios.patch(notificationApiUrl(`/${encodeURIComponent(id)}/read`), {}, {
+                headers: { 'Accept': 'application/json' },
+            });
+        } catch {
+            await fetchNotifications();
+        }
     };
 
     const deleteOne = async (id: string) => {
-        const wasUnread = !notifications.find(n => n.id === id)?.read_at;
-        const res = await fetch(safeRoute('notifications.destroy', { id }), {
-            method: 'DELETE',
-            headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '',
-            },
-            credentials: 'same-origin',
-            keepalive: true,
-        });
-        if (!res.ok) return;
-        setNotifications(prev => prev.filter(n => n.id !== id));
-        if (wasUnread) setUnreadCount(c => Math.max(0, c - 1));
+        const target = notifications.find((n) => String(n.id) === String(id));
+        if (!target) return;
+
+        const wasUnread = !target.read_at;
+        setNotifications(prev => prev.filter(n => String(n.id) !== String(id)));
+        if (wasUnread) {
+            setUnreadCount(c => {
+                const next = Math.max(0, c - 1);
+                emitUnreadCountSync(next);
+                return next;
+            });
+        }
+
+        try {
+            await axios.delete(notificationApiUrl(`/${encodeURIComponent(id)}`), {
+                headers: { 'Accept': 'application/json' },
+            });
+        } catch {
+            await fetchNotifications();
+        }
     };
 
     const markAllRead = async () => {
-        const res = await fetch(safeRoute('notifications.mark-all-read'), {
-            method: 'POST',
-            headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '',
-            },
-            credentials: 'same-origin',
-            keepalive: true,
-        });
-        if (!res.ok) return;
-        setNotifications(prev => prev.map(n => ({ ...n, read_at: new Date().toISOString() })));
-        setUnreadCount(0);
+        const hasUnread = notifications.some((n) => !n.read_at);
+        if (hasUnread) {
+            setNotifications(prev => prev.map(n => n.read_at ? n : { ...n, read_at: new Date().toISOString() }));
+            setUnreadCount(0);
+            emitUnreadCountSync(0);
+        }
+
+        try {
+            await axios.post(notificationApiUrl('/mark-all-read'), {}, {
+                headers: { 'Accept': 'application/json' },
+            });
+        } catch {
+            await fetchNotifications();
+            return;
+        }
     };
 
     return (

@@ -19,7 +19,9 @@ interface Employee {
         phone?: string | null;
         avatar?: string | null;
         title?: string;
+        profile_frame?: 'default' | 'open_to_work' | 'not_open_to_work' | null;
         profile?: {
+            profile_frame?: 'default' | 'open_to_work' | 'not_open_to_work' | null;
             professional_title?: string;
             current_job_title?: string;
             current_company?: string;
@@ -46,6 +48,35 @@ interface Props {
 const AVATAR_COLORS = ['bg-avaa-dark', 'bg-teal-700', 'bg-emerald-700', 'bg-slate-600', 'bg-cyan-700', 'bg-stone-600'];
 function avatarColor(id: number) { return AVATAR_COLORS[id % AVATAR_COLORS.length]; }
 function getInitials(first: string, last: string) { return `${(first[0] ?? '')}${(last[0] ?? '')}`.toUpperCase(); }
+function getProfileFrame(frame?: string | null) {
+    return frame === 'open_to_work' || frame === 'not_open_to_work' ? frame : 'default';
+}
+function profileFrameRingClass(frame?: string | null) {
+    if (frame === 'open_to_work') return 'ring-2 ring-emerald-400';
+    if (frame === 'not_open_to_work') return 'ring-2 ring-red-400';
+    return '';
+}
+function profileFrameLabel(frame?: string | null) {
+    if (frame === 'open_to_work') return { text: 'Available', cls: 'bg-emerald-500 text-white', icon: null };
+    if (frame === 'not_open_to_work') return { text: 'Unavailable', cls: 'bg-red-500 text-white', icon: null };
+    return null;
+}
+
+function ProfileFrameBadge({ frame, size = 'sm' }: { frame?: string | null; size?: 'xs' | 'sm' }) {
+    const badge = profileFrameLabel(frame);
+    if (!badge) return null;
+    const px = size === 'xs' ? 'px-2 py-0.5 text-[8px]' : 'px-2.5 py-0.5 text-[10px]';
+    return (
+        <span className={`inline-flex items-center gap-1 font-bold rounded-full whitespace-nowrap shadow ${badge.cls} ${px}`}>
+            {badge.icon && (
+                <svg width="6" height="6" viewBox="0 0 10 10" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
+                    <line x1="1" y1="1" x2="9" y2="9" /><line x1="9" y1="1" x2="1" y2="9" />
+                </svg>
+            )}
+            {badge.text}
+        </span>
+    );
+}
 
 /* ── Icons ── */
 const IcoX = () => (
@@ -84,6 +115,8 @@ function ApplicantModal({ employee, onClose }: { employee: Employee; onClose: ()
     const ad = employee.application_data;
     const fullName = (ad?.full_name) ?? `${u.first_name} ${u.last_name}`;
     const initials = getInitials(u.first_name, u.last_name);
+    const frame = getProfileFrame(u.profile_frame ?? u.profile?.profile_frame);
+    const frameBadge = profileFrameLabel(frame);
     const resumePath = (employee.resume_path) ?? (u.profile?.resume_path) ?? (ad?.existing_resume);
     const resumeName = resumePath ? resumePath.split('/').pop() : null;
     const resumeViewUrl = resumePath ? route('applications.resume', { application: employee.id }) : null;
@@ -98,13 +131,18 @@ function ApplicantModal({ employee, onClose }: { employee: Employee; onClose: ()
                 </div>
 
                 <div className="px-6 -mt-10 flex items-end gap-4 flex-shrink-0 relative z-10 mb-2">
-                    <ImageInitialsFallback
-                        src={u.avatar}
-                        alt={fullName}
-                        initials={initials}
-                        className={`w-20 h-20 rounded-2xl ring-4 ring-white shadow-md overflow-hidden ${u.avatar ? 'bg-white' : avatarColor(u.id)}`}
-                        textClassName="text-white text-2xl font-bold flex items-center justify-center"
-                    />
+                    <div className="relative">
+                        <ImageInitialsFallback
+                            src={u.avatar}
+                            alt={fullName}
+                            initials={initials}
+                            className={`w-20 h-20 rounded-2xl ring-4 ring-white shadow-md overflow-hidden ${profileFrameRingClass(frame)} ${u.avatar ? 'bg-white' : avatarColor(u.id)}`}
+                            textClassName="text-white text-2xl font-bold flex items-center justify-center"
+                        />
+                        <span className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 z-20">
+                            <ProfileFrameBadge frame={frame} size="xs" />
+                        </span>
+                    </div>
                     <div className="pb-1">
                         <h2 className="text-lg font-bold text-avaa-dark">{fullName}</h2>
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide uppercase bg-emerald-50 text-emerald-600 border border-emerald-100 mt-1">
@@ -291,18 +329,25 @@ export default function Users({ employees, activeCount }: Props) {
                                 filtered.map(emp => {
                                     const fullName = `${emp.candidate.first_name} ${emp.candidate.last_name}`;
                                     const initials = getInitials(emp.candidate.first_name, emp.candidate.last_name);
+                                    const frame = getProfileFrame(emp.candidate.profile_frame ?? emp.candidate.profile?.profile_frame);
+                                    const frameBadge = profileFrameLabel(frame);
 
                                     return (
                                         <tr key={emp.id} className="hover:bg-gray-50/60 transition-colors group">
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
-                                                        <ImageInitialsFallback
-                                                            src={emp.candidate.avatar}
-                                                            alt={fullName}
-                                                            initials={initials}
-                                                            className={`w-10 h-10 rounded-full shadow-sm flex-shrink-0 overflow-hidden ${emp.candidate.avatar ? 'bg-white' : avatarColor(emp.candidate.id)}`}
-                                                            textClassName="text-white text-sm font-bold flex items-center justify-center"
-                                                        />
+                                                        <div className="relative flex-shrink-0">
+                                                            <ImageInitialsFallback
+                                                                src={emp.candidate.avatar}
+                                                                alt={fullName}
+                                                                initials={initials}
+                                                                className={`w-10 h-10 rounded-full shadow-sm overflow-hidden ${profileFrameRingClass(frame)} ${emp.candidate.avatar ? 'bg-white' : avatarColor(emp.candidate.id)}`}
+                                                                textClassName="text-white text-sm font-bold flex items-center justify-center"
+                                                            />
+                                                            <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-10">
+                                                                <ProfileFrameBadge frame={frame} size="xs" />
+                                                            </span>
+                                                        </div>
                                                     <div className="min-w-0">
                                                         <p className="text-base font-bold text-gray-900 truncate">{fullName}</p>
                                                         <p className="text-xs font-medium text-gray-500 truncate mt-0.5">{emp.candidate.email}</p>

@@ -1,5 +1,5 @@
 <?php
-
+use App\Http\Controllers\JobSeeker\RecruiterProfileController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Employer\DashboardController as EmployerDashboardController;
@@ -34,6 +34,7 @@ use App\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use App\Http\Controllers\Employer\ApplicantTimelineController;
 
 // Home — redirect authenticated users to their dashboard; show Welcome to guests
 Route::get('/', function () {
@@ -45,6 +46,26 @@ Route::get('/', function () {
     }
     return \Inertia\Inertia::render('Welcome');
 })->name('home');
+
+// Shared job link redirect
+Route::get('/j/{job}', function ($job) {
+    if (!Auth::check()) {
+        return redirect()->route('home');
+    }
+
+    /** @var \App\Models\User $user */
+    $user = Auth::user();
+
+    if ($user->role === 'employer') {
+        return redirect()->route('employer.jobs.show', $job);
+    } elseif ($user->role === 'job_seeker') {
+        return redirect()->route('job-seeker.jobs.show', $job);
+    } elseif ($user->role === 'admin') {
+        return redirect()->route('admin.jobs.show', $job);
+    }
+
+    return redirect()->route('home');
+})->name('shared.job.show');
 
 // Registration
 Route::middleware('guest')->group(function () {
@@ -113,7 +134,7 @@ Route::middleware(['auth'])->prefix('messages')->name('messages.')->group(functi
 
 // Role-based dashboards
 Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
-
+ 
     // ── Notifications (shared across all roles) ────────────────────────────
     Route::prefix('notifications')->name('notifications.')->group(function () {
         Route::get('/', [NotificationController::class, 'index'])->name('index');
@@ -166,11 +187,15 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
     // ─────────────────────────────────────────────────────────────────────────
 
     // ── Employer ─────────────────────────────────────────────────────────────
-    Route::middleware('role:employer')->prefix('employer')->name('employer.')->group(function () {
+   Route::middleware('role:employer')->prefix('employer')->name('employer.')->group(function () {
 
         Route::get('/dashboard', [EmployerDashboardController::class, 'index'])->name('dashboard');
-        Route::post('/profile/complete', [EmployerProfileController::class, 'complete'])->name('profile.complete');
+        
+        // Add it here 👇
+        Route::get('/applicants/{user}/timeline', [ApplicantTimelineController::class, 'showByUser'])->name('applicants.timeline');
 
+        Route::post('/profile/complete', [EmployerProfileController::class, 'complete'])->name('profile.complete');
+        
         // Employer Profile & Settings
         Route::get('/profile', [EmployerProfileController::class, 'show'])->name('profile.show');
         Route::get('/settings', [EmployerProfileController::class, 'settings'])->name('settings');
@@ -220,12 +245,17 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         // ─────────────────────────────────────────────────────────────────
 
         Route::get('/interviews', [InterviewController::class, 'index'])->name('interviews.index');
+        Route::post('/interviews', [InterviewController::class, 'store'])->name('interviews.store');
         Route::put('/interviews/{interview}', [InterviewController::class, 'update'])->name('interviews.update');
         Route::patch('/interviews/{interview}/status', [InterviewController::class, 'updateStatus'])->name('interviews.status');
         Route::post('/interviews/{interview}/pass', [InterviewController::class, 'passInterview'])->name('interviews.pass');
         Route::post('/interviews/{interview}/fail', [InterviewController::class, 'failInterview'])->name('interviews.fail');
 
+        // Appeals for suspended/banned job postings
+        Route::post('/appeals', [App\Http\Controllers\Employer\AppealController::class, 'store'])->name('appeals.store');
+
         Route::get('/users', [EmployeeController::class, 'index'])->name('users.index');
+       Route::get('/users/timeline/{application}', [ApplicantTimelineController::class, 'show'])->name('users.timeline');
         Route::post('/users/{application}/end-contract', [EmployeeController::class, 'endContract'])->name('users.end-contract');
     });
     // ─────────────────────────────────────────────────────────────────────────
@@ -236,7 +266,7 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         Route::get('/profile', [JobSeekerProfileController::class, 'show'])->name('profile.show');
         Route::get('/profile/edit', [JobSeekerProfileController::class, 'edit'])->name('profile.edit');
         Route::match(['POST', 'PATCH'], '/profile', [JobSeekerProfileController::class, 'update'])->name('profile.update');
-
+        Route::get('/recruiter/{user}', [RecruiterProfileController::class, 'show'])->name('recruiter.profile');
         // Blocked Users
         Route::get('/settings/blocked-users', [JobSeekerBlockedUsersController::class, 'index'])->name('settings.blocked-users');
         Route::post('/settings/blocked-users/block', [JobSeekerBlockedUsersController::class, 'block'])->name('settings.blocked-users.block');
@@ -253,11 +283,12 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         Route::post('/jobs/{job}/apply/draft', [JobApplicationController::class, 'saveDraft'])->name('jobs.apply.draft');
         Route::get('/jobs/history', [JobBrowseController::class, 'history'])->name('jobs.history');
         Route::get('/jobs/{job}', [JobBrowseController::class, 'show'])->name('jobs.show');
-
+         Route::get('/recruiter/{user}', [RecruiterProfileController::class, 'show'])->name('recruiter.timeline');
         // Application History
         Route::get('/applications', [JobApplicationController::class, 'index'])->name('applications.index');
         Route::patch('/applications/{application}/withdraw', [JobApplicationController::class, 'withdraw'])->name('applications.withdraw');
-    });
+        
+        });
     // ─────────────────────────────────────────────────────────────────────────
 
     // ── Admin ─────────────────────────────────────────────────────────────────
@@ -271,6 +302,10 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         Route::get('/reports', [App\Http\Controllers\Admin\AdminReportController::class, 'index'])->name('reports.index');
         Route::patch('/reports/{report}/approve', [App\Http\Controllers\Admin\AdminReportController::class, 'approve'])->name('reports.approve');
         Route::patch('/reports/{report}/decline', [App\Http\Controllers\Admin\AdminReportController::class, 'decline'])->name('reports.decline');
+        Route::patch('/reports/{report}/suspend', [App\Http\Controllers\Admin\AdminReportController::class, 'suspend'])->name('reports.suspend');
+        Route::patch('/reports/{report}/ban', [App\Http\Controllers\Admin\AdminReportController::class, 'ban'])->name('reports.ban');
+        Route::patch('/appeals/{report}/approve', [App\Http\Controllers\Admin\AdminReportController::class, 'approveAppeal'])->name('appeals.approve');
+        Route::patch('/appeals/{report}/reject', [App\Http\Controllers\Admin\AdminReportController::class, 'rejectAppeal'])->name('appeals.reject');
 
         // User Management
         Route::get('/users', [UserManagementController::class, 'index'])->name('users.index');

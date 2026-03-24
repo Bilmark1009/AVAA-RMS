@@ -24,11 +24,13 @@ interface Props {
     applicationsCount: number;
     totalVisitsCount: number;
     monthlyApplications: { month: string; count: number }[];
+    weeklyApplications: { week: string; count: number }[];
+    yearlyApplications: { year: string; count: number }[];
     recentJobs: RecentJob[];
 }
 
 /* ── Icons ─────────────────────────────────────────────────── */
-const IcoActiveUsers = () => (
+const IcoActiveApplicants = () => (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" />
         <path d="M23 21v-2a4 4 0 00-3-3.87" /><path d="M16 3.13a4 4 0 010 7.75" />
@@ -176,7 +178,7 @@ const CHART_DATA: Record<Period, ChartPeriodData> = {
 const TEAL_SOLID = '#1D9E75';
 const TEAL_LIGHT = 'rgba(29,158,117,0.13)';
 
-function MonthlyApplicationsChart({ monthlyApplications }: { monthlyApplications: { month: string; count: number }[] }) {
+function MonthlyApplicationsChart({ monthlyApplications, weeklyApplications, yearlyApplications }: { monthlyApplications: { month: string; count: number }[], weeklyApplications: { week: string; count: number }[], yearlyApplications: { year: string; count: number }[] }) {
     const [period, setPeriod] = useState<Period>('monthly');
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const chartRef = useRef<any>(null);
@@ -221,13 +223,35 @@ function MonthlyApplicationsChart({ monthlyApplications }: { monthlyApplications
                 labels = monthlyApplications.map(item => item.month);
                 values = monthlyApplications.map(item => item.count);
                 total = values.reduce((a, b) => a + b, 0).toLocaleString();
-                const max = Math.max(...values);
+                const max = [...values, 0].reduce((a, b) => Math.max(a, b));
                 peak = max.toString();
                 const average = values.length > 0 ? Math.round(values.reduce((a, b) => a + b, 0) / values.length) : 0;
                 avg = average.toString();
                 peakLbl = 'Peak month';
                 avgLbl = 'Monthly avg';
-                badge = values.length > 1 ? (values[values.length - 1] > values[values.length - 2] ? '+8%' : '-5%') : '0%';
+                badge = values.length > 1 ? (values[values.length - 1] >= values[values.length - 2] ? '+8%' : '-5%') : '0%';
+            } else if (period === 'weekly' && weeklyApplications.length > 0) {
+                labels = weeklyApplications.map(item => item.week);
+                values = weeklyApplications.map(item => item.count);
+                total = values.reduce((a, b) => a + b, 0).toLocaleString();
+                const max = [...values, 0].reduce((a, b) => Math.max(a, b));
+                peak = max.toString();
+                const average = values.length > 0 ? Math.round(values.reduce((a, b) => a + b, 0) / values.length) : 0;
+                avg = average.toString();
+                peakLbl = 'Peak week';
+                avgLbl = 'Weekly avg';
+                badge = values.length > 1 ? (values[values.length - 1] >= values[values.length - 2] ? '+12%' : '-3%') : '0%';
+            } else if (period === 'yearly' && yearlyApplications.length > 0) {
+                labels = yearlyApplications.map(item => item.year);
+                values = yearlyApplications.map(item => item.count);
+                total = values.reduce((a, b) => a + b, 0).toLocaleString();
+                const max = [...values, 0].reduce((a, b) => Math.max(a, b));
+                peak = max.toString();
+                const average = values.length > 0 ? Math.round(values.reduce((a, b) => a + b, 0) / values.length) : 0;
+                avg = average.toString();
+                peakLbl = 'Peak year';
+                avgLbl = 'Yearly avg';
+                badge = values.length > 1 ? (values[values.length - 1] >= values[values.length - 2] ? '+30%' : '-10%') : '0%';
             } else {
                 const d = CHART_DATA[period];
                 labels = d.labels;
@@ -240,7 +264,7 @@ function MonthlyApplicationsChart({ monthlyApplications }: { monthlyApplications
                 badge = d.badge;
             }
 
-            const maxVal = Math.max(...values);
+            const maxVal = Math.max(...values, 0);
 
             setSummary({
                 total,
@@ -318,7 +342,7 @@ function MonthlyApplicationsChart({ monthlyApplications }: { monthlyApplications
                 chartRef.current = null;
             }
         };
-    }, [period, monthlyApplications]);
+    }, [period, monthlyApplications, weeklyApplications, yearlyApplications]);
 
     const d = CHART_DATA[period];
     const periods: { key: Period; label: string }[] = [
@@ -400,6 +424,8 @@ export default function EmployerDashboard({
     applicationsCount,
     totalVisitsCount,
     monthlyApplications,
+    weeklyApplications,
+    yearlyApplications,
     recentJobs,
 }: Props) {
     const companyName = profile?.company_name ?? `${user.first_name} ${user.last_name}`;
@@ -439,10 +465,10 @@ export default function EmployerDashboard({
                 {/* ── Stat Cards ── */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
                     <StatCard
-                        label="Active Users"
+                        label="Total Employees"
                         value={activeUsersCount}
-                        sub="Active on platform"
-                        icon={<IcoActiveUsers />}
+                        sub="Your hired employees"
+                        icon={<IcoActiveApplicants />}
                         color="bg-emerald-50 text-emerald-600"
                         badge="+12%"
                     />
@@ -473,7 +499,7 @@ export default function EmployerDashboard({
                 </div>
 
                 {/* ── Monthly Applications Chart ── */}
-                <MonthlyApplicationsChart monthlyApplications={monthlyApplications} />
+                <MonthlyApplicationsChart monthlyApplications={monthlyApplications} weeklyApplications={weeklyApplications} yearlyApplications={yearlyApplications} />
 
                 {/* ── Posted Jobs Table ── */}
                 <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">

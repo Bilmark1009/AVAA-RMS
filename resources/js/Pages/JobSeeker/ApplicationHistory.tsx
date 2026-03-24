@@ -63,6 +63,7 @@ const statusPill = (stage: Stage) => {
     if (s === 'pending') return 'bg-amber-50 text-amber-700 border-amber-200';
     if (s === 'withdrawn') return 'bg-slate-50 text-slate-600 border-slate-200';
     if (s === 'rejected') return 'bg-rose-50 text-rose-700 border-rose-200';
+    if (s === 'approved') return 'bg-emerald-50 text-emerald-700 border-emerald-200';
     return 'bg-gray-50 text-gray-700 border-gray-200';
 };
 
@@ -72,8 +73,20 @@ const statusLabel = (stage: Stage) => {
     if (s === 'pending') return 'Pending';
     if (s === 'withdrawn') return 'Withdrawn';
     if (s === 'rejected') return 'Rejected';
+    if (s === 'approved') return 'Approved';
     if (s === 'contract_ended') return 'Contract Ended';
     return (stage || 'Unknown').toString();
+};
+
+const interviewStatusConfig: Record<string, { dot: string; text: string; bg: string; label: string }> = {
+    active: { dot: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50', label: 'Active' },
+    completed: { dot: 'bg-blue-400', text: 'text-blue-700', bg: 'bg-blue-50', label: 'Completed' },
+    cancelled: { dot: 'bg-gray-400', text: 'text-gray-600', bg: 'bg-gray-100', label: 'Cancelled' },
+};
+
+const getInterviewStatusConfig = (status?: string | null) => {
+    const normalized = (status || '').toString().toLowerCase();
+    return interviewStatusConfig[normalized] ?? interviewStatusConfig.active;
 };
 
 const formatDisplayDate = (value?: string | null) => {
@@ -154,6 +167,8 @@ function ApplicationCard({
     onWithdraw: (app: ApplicationItem) => void;
 }) {
     const canWithdraw = app.can_withdraw && ['pending', 'interviewing', 'approved'].includes((app.stage || '').toString().toLowerCase());
+    const interviewCancelled = app.interview?.status === 'cancelled';
+    const interviewCompleted = app.interview?.status === 'completed';
 
     return (
         <div className="bg-white border border-gray-200 rounded-2xl px-5 sm:px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6">
@@ -169,8 +184,14 @@ function ApplicationCard({
                 <div className="min-w-0">
                     <div className="flex items-center gap-2 min-w-0">
                         <p className="text-sm font-extrabold text-avaa-dark truncate">{app.job?.title ?? 'Job'}</p>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${statusPill(app.stage)}`}>
-                            {statusLabel(app.stage)}
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                            interviewCancelled 
+                                ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                : interviewCompleted
+                                    ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                    : statusPill(app.stage)
+                        }`}>
+                            {interviewCancelled ? 'Interview Cancelled' : interviewCompleted ? 'Interview Completed' : statusLabel(app.stage)}
                         </span>
                     </div>
                     <p className="text-xs text-gray-500 mt-0.5 truncate">{app.company.name}</p>
@@ -253,6 +274,8 @@ function DemoApplicationCard({
     onWithdraw: (app: ApplicationItem) => void;
 }) {
     const canWithdraw = app.can_withdraw && ['pending', 'interviewing', 'approved'].includes((app.stage || '').toString().toLowerCase());
+    const interviewCancelled = app.interview?.status === 'cancelled';
+    const interviewCompleted = app.interview?.status === 'completed';
 
     return (
         <div className="bg-white border border-gray-200 rounded-2xl px-5 sm:px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6">
@@ -268,8 +291,14 @@ function DemoApplicationCard({
                 <div className="min-w-0">
                     <div className="flex items-center gap-2 min-w-0">
                         <p className="text-sm font-extrabold text-avaa-dark truncate">{app.job?.title ?? 'Job'}</p>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${statusPill(app.stage)}`}>
-                            {statusLabel(app.stage)}
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                            interviewCancelled 
+                                ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                : interviewCompleted
+                                    ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                    : statusPill(app.stage)
+                        }`}>
+                            {interviewCancelled ? 'Interview Cancelled' : interviewCompleted ? 'Interview Completed' : statusLabel(app.stage)}
                         </span>
                     </div>
                     <p className="text-xs text-gray-500 mt-0.5 truncate">{app.company.name}</p>
@@ -431,42 +460,57 @@ function ApplicationDetailsModal({
     const isWithdrawn = stage === 'withdrawn';
     const isRejected = stage === 'rejected';
     const isInterviewing = stage === 'interviewing' && !!app.interview;
+    const hasInterview = !!app.interview;
+    const interviewCancelled = app.interview?.status === 'cancelled';
+    const interviewCompleted = app.interview?.status === 'completed';
 
-    const statusHeading = isInterviewing
-        ? 'Interview Scheduled'
-        : stage === 'pending'
-            ? 'Application Pending'
-            : stage === 'withdrawn'
-                ? 'Application Withdrawn'
-                : stage === 'rejected'
-                    ? 'Application Rejected'
-                    : stage === 'contract_ended'
-                        ? 'Contract Ended'
-                    : `${statusLabel(app.stage)} Status`;
+    const statusHeading = interviewCancelled 
+        ? 'Interview Cancelled'
+        : interviewCompleted
+            ? 'Interview Completed'
+            : isInterviewing
+                ? 'Interview Scheduled'
+                : stage === 'pending'
+                    ? 'Application Pending'
+                    : stage === 'withdrawn'
+                        ? 'Application Withdrawn'
+                        : stage === 'rejected'
+                            ? 'Application Rejected'
+                            : stage === 'contract_ended'
+                                ? 'Contract Ended'
+                                : `${statusLabel(app.stage)} Status`;
 
-    const statusSubHeading = isInterviewing
-        ? `${app.interview?.date_label ?? 'Date TBD'}${app.interview?.time_label ? ` · ${app.interview.time_label}` : ''}`
-        : stage === 'pending'
-            ? 'Waiting for recruiter review.'
-            : stage === 'withdrawn'
-                ? 'This application has been withdrawn.'
-                : stage === 'rejected'
-                    ? 'Sorry, you have been rejected.'
-                    : stage === 'contract_ended'
-                        ? 'Your contract ended.'
-                    : 'Status has been updated.';
+    const statusSubHeading = interviewCancelled
+        ? 'The scheduled interview has been cancelled by the employer.'
+        : interviewCompleted
+            ? `Interview was completed on ${app.interview?.date_label ?? 'Date TBD'}`
+            : isInterviewing
+                ? `${app.interview?.date_label ?? 'Date TBD'}${app.interview?.time_label ? ` · ${app.interview.time_label}` : ''}`
+                : stage === 'pending'
+                    ? 'Waiting for recruiter review.'
+                    : stage === 'withdrawn'
+                        ? 'This application has been withdrawn.'
+                        : stage === 'rejected'
+                            ? 'Sorry, you have been rejected.'
+                            : stage === 'contract_ended'
+                                ? 'Your contract ended.'
+                                : 'Status has been updated.';
 
     const messageAuthor = app.interview?.interviewer_name || app.company.name;
     const messageRole = app.interview?.interview_type || 'Hiring Team';
-    const messageBody = isInterviewing
-        ? (app.interview?.notes || 'Interview details have been shared. Please review the schedule and prepare accordingly.')
-        : stage === 'withdrawn'
-            ? 'Sorry, you have withdrawn your application. If this was a mistake or you wish to reapply, feel free to submit a new application to this job in the future.'
-            : stage === 'rejected'
-                ? 'We appreciate the time you invested in applying and encourage you to apply for future opportunities that match your skills.'
-            : stage === 'contract_ended'
-                ? 'Thank you for joining us. Good luck on your future journey!'
-            : (app.reviewer_notes || app.rejection_reason || 'Your application is in progress. You will receive updates when the hiring team reviews it.');
+    const messageBody = interviewCancelled
+        ? 'The interview scheduled for this position has been cancelled. You may reapply or wait for future opportunities from this employer.'
+        : interviewCompleted
+            ? (app.interview?.notes || 'The interview has been completed. Check back for updates on the hiring decision.')
+            : isInterviewing
+                ? (app.interview?.notes || 'Interview details have been shared. Please review the schedule and prepare accordingly.')
+                : stage === 'withdrawn'
+                    ? 'Sorry, you have withdrawn your application. If this was a mistake or you wish to reapply, feel free to submit a new application to this job in the future.'
+                    : stage === 'rejected'
+                        ? 'We appreciate the time you invested in applying and encourage you to apply for future opportunities that match your skills.'
+                        : stage === 'contract_ended'
+                            ? 'Thank you for joining us. Good luck on your future journey!'
+                            : (app.reviewer_notes || app.rejection_reason || 'Your application is in progress. You will receive updates when the hiring team reviews it.');
 
     return (
         <div className="fixed inset-0 z-[80]">
@@ -547,9 +591,23 @@ function ApplicationDetailsModal({
                                     </div>
                                 </div>
 
-                                <div className="border border-avaa-primary/40 bg-avaa-primary-light rounded-xl p-4 flex items-start gap-3">
-                                    <div className={`w-9 h-9 rounded-lg bg-white border flex items-center justify-center flex-shrink-0 ${isWithdrawn || isRejected ? 'border-rose-300 text-rose-600' : 'border-avaa-primary/30 text-avaa-primary'}`}>
-                                        {isWithdrawn ? (
+                                <div className={`border rounded-xl p-4 flex items-start gap-3 ${interviewCancelled ? 'border-rose-200 bg-rose-50' : 'border-avaa-primary/40 bg-avaa-primary-light'}`}>
+                                    <div className={`w-9 h-9 rounded-lg bg-white border flex items-center justify-center flex-shrink-0 ${
+                                        interviewCancelled ? 'border-rose-300 text-rose-600' : 
+                                        interviewCompleted ? 'border-blue-300 text-blue-600' :
+                                        isWithdrawn || isRejected ? 'border-rose-300 text-rose-600' : 'border-avaa-primary/30 text-avaa-primary'
+                                    }`}>
+                                        {interviewCancelled ? (
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <circle cx="12" cy="12" r="9" />
+                                                <line x1="8.5" y1="8.5" x2="15.5" y2="15.5" />
+                                                <line x1="15.5" y1="8.5" x2="8.5" y2="15.5" />
+                                            </svg>
+                                        ) : interviewCompleted ? (
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <polyline points="20 6 9 17 4 12" />
+                                            </svg>
+                                        ) : isWithdrawn ? (
                                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                                 <circle cx="12" cy="12" r="9" />
                                                 <line x1="12" y1="7.5" x2="12" y2="13" />
@@ -573,11 +631,47 @@ function ApplicationDetailsModal({
                                             </svg>
                                         )}
                                     </div>
-                                    <div className="min-w-0">
-                                        <p className="text-xs text-gray-500">{statusHeading}</p>
-                                        <p className="text-sm font-bold text-avaa-dark">{statusSubHeading}</p>
-                                        {isInterviewing && app.interview?.location_or_link && (
-                                            <p className="text-xs text-gray-500 mt-1 truncate">{app.interview.location_or_link}</p>
+                                    <div className="min-w-0 flex-1">
+                                        <p className={`text-xs ${interviewCancelled ? 'text-rose-600' : interviewCompleted ? 'text-blue-600' : isWithdrawn || isRejected ? 'text-rose-600' : 'text-gray-500'}`}>{statusHeading}</p>
+                                        <p className={`text-sm font-bold ${interviewCancelled ? 'text-rose-900' : interviewCompleted ? 'text-blue-900' : isWithdrawn || isRejected ? 'text-rose-900' : 'text-avaa-dark'}`}>{statusSubHeading}</p>
+                                        {hasInterview && app.interview?.location_or_link && (
+                                            <div className="mt-2.5 pt-2.5 border-t" style={{borderColor: interviewCancelled ? '#fda29b' : interviewCompleted ? '#bfdbfe' : '#bae6fd'}}>
+                                                <div className="flex items-start gap-2">
+                                                    <div className="w-5 h-5 rounded-md bg-white/50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                        {app.interview.interview_type === 'Online Interview' ? (
+                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={interviewCancelled ? 'text-rose-600' : 'text-avaa-primary'}>
+                                                                <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                                                                <line x1="8" y1="21" x2="16" y2="21" />
+                                                                <line x1="12" y1="17" x2="12" y2="21" />
+                                                            </svg>
+                                                        ) : (
+                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={interviewCancelled ? 'text-rose-600' : 'text-avaa-primary'}>
+                                                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                                                                <circle cx="12" cy="10" r="3" />
+                                                            </svg>
+                                                        )}
+                                                    </div>
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className={`text-xs font-semibold ${interviewCancelled ? 'text-rose-700' : 'text-gray-600'}`}>
+                                                            {app.interview.interview_type === 'Online Interview' ? 'Meeting Link' : 'Location'}
+                                                        </p>
+                                                        {app.interview.interview_type === 'Online Interview' && (app.interview.location_or_link?.includes('http') || app.interview.location_or_link?.includes('www')) ? (
+                                                            <a
+                                                                href={app.interview.location_or_link}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className={`text-xs font-semibold underline break-all mt-0.5 block ${interviewCancelled ? 'text-rose-600 hover:text-rose-700' : 'text-avaa-primary hover:text-avaa-primary-hover'}`}
+                                                            >
+                                                                {app.interview.location_or_link}
+                                                            </a>
+                                                        ) : (
+                                                            <p className={`text-xs font-medium mt-0.5 break-words ${interviewCancelled ? 'text-rose-700' : 'text-gray-700'}`}>
+                                                                {app.interview.location_or_link}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
                                         )}
                                     </div>
                                 </div>
@@ -679,28 +773,103 @@ function ApplicationDetailsModal({
                                 </div>
 
                                 {/* Step 3: Interview Stage */}
-                                <div className={`flex gap-5 mb-9 relative z-10 ${isInterviewing ? '' : 'opacity-50'}`}>
-                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-2 ${isInterviewing ? 'bg-[#8fbabd] border-[#8fbabd] text-white' : 'bg-white border-gray-200 text-gray-300'}`}>
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                                            <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" />
-                                            <line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
-                                        </svg>
+                                <div className={`flex gap-5 mb-9 relative z-10 ${hasInterview ? '' : 'opacity-50'}`}>
+                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-2 ${
+                                        hasInterview 
+                                            ? interviewCancelled 
+                                                ? 'bg-rose-500 border-rose-500 text-white'
+                                                : interviewCompleted
+                                                    ? 'bg-blue-400 border-blue-400 text-white'
+                                                    : 'bg-[#8fbabd] border-[#8fbabd] text-white'
+                                            : 'bg-white border-gray-200 text-gray-300'
+                                    }`}>
+                                        {interviewCancelled ? (
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                                            </svg>
+                                        ) : interviewCompleted ? (
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                <polyline points="20 6 9 17 4 12" />
+                                            </svg>
+                                        ) : (
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                                                <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" />
+                                                <line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+                                            </svg>
+                                        )}
                                     </div>
                                     <div className="min-w-0 flex-1">
                                         <div className="flex items-center gap-2">
-                                            <h4 className={`text-base font-bold ${isInterviewing ? 'text-gray-800' : 'text-gray-400'}`}>Interview Stage</h4>
-                                            {isInterviewing && <span className="px-2.5 py-0.5 rounded-full bg-[#e8f5f2] text-[#3d8076] text-[11px] font-bold uppercase">Current</span>}
+                                            <h4 className={`text-base font-bold ${hasInterview ? 'text-gray-800' : 'text-gray-400'}`}>Interview Stage</h4>
+                                            {hasInterview && (
+                                                <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase ${getInterviewStatusConfig(app.interview?.status).bg} ${getInterviewStatusConfig(app.interview?.status).text}`}>
+                                                    {getInterviewStatusConfig(app.interview?.status).label}
+                                                </span>
+                                            )}
                                         </div>
                                         <p className="text-xs text-gray-500 mt-0.5">
-                                            {isInterviewing ? 'In progress — awaiting update from employer' : 'Not reached yet'}
+                                            {interviewCancelled ? 'Interview was cancelled by employer' : interviewCompleted ? 'Interview was completed' : hasInterview ? 'Interview scheduled — awaiting update' : 'Not reached yet'}
                                         </p>
                                         
-                                        {isInterviewing && app.interview && (
-                                            <div className="mt-3 bg-[#f0fdf9] border border-[#c2eadd] rounded-lg p-3 flex items-center gap-2.5 text-[13px] text-[#1b6b53] font-semibold">
-                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                                                    <rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" />
-                                                </svg>
-                                                <span>Scheduled: {app.interview.date_label ?? 'TBD'} · {app.interview.time_label ?? ''}</span>
+                                        {hasInterview && app.interview && (
+                                            <div className="mt-3 space-y-2">
+                                                <div className="bg-[#f0fdf9] border border-[#c2eadd] rounded-lg p-3 flex items-center gap-2.5 text-[13px] text-[#1b6b53] font-semibold">
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                                                        <rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" />
+                                                    </svg>
+                                                    <span>Scheduled: {app.interview.date_label ?? 'TBD'} · {app.interview.time_label ?? ''}</span>
+                                                </div>
+                                                
+                                                {app.interview.location_or_link && (
+                                                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-2.5">
+                                                        <div className="flex-shrink-0 mt-0.5">
+                                                            {app.interview.interview_type === 'Online Interview' ? (
+                                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600">
+                                                                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                                                                    <line x1="8" y1="21" x2="16" y2="21" />
+                                                                    <line x1="12" y1="17" x2="12" y2="21" />
+                                                                </svg>
+                                                            ) : (
+                                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600">
+                                                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                                                                    <circle cx="12" cy="10" r="3" />
+                                                                </svg>
+                                                            )}
+                                                        </div>
+                                                        <div className="min-w-0 flex-1">
+                                                            <p className="text-[12px] text-blue-700 font-semibold">
+                                                                {app.interview.interview_type === 'Online Interview' ? 'Meeting Link' : 'Location'}
+                                                            </p>
+                                                            {app.interview.interview_type === 'Online Interview' && (app.interview.location_or_link?.includes('http') || app.interview.location_or_link?.includes('www')) ? (
+                                                                <a
+                                                                    href={app.interview.location_or_link}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="text-[12px] text-blue-600 hover:text-blue-700 font-semibold underline break-all mt-1 block hover:no-underline"
+                                                                >
+                                                                    {app.interview.location_or_link}
+                                                                </a>
+                                                            ) : (
+                                                                <p className="text-[12px] text-blue-700 font-medium mt-1 break-words">
+                                                                    {app.interview.location_or_link}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                
+                                                {app.interview.interviewer_name && (
+                                                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2.5">
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-amber-600 flex-shrink-0 mt-0.5">
+                                                            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+                                                            <circle cx="12" cy="7" r="4" />
+                                                        </svg>
+                                                        <div className="min-w-0 flex-1">
+                                                            <p className="text-[12px] text-amber-700 font-semibold">Interviewer</p>
+                                                            <p className="text-[12px] text-amber-700 font-medium mt-1">{app.interview.interviewer_name}</p>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
                                     </div>

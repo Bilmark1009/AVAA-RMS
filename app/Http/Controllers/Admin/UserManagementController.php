@@ -35,7 +35,8 @@ class UserManagementController extends Controller
                 $inner->whereNotNull('deleted_at')
                     ->orWhere('status', '!=', 'active');
             }))
-            ->with(['jobSeekerProfile:user_id,skills', 'employerProfile:user_id,company_name'])
+            ->with(['jobSeekerProfile:user_id,skills,profile_frame', 'employerProfile:user_id,company_name'])
+            ->withCount('jobApplications')
             ->latest()
             ->paginate(15)
             ->withQueryString();
@@ -78,15 +79,21 @@ class UserManagementController extends Controller
 
     /**
      * Toggle user status between active / inactive.
+     * Also handles reactivating banned users.
      */
     public function updateStatus(User $user): \Illuminate\Http\RedirectResponse
     {
         abort_if($user->role === 'admin', 403, 'Cannot change admin status.');
 
-        $user->update([
-            'status' => $user->status === 'active' ? 'inactive' : 'active',
-        ]);
+        $wasBanned = $user->status === 'banned';
+        $newStatus = $user->status === 'active' ? 'inactive' : 'active';
 
-        return back()->with('success', 'User status updated.');
+        $user->update(['status' => $newStatus]);
+
+        $message = $wasBanned
+            ? 'User account has been reactivated. The ban has been lifted.'
+            : 'User status updated.';
+
+        return back()->with('success', $message);
     }
 }

@@ -24,13 +24,17 @@ class CheckUserNotDeleted
             // We re-fetch from DB to ensure we see the latest deleted_at value.
             $fresh = \App\Models\User::withTrashed()->find($user->id);
 
-            if ($fresh && ($fresh->trashed() || $fresh->status === 'inactive')) {
+            if ($fresh && ($fresh->trashed() || $fresh->status === 'inactive' || $fresh->status === 'banned')) {
                 Auth::logout();
                 $request->session()->invalidate();
                 $request->session()->regenerateToken();
 
+                $message = $fresh->status === 'banned'
+                    ? 'Your account has been permanently banned due to policy violations. Please contact support for appeal inquiries.'
+                    : 'Your account has been deactivated. Please contact the administrator.';
+
                 return redirect()->route('login')
-                    ->with('error', 'Your account has been deactivated. Please contact the administrator.');
+                    ->with('error', $message);
             }
         }
 

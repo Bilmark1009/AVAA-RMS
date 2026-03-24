@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
 
 import {
@@ -41,6 +41,7 @@ const IcoChat = () => (
 interface Props {
     reports?: Report[];
     filters?: { status: string; tab: string };
+    focusReportId?: number | null;
 }
 
 
@@ -179,66 +180,107 @@ function PendingMessageCard({ report, onViewDetails }: { report: Report; onViewD
 }
 
 /* ── Approved / Declined Summary Card ── */
-function SummaryCard({ report, type }: { report: Report; type: 'approved' | 'declined' }) {
+function SummaryCard({ report, type, onViewAppeal }: { report: Report; type: 'approved' | 'declined'; onViewAppeal?: () => void }) {
     const isApproved = type === 'approved';
     const isMessage = report.type === 'message';
     const title = isMessage ? (report.employer_name || report.job_title) : report.job_title;
     const subtitle = isMessage ? null : `${report.company} • ${report.location}`;
+    const hasAppeal = report.appeal_message && report.appealed_at;
 
     return (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 hover:shadow-md transition-all">
-            <div className="flex items-start justify-between mb-4">
-                <div>
-                    <h3 className="text-base font-bold text-gray-800">{title}</h3>
-                    {subtitle && <p className="text-sm text-gray-400 mt-0.5">{subtitle}</p>}
+        <div className={`bg-white rounded-2xl border shadow-sm overflow-hidden hover:shadow-md transition-all ${
+            hasAppeal ? 'border-orange-100' : 'border-gray-100'
+        }`}>
+            <div className="p-6">
+                <div className="flex items-start justify-between mb-4">
+                    <div>
+                        <h3 className="text-base font-bold text-gray-800">{title}</h3>
+                        {subtitle && <p className="text-sm text-gray-400 mt-0.5">{subtitle}</p>}
+                    </div>
+                    <div className="flex items-center gap-2">
+                        {hasAppeal ? (
+                            <span className={`text-xs font-bold px-3 py-1 rounded-full border whitespace-nowrap ${
+                                report.appeal_status === 'pending'
+                                    ? 'bg-yellow-50 text-yellow-600 border-yellow-100'
+                                    : report.appeal_status === 'approved'
+                                    ? 'bg-green-50 text-green-600 border-green-100'
+                                    : 'bg-red-50 text-red-600 border-red-100'
+                            }`}>
+                                Appeal {report.appeal_status || 'pending'}
+                            </span>
+                        ) : (
+                            <span className={`text-xs font-bold px-3 py-1 rounded-full border whitespace-nowrap ${
+                                isApproved
+                                    ? 'bg-[#76a09a]/10 text-[#76a09a] border-[#76a09a]/20'
+                                    : 'bg-gray-100 text-gray-500 border-gray-200'
+                            }`}>
+                                {isApproved ? 'Approved' : 'Declined'}
+                            </span>
+                        )}
+                    </div>
                 </div>
-                <span className={`text-xs font-bold px-3 py-1 rounded-full border whitespace-nowrap ${
-                    isApproved
-                        ? 'bg-[#76a09a]/10 text-[#76a09a] border-[#76a09a]/20'
-                        : 'bg-gray-100 text-gray-500 border-gray-200'
-                }`}>
-                    {isApproved ? 'Approved' : 'Declined'}
-                </span>
-            </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div>
-                    <p className="text-[11px] font-bold text-gray-400 uppercase mb-1">{isApproved ? 'Action Taken' : 'Action'}</p>
-                    <p className="text-sm font-bold text-gray-700">{report.action_taken || 'N/A'}</p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div>
+                        <p className="text-[11px] font-bold text-gray-400 uppercase mb-1">{isApproved ? 'Action Taken' : 'Action'}</p>
+                        <p className="text-sm font-bold text-gray-700">{report.action_taken || 'N/A'}</p>
+                    </div>
+                    <div>
+                        <p className="text-[11px] font-bold text-gray-400 uppercase mb-1">Employer Status</p>
+                        <span className={`inline-block text-xs font-bold px-2.5 py-1 rounded-full border ${
+                            report.employer_status === 'Suspended'
+                                ? 'bg-red-50 text-red-500 border-red-100'
+                                : 'text-green-600 bg-green-50 border-green-100'
+                        }`}>
+                            {report.employer_status || 'Active'}
+                        </span>
+                    </div>
+                    <div>
+                        <p className="text-[11px] font-bold text-gray-400 uppercase mb-1">{isApproved ? 'Approved By' : 'Declined By'}</p>
+                        <p className="text-sm font-bold text-gray-700">{isApproved ? report.approved_by : report.declined_by}</p>
+                    </div>
+                    <div>
+                        <p className="text-[11px] font-bold text-gray-400 uppercase mb-1">{isApproved ? 'Approved Date' : 'Declined Date'}</p>
+                        <p className="text-sm font-bold text-gray-700">{isApproved ? report.approved_date : report.declined_date}</p>
+                    </div>
                 </div>
-                <div>
-                    <p className="text-[11px] font-bold text-gray-400 uppercase mb-1">Employer Status</p>
-                    <span className={`inline-block text-xs font-bold px-2.5 py-1 rounded-full border ${
-                        report.employer_status === 'Suspended'
-                            ? 'bg-red-50 text-red-500 border-red-100'
-                            : 'text-green-600 bg-green-50 border-green-100'
-                    }`}>
-                        {report.employer_status || 'Active'}
-                    </span>
-                </div>
-                <div>
-                    <p className="text-[11px] font-bold text-gray-400 uppercase mb-1">{isApproved ? 'Approved By' : 'Declined By'}</p>
-                    <p className="text-sm font-bold text-gray-700">{isApproved ? report.approved_by : report.declined_by}</p>
-                </div>
-                <div>
-                    <p className="text-[11px] font-bold text-gray-400 uppercase mb-1">{isApproved ? 'Approved Date' : 'Declined Date'}</p>
-                    <p className="text-sm font-bold text-gray-700">{isApproved ? report.approved_date : report.declined_date}</p>
-                </div>
+
+                {/* Appeal Section */}
+                {hasAppeal && (
+                    <div className="mt-4 pt-4 border-t border-orange-100">
+                        <div className="flex items-start justify-between mb-3">
+                            <div>
+                                <p className="text-sm font-bold text-gray-800 mb-1">Appeal Submitted</p>
+                                <p className="text-xs text-gray-500">{report.appealed_at}</p>
+                            </div>
+                            <button
+                                onClick={onViewAppeal}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-600 text-xs font-semibold rounded-lg transition-colors border border-orange-100"
+                            >
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                View Appeal
+                            </button>
+                        </div>
+                        <div className="bg-orange-50 rounded-lg p-3 border border-orange-100">
+                            <p className="text-xs text-orange-700 line-clamp-2">{report.appeal_message}</p>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
 }
 
 /* ── Main Component ── */
-export default function ReportView({ reports = [], filters }: Props) {
+export default function ReportView({ reports = [], filters, focusReportId = null }: Props) {
     const [tab, setTab] = useState<'job_posts' | 'messages'>(
         (filters?.tab as 'job_posts' | 'messages') ?? 'job_posts'
     );
     const [status, setStatus] = useState(filters?.status ?? 'pending');
     const [selectedReport, setSelectedReport] = useState<Report | null>(null);
-    const [modal, setModal] = useState<ModalType>(null);
+    const [modal, setModal] = useState<ModalType | 'appeal'>(null);
 
-    const openModal = (report: Report, type: ModalType) => {
+    const openModal = (report: Report, type: ModalType | 'appeal') => {
         setSelectedReport(report);
         setModal(type);
     };
@@ -246,6 +288,29 @@ export default function ReportView({ reports = [], filters }: Props) {
     const closeAllModals = () => {
         setModal(null);
         setSelectedReport(null);
+    };
+
+    useEffect(() => {
+        if (!focusReportId) return;
+
+        const target = reports.find((r) => r.id === focusReportId);
+        if (target && status === 'pending') {
+            setSelectedReport(target);
+            setModal('details');
+        }
+
+        if (target && status === 'appeals' && target.appeal_message) {
+            setSelectedReport(target);
+            setModal('appeal');
+        }
+    }, [focusReportId, reports, status]);
+
+    const refreshReports = () => {
+        try {
+            router.get(route('admin.reports.index'), { status, tab }, { preserveState: true, preserveScroll: true });
+        } catch (e) {
+            // preview mode
+        }
     };
 
     const handleTabChange = (newTab: 'job_posts' | 'messages') => {
@@ -299,7 +364,7 @@ export default function ReportView({ reports = [], filters }: Props) {
 
                 {/* ── Status Tabs ── */}
                 <div className="flex items-center bg-white border border-gray-100 rounded-xl p-1 w-fit mb-8 shadow-sm">
-                    {['pending', 'approved', 'decline'].map((s) => (
+                    {['pending', 'approved', 'decline', 'appeals'].map((s) => (
                         <button
                             key={s}
                             onClick={() => handleStatusChange(s)}
@@ -309,7 +374,7 @@ export default function ReportView({ reports = [], filters }: Props) {
                                     : 'text-gray-400 hover:text-gray-600'
                             }`}
                         >
-                            {s}
+                            {s === 'appeals' ? 'Appeals' : s}
                         </button>
                     ))}
                 </div>
@@ -336,13 +401,32 @@ export default function ReportView({ reports = [], filters }: Props) {
                                 />
                             )
                         )
+                    ) : status === 'appeals' ? (
+                        displayReports.map((report) => (
+                            <SummaryCard
+                                key={report.id}
+                                report={report}
+                                type={report.action_taken?.toLowerCase().includes('suspend') ? 'approved' : 'declined'}
+                                onViewAppeal={() => openModal(report, 'appeal')}
+                            />
+                        ))
                     ) : status === 'approved' ? (
                         displayReports.map((report) => (
-                            <SummaryCard key={report.id} report={report} type="approved" />
+                            <SummaryCard
+                                key={report.id}
+                                report={report}
+                                type="approved"
+                                onViewAppeal={() => openModal(report, 'appeal')}
+                            />
                         ))
                     ) : (
                         displayReports.map((report) => (
-                            <SummaryCard key={report.id} report={report} type="declined" />
+                            <SummaryCard
+                                key={report.id}
+                                report={report}
+                                type="declined"
+                                onViewAppeal={() => openModal(report, 'appeal')}
+                            />
                         ))
                     )}
                 </div>
@@ -373,7 +457,10 @@ export default function ReportView({ reports = [], filters }: Props) {
                         report={selectedReport}
                         tab={tab}
                         onClose={closeAllModals}
-                        onConfirm={closeAllModals}
+                        onConfirm={() => {
+                            closeAllModals();
+                            refreshReports();
+                        }}
                     />
                 )}
 
@@ -382,7 +469,10 @@ export default function ReportView({ reports = [], filters }: Props) {
                         report={selectedReport}
                         tab={tab}
                         onClose={closeAllModals}
-                        onConfirm={closeAllModals}
+                        onConfirm={() => {
+                            closeAllModals();
+                            refreshReports();
+                        }}
                     />
                 )}
 
@@ -391,8 +481,120 @@ export default function ReportView({ reports = [], filters }: Props) {
                         report={selectedReport}
                         tab={tab}
                         onClose={closeAllModals}
-                        onConfirm={closeAllModals}
+                        onConfirm={() => {
+                            closeAllModals();
+                            refreshReports();
+                        }}
                     />
+                )}
+
+                {/* Appeal Details Modal */}
+                {selectedReport && modal === 'appeal' && selectedReport.appeal_message && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={closeAllModals} />
+                        <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
+                            <div className="h-12 bg-gradient-to-r from-orange-600 to-orange-500 flex-shrink-0 flex items-center px-5 justify-between">
+                                <h2 className="text-white font-bold text-sm">Appeal Details</h2>
+                                <button onClick={closeAllModals} className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-white transition-colors">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                </button>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto p-5 space-y-4">
+                                <div>
+                                    <p className="text-sm font-semibold text-gray-900 mb-1">Job/Posting</p>
+                                    <p className="text-sm text-gray-600">{selectedReport.job_title || selectedReport.employer_name}</p>
+                                </div>
+
+                                <div>
+                                    <p className="text-sm font-semibold text-gray-900 mb-1">Appeal Status</p>
+                                    <span className={`inline-block text-xs font-bold px-3 py-1 rounded-full border ${
+                                        selectedReport.appeal_status === 'pending'
+                                            ? 'bg-yellow-50 text-yellow-600 border-yellow-100'
+                                            : selectedReport.appeal_status === 'approved'
+                                            ? 'bg-green-50 text-green-600 border-green-100'
+                                            : 'bg-red-50 text-red-600 border-red-100'
+                                    }`}>
+                                        {selectedReport.appeal_status || 'Pending'}
+                                    </span>
+                                </div>
+
+                                <div>
+                                    <p className="text-sm font-semibold text-gray-900 mb-1">Submitted Date</p>
+                                    <p className="text-sm text-gray-600">{selectedReport.appealed_at}</p>
+                                </div>
+
+                                <div>
+                                    <p className="text-sm font-semibold text-gray-900 mb-2">Employer's Message</p>
+                                    <div className="bg-orange-50 rounded-lg p-3 border border-orange-100">
+                                        <p className="text-sm text-orange-700 whitespace-pre-wrap">{selectedReport.appeal_message}</p>
+                                    </div>
+                                </div>
+
+                                {selectedReport.appeal_status === 'pending' && (
+                                    <div>
+                                        <p className="text-sm font-semibold text-gray-900 mb-2">Admin Decision Note <span className="text-gray-400 font-normal">(optional)</span></p>
+                                        <textarea
+                                            id="appeal-decision-note"
+                                            placeholder="Add a note about your decision..."
+                                            rows={3}
+                                            className="w-full rounded-lg border border-gray-200 bg-gray-50 text-gray-800 text-sm px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all placeholder-gray-400 resize-none"
+                                        />
+                                    </div>
+                                )}
+
+                                {selectedReport.appeal_decision_note && selectedReport.appeal_status !== 'pending' && (
+                                    <div>
+                                        <p className="text-sm font-semibold text-gray-900 mb-2">Admin Decision Note</p>
+                                        <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                                            <p className="text-sm text-gray-700 whitespace-pre-wrap">{selectedReport.appeal_decision_note}</p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="px-5 py-3.5 border-t border-gray-100 flex items-center justify-end flex-shrink-0 bg-gray-50/50 gap-2">
+                                {selectedReport.appeal_status === 'pending' ? (
+                                    <>
+                                        <button 
+                                            onClick={() => {
+                                                const noteEl = document.getElementById('appeal-decision-note') as HTMLTextAreaElement | null;
+                                                const decisionNote = noteEl?.value?.trim() || '';
+                                                router.patch(route('admin.appeals.reject', selectedReport.id), { decision_note: decisionNote }, { 
+                                                    onSuccess: () => {
+                                                        closeAllModals();
+                                                        refreshReports();
+                                                    }
+                                                });
+                                            }}
+                                            className="px-4 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-xl hover:bg-red-50 transition-colors"
+                                        >
+                                            Decline Appeal
+                                        </button>
+                                        <button 
+                                            onClick={() => {
+                                                const noteEl = document.getElementById('appeal-decision-note') as HTMLTextAreaElement | null;
+                                                const decisionNote = noteEl?.value?.trim() || '';
+                                                router.patch(route('admin.appeals.approve', selectedReport.id), { decision_note: decisionNote }, { 
+                                                    onSuccess: () => {
+                                                        closeAllModals();
+                                                        refreshReports();
+                                                    }
+                                                });
+                                            }}
+                                            className="px-4 py-2 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 rounded-xl transition-colors"
+                                        >
+                                            Approve Appeal
+                                        </button>
+                                    </>
+                                ) : (
+                                    <button onClick={closeAllModals} className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors">
+                                        Close
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
                 )}
             </AppLayout>
         </>
