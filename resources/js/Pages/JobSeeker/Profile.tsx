@@ -121,7 +121,7 @@ export default function JobSeekerProfilePage({ user, profile, experiences, timel
         return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
     };
     const dateRange = (exp: WorkExperience) =>
-        `${formatDate(exp.start_date)} - ${exp.is_current ? 'Present' : exp.end_date ? formatDate(exp.end_date) : ''}`;
+        `${formatDate(exp.start_date)} - ${exp.is_current ? 'Currently Working' : exp.end_date ? formatDate(exp.end_date) : ''}`;
     const formatUploadedAt = (value?: string | null) => {
         if (!value) return 'Unknown date';
         const date = new Date(value);
