@@ -36,6 +36,25 @@ class CheckUserNotDeleted
                 return redirect()->route('login')
                     ->with('error', $message);
             }
+
+            // Allow suspended users to access appeal-related routes
+            if ($fresh && $fresh->status === 'suspended') {
+                $currentRoute = $request->route();
+                if ($currentRoute) {
+                    $routeName = $currentRoute->getName();
+                    // Allow access to appeal routes and basic employer dashboard
+                    if (str_contains($routeName, 'appeals') || 
+                        str_contains($routeName, 'employer.jobs.index') ||
+                        str_contains($routeName, 'employer.jobs.show') ||
+                        $routeName === 'employer.dashboard') {
+                        return $next($request);
+                    }
+                }
+
+                // For other routes, redirect to dashboard with suspension message
+                return redirect()->route('employer.dashboard')
+                    ->with('error', 'Your account is temporarily suspended. You can only access appeal functionality during this period.');
+            }
         }
 
         return $next($request);

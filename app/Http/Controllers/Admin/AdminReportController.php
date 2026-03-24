@@ -419,34 +419,41 @@ class AdminReportController extends Controller
         $employer = $jobListing?->employer;
         $reportedUser = $report->reportedUser;
 
-        // Update the appeal status
-        $report->update([
-            'appeal_status' => 'approved',
-            'appeal_decision_note' => $request->input('decision_note', 'Appeal approved - suspension/ban lifted.'),
-        ]);
-
-        // If there's a job listing, restore it to active status
+        // ── CRITICAL: Only restore THIS SPECIFIC job posting ─────────────────
+        // Do NOT affect other job postings from the same employer
         if ($jobListing) {
+            // Update ONLY this specific job listing to active
             $jobListing->update([
                 'status' => 'active',
                 'updated_at' => now(),
             ]);
+        }
 
-            // Dismiss ALL resolved reports for this employer's jobs — resets report count to zero
-            $employerId = $jobListing->employer_id;
-            if ($employerId) {
-                Report::whereHas('jobListing', fn($q) => $q->where('employer_id', $employerId))
-                    ->where('status', 'resolved')
-                    ->update(['status' => 'dismissed']);
-            }
+        // ── Update THIS SPECIFIC report to mark it as dismissed ──────────────
+        // This prevents the appeal from being re-submitted
+        // appeal_status='approved' marks the appeal decision
+        // status='dismissed' marks the report as handled
+        $report->update([
+            'status' => 'dismissed',
+            'appeal_status' => 'approved',
+            'appeal_decision_note' => $request->input('decision_note', 'Appeal approved - job posting restored.'),
+        ]);
 
-            // If the employer was auto-banned, lift the ban since report count is now reset
-            if ($employer && $employer->status === 'banned') {
-                $employer->update(['status' => 'active']);
-            }
-
-            // Lift suspension if employer was suspended
-            if ($employer && $employer->isSuspended()) {
+        // ── Check if ALL reports for this employer are resolved/dismissed ─────
+        // If yes, automatically lift the suspension so they can post/edit jobs
+        if ($employer && $jobListing) {
+            $employerId = $employer->id;
+            
+            // Count unresolved reports for this employer's job postings
+            $unresolvedReports = \App\Models\Report::whereHas(
+                'jobListing',
+                fn($q) => $q->where('employer_id', $employerId)
+            )
+                ->whereIn('status', ['pending', 'resolved'])
+                ->count();
+            
+            // If no more unresolved reports, lift the employer's suspension
+            if ($unresolvedReports === 0 && $employer->isSuspended()) {
                 $employer->liftSuspension();
             }
         }
@@ -501,7 +508,9 @@ class AdminReportController extends Controller
         $jobListing = $report->jobListing;
         $employer = $jobListing?->employer;
 
-        // Update the appeal status
+        // Update the appeal status but keep report as 'resolved'
+        // This allows the employer to submit a new appeal with different message
+        // The job listing remains suspended (status='inactive')
         $report->update([
             'appeal_status' => 'rejected',
             'appeal_decision_note' => $request->input('decision_note', 'Appeal declined - original action remains in effect.'),

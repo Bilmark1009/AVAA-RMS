@@ -51,11 +51,16 @@ class AppealController extends Controller
         }
 
         // Verify the job is suspended (report status is 'resolved')
-        if ($report->status !== 'resolved') {
+        if ($report->status !== 'resolved' && $report->status !== 'dismissed') {
             return redirect()->back()->with('error', 'This job posting is not suspended.');
         }
 
-        // Prevent duplicate submissions while an existing appeal is still pending.
+        // Prevent resubmitting if the appeal was already approved (dismissed)
+        if ($report->status === 'dismissed' && $report->appeal_status === 'approved') {
+            return redirect()->back()->with('error', 'This appeal has already been approved. Your job posting is now active.');
+        }
+
+        // Prevent duplicate submissions while an existing appeal is still pending
         if ($report->appeal_status === 'pending') {
             return redirect()->back()->with('error', 'Your appeal has been sent. Please wait for a response from the admin team.');
         }
