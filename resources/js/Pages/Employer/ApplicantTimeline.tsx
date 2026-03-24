@@ -29,6 +29,10 @@ export default function ApplicantTimeline({
         return path.startsWith("http") ? path : `/storage/${path}`;
     };
 
+    const statusEvents = (timelineEvents || []).filter(
+        (evt: any) => evt?.event_type === "status_change",
+    );
+
     return (
         <AppLayout>
             <Head title={`${displayName} - Applicant Profile`} />
@@ -164,42 +168,11 @@ export default function ApplicantTimeline({
                                     />
                                 ))}
 
-                            {/* 3. Manual/External Experiences */}
-                            {manualExperiences &&
-                                manualExperiences.length > 0 &&
-                                manualExperiences.map((exp: any) => (
-                                    <TimelineItem
-                                        key={`manual-${exp.id}`}
-                                        placement={exp}
-                                        isCurrent={exp.is_current}
-                                        isManual={true}
-                                    />
-                                ))}
-
-                            {/* Status Change Events */}
-                            {timelineEvents &&
-                                timelineEvents.length > 0 &&
-                                timelineEvents.map((evt: any) => (
-                                    <TimelineItem
-                                        key={`event-${evt.id}`}
-                                        placement={{
-                                            job_title: evt.event_type === 'status_change' ? 'Status Update' : 'Event',
-                                            company: evt.description,
-                                            start_date: new Date(evt.event_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
-                                            end_date: new Date(evt.event_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
-                                            description: "",
-                                        }}
-                                        isCurrent={false}
-                                        isManual={true}
-                                    />
-                                ))}
-
                             {/* Empty State */}
                             {(!currentPosition ||
                                 Object.keys(currentPosition).length === 0) &&
                                 pastPlacements.length === 0 &&
-                                manualExperiences.length === 0 &&
-                                (!timelineEvents || timelineEvents.length === 0) && (
+                                (
                                     <div className="flex items-center gap-4 ml-6 py-4">
                                         <div className="w-12 h-12 rounded-xl bg-gray-50 border border-dashed border-gray-200 flex items-center justify-center flex-shrink-0">
                                             <svg className="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -212,6 +185,38 @@ export default function ApplicantTimeline({
                                         </p>
                                     </div>
                                 )}
+                        </div>
+                    </div>
+
+                    {/* Status Updates Section */}
+                    <div className="bg-white rounded-2xl p-5 sm:p-8 border border-gray-200 shadow-sm">
+                        <h3 className="text-lg font-bold text-gray-800 mb-6">
+                            Status Updates
+                        </h3>
+                        <div className="space-y-4">
+                            {statusEvents.length > 0 ? (
+                                statusEvents.map((evt: any) => (
+                                    <div key={`event-${evt.id}`} className="p-4 rounded-xl border border-gray-100 bg-gray-50/40">
+                                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                                            <p className="text-sm font-semibold text-gray-800 break-words">
+                                                {evt.description || 'Status updated'}
+                                            </p>
+                                            <span className="text-[11px] font-bold text-gray-400 uppercase">
+                                                {evt.event_date
+                                                    ? new Date(evt.event_date).toLocaleDateString('en-US', {
+                                                          month: 'short',
+                                                          year: 'numeric',
+                                                      })
+                                                    : 'N/A'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="text-sm text-gray-400 italic">
+                                    No status updates recorded.
+                                </p>
+                            )}
                         </div>
                     </div>
 

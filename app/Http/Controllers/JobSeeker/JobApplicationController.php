@@ -365,6 +365,8 @@ class JobApplicationController extends Controller
             'email' => $validated['email'],
             'phone' => $validated['phone'] ?? '',
             'location' => $validated['location'] ?? '',
+            'applied_job_title' => $job->title,
+            'applied_company_name' => $job->company_name,
             'linkedin_url' => $validated['linkedin_url'] ?? '',
             'portfolio_url' => $validated['portfolio_url'] ?? '',
             'current_job_title' => $validated['current_job_title'] ?? '',
