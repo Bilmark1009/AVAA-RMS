@@ -313,7 +313,7 @@ class AdminReportController extends Controller
                     reportReason: 'Repeated policy violations (5+ approved reports)'
                 ));
             } catch (\Exception $e) {
-                \Log::error('Failed to send auto-ban email: ' . $e->getMessage());
+                Log::error('Failed to send auto-ban email: ' . $e->getMessage());
             }
         }
         // ───────────────────────────────────────────────────────────────────
@@ -329,7 +329,9 @@ class AdminReportController extends Controller
             ));
         } catch (\Exception $e) {
             // Log but don't fail the request if email fails
-            Log::error('Failed to send suspension email: ' . $e->getMessage());
+            if ($job) {
+                Log::error('Failed to send suspension email: ' . $e->getMessage());
+            }
         }
 
         // Send in-app notification with deep link to the appeal modal.
@@ -569,7 +571,7 @@ class AdminReportController extends Controller
                     reportReason: 'Multiple policy violations (5+ approved reports on different job postings)'
                 ));
             } catch (\Exception $e) {
-                \Log::error('Failed to send auto-ban email: ' . $e->getMessage());
+                Log::error('Failed to send auto-ban email: ' . $e->getMessage());
             }
 
             return true;
