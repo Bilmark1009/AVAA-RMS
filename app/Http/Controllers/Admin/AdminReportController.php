@@ -362,17 +362,26 @@ class AdminReportController extends Controller
             return redirect()->back()->with('error', 'This report is not for a job posting.');
         }
 
-        // Only deactivate the specific reported job
-        $job->update([
-            'status' => 'inactive',
-            'updated_at' => now(),
-        ]);
-
-        // Get the employer for notification
+        // Get the employer
         $user = $job->employer;
         if (!$user) {
             return redirect()->back()->with('error', 'Employer not found.');
         }
+
+        // Ban the user account - set status to banned
+        $user->update([
+            'status' => 'banned',
+            'suspension_reason' => $request->action_note ?? 'Account banned due to policy violation',
+            'suspended_until' => null, // Permanent ban
+        ]);
+
+        // Deactivate ALL active jobs from this employer
+        JobListing::where('employer_id', $user->id)
+            ->where('status', 'active')
+            ->update([
+                'status' => 'inactive',
+                'updated_at' => now(),
+            ]);
 
         // Update report
         $report->update([
@@ -385,10 +394,11 @@ class AdminReportController extends Controller
 
         // Send ban email
         try {
+            $activeJobsCount = JobListing::where('employer_id', $user->id)->count();
             Mail::to($user->email)->send(new AccountBanned(
                 user: $user,
                 report: $report,
-                activeJobsCount: 1,  // Only this one job was banned
+                activeJobsCount: $activeJobsCount,
                 reportReason: $report->reason_title ?? 'Policy Violation'
             ));
         } catch (\Exception $e) {
@@ -396,7 +406,7 @@ class AdminReportController extends Controller
             Log::error('Failed to send ban email: ' . $e->getMessage());
         }
 
-        return redirect()->back()->with('success', 'Job posting permanently removed successfully. Notification sent to employer.');
+        return redirect()->back()->with('success', 'Account permanently banned and all job postings deactivated successfully. Notification sent to employer.');
     }
 
     /**
