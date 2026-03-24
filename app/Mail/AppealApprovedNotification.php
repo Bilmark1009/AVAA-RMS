@@ -17,7 +17,7 @@ class AppealApprovedNotification extends Mailable
     use Queueable, SerializesModels;
 
     public function __construct(
-        public JobListing $job,
+        public ?JobListing $job,
         public User $employer,
         public Report $report,
     ) {}
