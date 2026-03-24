@@ -57,7 +57,7 @@ class AdminJobController extends Controller
                     'skills_required' => $job->skills_required ?? [],
                     'industry' => $job->industry,
                     'applications_count' => $job->applications_count,
-                    'created_at' => $job->created_at->toISOString(),
+'created_at' => $job->created_at->toISOString(),
                     'company' => $job->employer?->employerProfile?->company_name
                         ?? ($job->employer ? "{$job->employer->first_name} {$job->employer->last_name}" : 'Unknown'),
                     'logo_url' => $logoUrl,

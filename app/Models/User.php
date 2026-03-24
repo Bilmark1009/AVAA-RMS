@@ -250,7 +250,7 @@ class User extends Authenticatable implements MustVerifyEmail
         return true;
     }
 
-    /**
+/**
      * Check if the user is currently suspended.
      */
     public function isSuspended(): bool
@@ -307,7 +307,6 @@ class User extends Authenticatable implements MustVerifyEmail
 
         return 'Indefinite';
     }
-
     private function blockedUsersTableAvailable(): bool
     {
         if (self::$blockedUsersTableAvailable !== null) {
