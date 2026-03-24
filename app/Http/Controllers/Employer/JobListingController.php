@@ -15,6 +15,7 @@ use App\Notifications\InterviewScheduledNotification;
 use App\Notifications\NewApplicationNotification;
 use App\Notifications\AdminNewJobPostedNotification;
 use App\Notifications\CollaborationInviteNotification;
+use App\Notifications\JobDeletedByEmployerNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
@@ -473,6 +474,22 @@ class JobListingController extends Controller
         if (is_string($job->logo_path) && str_starts_with($job->logo_path, '/storage/')) {
             Storage::disk('public')->delete(str_replace('/storage/', '', $job->logo_path));
         }
+        
+        $job->loadMissing(['applications.user']);
+
+        $jobTitle = $job->title;
+        $affectedApplicants = $job->applications
+            ->filter(fn($application) => $application->status !== 'draft' && $application->user)
+            ->pluck('user')
+            ->unique('id')
+            ->values();
+
+        foreach ($affectedApplicants as $applicant) {
+            $applicant->notify(new JobDeletedByEmployerNotification($jobTitle));
+        }
+
+        // Remove applications for this job so deleted-job data is excluded from stats.
+        $job->applications()->delete();
 
         $job->delete();
 
