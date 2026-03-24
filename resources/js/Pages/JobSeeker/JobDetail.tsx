@@ -145,7 +145,7 @@ function BulletList({ items }: { items: string[] }) {
             {items.map((item, i) => (
                 <li
                     key={i}
-                    className="flex items-start gap-3 text-[15px] text-gray-600"
+                    className="flex items-start gap-3 text-[15px] text-gray-600 break-words [overflow-wrap:anywhere] min-w-0"
                 >
                     <span className="mt-2 w-1.5 h-1.5 rounded-full bg-avaa-teal flex-shrink-0" />
                     {item}
@@ -937,7 +937,7 @@ export default function JobDetail({
                             {job.description && (
                                 <div>
                                     <SectionTitle>Job Description</SectionTitle>
-                                    <p className="text-[15px] text-gray-600 leading-relaxed whitespace-pre-line">
+                                    <p className="text-[15px] text-gray-600 leading-relaxed whitespace-pre-line break-words [overflow-wrap:anywhere] min-w-0">
                                         {job.description}
                                     </p>
                                 </div>
@@ -975,7 +975,7 @@ export default function JobDetail({
                                     <SectionTitle>
                                         Project Timeline
                                     </SectionTitle>
-                                    <p className="text-[15px] text-gray-600 leading-relaxed whitespace-pre-line bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                                    <p className="text-[15px] text-gray-600 leading-relaxed whitespace-pre-line break-words [overflow-wrap:anywhere] min-w-0 bg-gray-50 p-4 rounded-2xl border border-gray-100">
                                         {job.project_timeline}
                                     </p>
                                 </div>
@@ -988,7 +988,7 @@ export default function JobDetail({
                                         Application Process
                                     </SectionTitle>
                                     <div className="relative border-l-2 border-dashed border-avaa-teal/30 ml-2 pl-6 py-1">
-                                        <p className="text-[15px] text-gray-600 leading-relaxed whitespace-pre-line">
+                                        <p className="text-[15px] text-gray-600 leading-relaxed whitespace-pre-line break-words [overflow-wrap:anywhere] min-w-0">
                                             {job.application_process}
                                         </p>
                                     </div>
@@ -1002,7 +1002,7 @@ export default function JobDetail({
                                         Onboarding Process
                                     </SectionTitle>
                                     <div className="bg-emerald-50/50 border border-emerald-100 p-5 rounded-2xl">
-                                        <p className="text-[15px] text-gray-700 leading-relaxed whitespace-pre-line">
+                                        <p className="text-[15px] text-gray-700 leading-relaxed whitespace-pre-line break-words [overflow-wrap:anywhere] min-w-0">
                                             {job.onboarding_process}
                                         </p>
                                     </div>
