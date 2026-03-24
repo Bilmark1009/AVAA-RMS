@@ -92,10 +92,10 @@ class JobApplicationController extends Controller
                     ->join('');
                 $initials = mb_strtoupper(mb_substr($initials, 0, 2));
 
-                // Derive "Interviewing" stage if an active interview exists.
+                // Derive "Interviewing" stage if an interview is currently active or has been rescheduled.
                 $stage = $app->status;
                 if (! in_array($app->status, ['rejected', 'withdrawn', 'accepted', 'hired', 'contract_ended'], true)) {
-                    if ($app->interview && ($app->interview->status ?? null) === 'active') {
+                    if ($app->interview && in_array(($app->interview->status ?? null), ['active', 'rescheduled'], true)) {
                         $stage = 'interviewing';
                     }
                 }
