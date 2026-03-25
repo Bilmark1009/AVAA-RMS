@@ -19,7 +19,7 @@ class ProfileController extends Controller
      */
     public function show(Request $request): Response
     {
-        $user = $request->user()->load(['jobSeekerProfile', 'workExperiences', 'documents']);
+        $user = $request->user()->load(['jobSeekerProfile', 'workExperiences', 'documents', 'timelineEvents']);
 
         $placementExperiences = JobApplication::query()
             ->where('user_id', $user->id)
@@ -84,7 +84,8 @@ class ProfileController extends Controller
         return Inertia::render('JobSeeker/Profile', [
             'user' => $user,
             'profile' => $user->jobSeekerProfile,
-            'experiences' => $experiences,
+            'experiences' => $user->workExperiences,
+            'timelineEvents' => $user->timelineEvents,
             'documents' => $documents,
         ]);
     }
@@ -138,16 +139,33 @@ class ProfileController extends Controller
 
         $completeness = $this->calculateCompleteness($request, $resumePath);
 
-        $user->jobSeekerProfile()->create([
-            'professional_title' => $request->professional_title,
-            'city' => $request->city,
-            'state' => $request->state,
-            'country' => $request->country,
-            'years_of_experience' => $request->years_of_experience,
-            'skills' => $request->skills ?? [],
-            'resume_path' => $resumePath,
-            'profile_completeness' => $completeness,
-        ]);
+        // Check if profile already exists, update instead of create
+        $profile = $user->jobSeekerProfile();
+        if ($user->jobSeekerProfile) {
+            // Update existing profile
+            $user->jobSeekerProfile->update([
+                'professional_title' => $request->professional_title,
+                'city' => $request->city,
+                'state' => $request->state,
+                'country' => $request->country,
+                'years_of_experience' => $request->years_of_experience,
+                'skills' => $request->skills ?? [],
+                'resume_path' => $resumePath,
+                'profile_completeness' => $completeness,
+            ]);
+        } else {
+            // Create new profile
+            $profile->create([
+                'professional_title' => $request->professional_title,
+                'city' => $request->city,
+                'state' => $request->state,
+                'country' => $request->country,
+                'years_of_experience' => $request->years_of_experience,
+                'skills' => $request->skills ?? [],
+                'resume_path' => $resumePath,
+                'profile_completeness' => $completeness,
+            ]);
+        }
 
         $user->update(['profile_completed' => true]);
 

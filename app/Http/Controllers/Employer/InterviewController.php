@@ -89,14 +89,8 @@ class InterviewController extends Controller
         // Stats
         $today = now()->toDateString();
         $stats = [
-            'todays_total' => $interviews
-                ->where('interview_date', $today)
-                ->whereIn('status', ['active', 'rescheduled'])
-                ->count(),
-            'upcoming' => $interviews
-                ->where('interview_date', '>=', $today)
-                ->whereIn('status', ['active', 'rescheduled'])
-                ->count(),
+            'todays_total' => $interviews->where('interview_date', $today)->where('status', 'active')->count(),
+            'upcoming' => $interviews->where('interview_date', '>=', $today)->where('status', 'active')->count(),
             'pending_applications' => $pendingApplications->count(),
         ];
 
@@ -173,7 +167,6 @@ class InterviewController extends Controller
             'interview_type' => $interview->interview_type,
             'location_or_link' => $interview->location_or_link,
         ];
-        $originalStatus = $interview->status;
 
         $request->validate([
             'interview_date' => 'required|date',
@@ -199,9 +192,6 @@ class InterviewController extends Controller
             || $originalSchedule['location_or_link'] !== $interview->location_or_link;
 
         if ($wasRescheduled) {
-            // Mark as rescheduled so cancelled interviews clearly reflect the new schedule state.
-            $interview->update(['status' => 'rescheduled']);
-
             $interview->loadMissing(['candidate', 'jobListing']);
             $candidate = $interview->candidate;
             $job = $interview->jobListing;
@@ -211,9 +201,7 @@ class InterviewController extends Controller
             Mail::to($candidate->email)->send(new InterviewRescheduled($interview, $job, $candidateName));
             $candidate->notify(new InterviewRescheduledNotification($interview, $job));
 
-            return back()->with('success', $originalStatus === 'cancelled'
-                ? 'Interview rescheduled from cancelled status and applicant notified.'
-                : 'Interview rescheduled and applicant notified.');
+            return back()->with('success', 'Interview rescheduled and applicant notified.');
         }
 
         return back()->with('success', 'Interview updated.');
@@ -227,7 +215,7 @@ class InterviewController extends Controller
         $this->authorizeInterview($request, $interview);
 
         $request->validate([
-            'status' => 'required|in:active,rescheduled,completed,cancelled',
+            'status' => 'required|in:active,completed,cancelled',
         ]);
 
         $interview->update(['status' => $request->status]);

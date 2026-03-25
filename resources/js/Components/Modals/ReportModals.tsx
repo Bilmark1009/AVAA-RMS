@@ -730,7 +730,7 @@ export function BanModal({ report, onClose, onConfirm, tab }: {
                 preserveState: true,
                 preserveScroll: true,
                 onSuccess: () => {
-                    showNotification('success', 'Account permanently banned and all job postings deactivated successfully.');
+                    showNotification('success', 'Job posting has been permanently removed successfully.');
                     onConfirm();
                 },
                 onError: (errors: any) => {

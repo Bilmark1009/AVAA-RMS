@@ -136,7 +136,6 @@ function profileFrameLabel(frame?: string | null) {
 
 const STATUS_CFG: Record<string, { dot: string; text: string; bg: string; label: string }> = {
     active: { dot: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50', label: 'Active' },
-    rescheduled: { dot: 'bg-amber-500', text: 'text-amber-700', bg: 'bg-amber-50', label: 'Rescheduled' },
     completed: { dot: 'bg-blue-400', text: 'text-blue-700', bg: 'bg-blue-50', label: 'Completed' },
     cancelled: { dot: 'bg-gray-400', text: 'text-gray-600', bg: 'bg-gray-100', label: 'Cancelled' },
 };
@@ -605,7 +604,7 @@ function JobGroup({
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center justify-end gap-1.5">
-                                                {(i.status === 'active' || i.status === 'rescheduled') && (
+                                                {i.status === 'active' && (
                                                     <>
                                                         <button
                                                             onClick={() => onConfirmAction('pass', i)}
@@ -748,7 +747,7 @@ function PendingApplicationsGroup({
 export default function Interviews({ interviews, pendingApplications, stats }: Props) {
     const [editInterview, setEditInterview] = useState<InterviewData | null>(null);
     const [search, setSearch] = useState('');
-    const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'rescheduled' | 'completed' | 'cancelled' | 'pending'>('all');
+    const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'completed' | 'cancelled' | 'pending'>('all');
     const [confirmState, setConfirmState] = useState<{
         type: 'pass' | 'fail';
         interview: InterviewData;
@@ -776,7 +775,6 @@ export default function Interviews({ interviews, pendingApplications, stats }: P
     // Calculate counts directly from interviews array
     const countAll = interviews.length;
     const countActive = interviews.filter(i => i.status === 'active').length;
-    const countRescheduled = interviews.filter(i => i.status === 'rescheduled').length;
     const countCompleted = interviews.filter(i => i.status === 'completed').length;
     const countCancelled = interviews.filter(i => i.status === 'cancelled').length;
     const countPending = pendingApplications.length;
@@ -870,7 +868,6 @@ export default function Interviews({ interviews, pendingApplications, stats }: P
                         { key: 'all', label: 'All', count: countAll },
                         { key: 'pending', label: 'Pending', count: countPending },
                         { key: 'active', label: 'Active', count: countActive },
-                        { key: 'rescheduled', label: 'Rescheduled', count: countRescheduled },
                         { key: 'completed', label: 'Completed', count: countCompleted },
                         { key: 'cancelled', label: 'Cancelled', count: countCancelled },
                     ]}

@@ -203,90 +203,6 @@ function DeleteModal({ user, onConfirm, onCancel }: {
     );
 }
 
-function RestoreModal({ user, onConfirm, onCancel }: {
-    user: User;
-    onConfirm: () => void;
-    onCancel: () => void;
-}) {
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/40" onClick={onCancel} />
-            <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
-                <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-500">
-                        <IcoRestore />
-                    </div>
-                    <div>
-                        <p className="font-bold text-gray-900 text-sm">Restore User</p>
-                        <p className="text-xs text-gray-400">This will restore the user's account</p>
-                    </div>
-                </div>
-                <p className="text-sm text-gray-600 mb-6">
-                    Are you sure you want to restore{' '}
-                    <span className="font-semibold text-gray-900">{user.first_name} {user.last_name}</span>?
-                    Their account will be reactivated and they can access the system again.
-                </p>
-                <div className="flex gap-3">
-                    <button
-                        onClick={onCancel}
-                        className="flex-1 py-2.5 px-4 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={onConfirm}
-                        className="flex-1 py-2.5 px-4 rounded-xl bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 transition-colors"
-                    >
-                        Restore
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-function ReactivateModal({ user, onConfirm, onCancel }: {
-    user: User;
-    onConfirm: () => void;
-    onCancel: () => void;
-}) {
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/40" onClick={onCancel} />
-            <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
-                <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-500">
-                        <IcoRestore />
-                    </div>
-                    <div>
-                        <p className="font-bold text-gray-900 text-sm">Reactivate Account</p>
-                        <p className="text-xs text-gray-400">This will lift the ban</p>
-                    </div>
-                </div>
-                <p className="text-sm text-gray-600 mb-6">
-                    Are you sure you want to reactivate{' '}
-                    <span className="font-semibold text-gray-900">{user.first_name} {user.last_name}</span>'s account?
-                    This will lift the ban and restore access.
-                </p>
-                <div className="flex gap-3">
-                    <button
-                        onClick={onCancel}
-                        className="flex-1 py-2.5 px-4 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={onConfirm}
-                        className="flex-1 py-2.5 px-4 rounded-xl bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 transition-colors"
-                    >
-                        Reactivate
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-}
-
 function UserDetailsModal({ user, onClose }: { user: User; onClose: () => void }) {
     const initials = `${(user.first_name ?? '').charAt(0)}${(user.last_name ?? '').charAt(0)}`.toUpperCase();
     const skills = parseSkills(user.jobSeekerProfile?.skills);
@@ -477,8 +393,6 @@ export default function AdminUsers({ users, filters }: Props) {
     const [roleDropOpen, setRoleDropOpen] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
     const [detailTarget, setDetailTarget] = useState<User | null>(null);
-    const [restoreTarget, setRestoreTarget] = useState<User | null>(null);
-    const [reactivateTarget, setReactivateTarget] = useState<User | null>(null);
     const [processingId, setProcessingId] = useState<number | null>(null);
 
     /* ── Persist view mode to localStorage ── */
@@ -511,20 +425,19 @@ export default function AdminUsers({ users, filters }: Props) {
     };
 
     /* ── Restore ── */
-    const doRestore = () => {
-        if (!restoreTarget) return;
-        setProcessingId(restoreTarget.id);
-        router.post(route('admin.users.restore', restoreTarget.id), {}, {
-            onFinish: () => { setProcessingId(null); setRestoreTarget(null); },
+    const doRestore = (user: User) => {
+        setProcessingId(user.id);
+        router.post(route('admin.users.restore', user.id), {}, {
+            onFinish: () => setProcessingId(null),
         });
     };
 
     /* ── Reactivate (for banned users) ── */
-    const doReactivate = () => {
-        if (!reactivateTarget) return;
-        setProcessingId(reactivateTarget.id);
-        router.patch(route('admin.users.status', reactivateTarget.id), {}, {
-            onFinish: () => { setProcessingId(null); setReactivateTarget(null); },
+    const doReactivate = (user: User) => {
+        if (!confirm(`Are you sure you want to reactivate ${user.first_name} ${user.last_name}'s account? This will lift the ban and restore access.`)) return;
+        setProcessingId(user.id);
+        router.patch(route('admin.users.status', user.id), {}, {
+            onFinish: () => setProcessingId(null),
         });
     };
 
@@ -743,7 +656,7 @@ export default function AdminUsers({ users, filters }: Props) {
 
                                                         {isDeleted ? (
                                                             <button
-                                                                onClick={() => setRestoreTarget(user)}
+                                                                onClick={() => doRestore(user)}
                                                                 disabled={isBusy}
                                                                 title="Restore user"
                                                                 className="p-2 rounded-lg text-emerald-500 hover:bg-emerald-50 transition-colors disabled:opacity-40"
@@ -752,7 +665,7 @@ export default function AdminUsers({ users, filters }: Props) {
                                                             </button>
                                                         ) : isActive === 'banned' ? (
                                                             <button
-                                                                onClick={() => setReactivateTarget(user)}
+                                                                onClick={() => doReactivate(user)}
                                                                 disabled={isBusy}
                                                                 title="Reactivate banned account"
                                                                 className="p-2 rounded-lg text-emerald-500 hover:bg-emerald-50 transition-colors disabled:opacity-40"
@@ -855,7 +768,7 @@ export default function AdminUsers({ users, filters }: Props) {
 
                                                 {isDeleted ? (
                                                     <button
-                                                        onClick={() => setRestoreTarget(user)}
+                                                        onClick={() => doRestore(user)}
                                                         disabled={isBusy}
                                                         className="p-1.5 text-emerald-500 hover:bg-emerald-50 transition-colors disabled:opacity-40"
                                                     >
@@ -863,7 +776,7 @@ export default function AdminUsers({ users, filters }: Props) {
                                                     </button>
                                                 ) : isActive === 'banned' ? (
                                                     <button
-                                                        onClick={() => setReactivateTarget(user)}
+                                                        onClick={() => doReactivate(user)}
                                                         disabled={isBusy}
                                                         title="Reactivate banned account"
                                                         className="p-1.5 text-emerald-500 hover:bg-emerald-50 transition-colors disabled:opacity-40"
@@ -922,24 +835,6 @@ export default function AdminUsers({ users, filters }: Props) {
                         user={deleteTarget}
                         onConfirm={doDelete}
                         onCancel={() => setDeleteTarget(null)}
-                    />
-                )}
-
-                {/* ── Restore Confirm Modal ── */}
-                {restoreTarget && (
-                    <RestoreModal
-                        user={restoreTarget}
-                        onConfirm={doRestore}
-                        onCancel={() => setRestoreTarget(null)}
-                    />
-                )}
-
-                {/* ── Reactivate Confirm Modal ── */}
-                {reactivateTarget && (
-                    <ReactivateModal
-                        user={reactivateTarget}
-                        onConfirm={doReactivate}
-                        onCancel={() => setReactivateTarget(null)}
                     />
                 )}
 

@@ -23,40 +23,12 @@ class ApplicantTimelineController extends Controller
             'timelineEvents',
         ]);
 
-        // Fetch verified placements only (hired records), including soft-deleted jobs
-        $applications = JobApplication::with([
-            'jobListing' => fn($q) => $q->withTrashed()->with('employer.employerProfile'),
-        ])
+        // Fetch system-verified placements via job_applications
+        $applications = JobApplication::with(['jobListing.company'])
             ->where('user_id', $user->id)
             ->whereNotNull('hired_at')
             ->orderBy('hired_at', 'desc')
             ->get();
-
-        $verifiedPlacements = $applications->map(function (JobApplication $application) {
-            $job = $application->jobListing;
-
-            $jobTitle = $job?->title
-                ?? data_get($application->application_data, 'applied_job_title')
-                ?? data_get($application->application_data, 'job_title')
-                ?? 'Former Position';
-
-            $companyName = $job?->company_name
-                ?? data_get($application->application_data, 'applied_company_name')
-                ?? data_get($application->application_data, 'company_name')
-                ?? data_get($application->application_data, 'company')
-                ?? $job?->employer?->employerProfile?->company_name
-                ?? 'Company not available';
-
-            return [
-                'id' => $application->id,
-                'job_title' => $jobTitle,
-                'company' => $companyName,
-                'start_date' => $application->hired_at?->format('M Y') ?? 'N/A',
-                'end_date' => $application->contract_ended_at?->format('M Y') ?? 'Present',
-                'is_current' => $application->contract_ended_at === null,
-                'description' => null,
-            ];
-        });
 
         return Inertia::render('Employer/ApplicantTimeline', [
             'applicant' => [
@@ -98,9 +70,9 @@ class ApplicantTimelineController extends Controller
                 ],
             ],
 
-            // Verified placements tracked within the AVAA system
-            'currentPosition' => $verifiedPlacements->firstWhere('is_current', true),
-            'pastPlacements' => $verifiedPlacements->where('is_current', false)->values(),
+            // Placements tracked within the AVAA system
+            'currentPosition' => $applications->whereNull('contract_ended_at')->first(),
+            'pastPlacements' => $applications->whereNotNull('contract_ended_at')->values(),
 
             'timelineEvents' => $user->timelineEvents,
 
@@ -243,40 +215,12 @@ class ApplicantTimelineController extends Controller
             ];
         }
 
-        // Fetch verified placements only (hired records), including soft-deleted jobs
-        $applications = JobApplication::with([
-            'jobListing' => fn($q) => $q->withTrashed()->with('employer.employerProfile'),
-        ])
+        // Fetch system-verified placements via job_applications
+        $applications = JobApplication::with(['jobListing.company', 'jobListing.employer'])
             ->where('user_id', $user->id)
             ->whereNotNull('hired_at')
             ->orderBy('hired_at', 'desc')
             ->get();
-
-        $verifiedPlacements = $applications->map(function (JobApplication $application) {
-            $job = $application->jobListing;
-
-            $jobTitle = $job?->title
-                ?? data_get($application->application_data, 'applied_job_title')
-                ?? data_get($application->application_data, 'job_title')
-                ?? 'Former Position';
-
-            $companyName = $job?->company_name
-                ?? data_get($application->application_data, 'applied_company_name')
-                ?? data_get($application->application_data, 'company_name')
-                ?? data_get($application->application_data, 'company')
-                ?? $job?->employer?->employerProfile?->company_name
-                ?? 'Company not available';
-
-            return [
-                'id' => $application->id,
-                'job_title' => $jobTitle,
-                'company' => $companyName,
-                'start_date' => $application->hired_at?->format('M Y') ?? 'N/A',
-                'end_date' => $application->contract_ended_at?->format('M Y') ?? 'Present',
-                'is_current' => $application->contract_ended_at === null,
-                'description' => null,
-            ];
-        });
 
         return Inertia::render('Employer/ApplicantTimeline', [
             'applicant' => [
@@ -311,8 +255,8 @@ class ApplicantTimelineController extends Controller
                 ]
             ],
 
-            'currentPosition' => $verifiedPlacements->firstWhere('is_current', true),
-            'pastPlacements' => $verifiedPlacements->where('is_current', false)->values(),
+            'currentPosition' => $applications->whereNull('contract_ended_at')->first(),
+            'pastPlacements' => $applications->whereNotNull('contract_ended_at')->values(),
             
             'timelineEvents' => $user->timelineEvents,
             'manualExperiences' => $manualExperiences,
