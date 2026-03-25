@@ -29,15 +29,12 @@ return new class extends Migration
     {
         // Move any banned users back to suspended before rolling back
         DB::statement("UPDATE users SET status = 'suspended' WHERE status = 'banned'");
-<<<<<<< HEAD
-=======
         
         if (DB::getDriverName() === 'sqlite') {
             // SQLite doesn't support enum modifications, skip for now
             return;
         }
         
->>>>>>> fix/productions
         DB::statement("ALTER TABLE users MODIFY COLUMN status ENUM('pending', 'active', 'suspended') NOT NULL DEFAULT 'active'");
     }
 };
