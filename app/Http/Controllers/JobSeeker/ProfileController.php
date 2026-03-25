@@ -19,7 +19,7 @@ class ProfileController extends Controller
      */
     public function show(Request $request): Response
     {
-        $user = $request->user()->load(['jobSeekerProfile', 'workExperiences', 'documents', 'timelineEvents']);
+        $user = $request->user()->load(['jobSeekerProfile', 'workExperiences', 'documents']);
 
         $placementExperiences = JobApplication::query()
             ->where('user_id', $user->id)
@@ -85,7 +85,6 @@ class ProfileController extends Controller
             'user' => $user,
             'profile' => $user->jobSeekerProfile,
             'experiences' => $experiences,
-            'timelineEvents' => $user->timelineEvents,
             'documents' => $documents,
         ]);
     }
