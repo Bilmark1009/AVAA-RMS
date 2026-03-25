@@ -90,16 +90,33 @@ class ProfileController extends Controller
 
         $completeness = $this->calculateCompleteness($request, $resumePath);
 
-        $user->jobSeekerProfile()->create([
-            'professional_title' => $request->professional_title,
-            'city' => $request->city,
-            'state' => $request->state,
-            'country' => $request->country,
-            'years_of_experience' => $request->years_of_experience,
-            'skills' => $request->skills ?? [],
-            'resume_path' => $resumePath,
-            'profile_completeness' => $completeness,
-        ]);
+        // Check if profile already exists, update instead of create
+        $profile = $user->jobSeekerProfile();
+        if ($user->jobSeekerProfile) {
+            // Update existing profile
+            $user->jobSeekerProfile->update([
+                'professional_title' => $request->professional_title,
+                'city' => $request->city,
+                'state' => $request->state,
+                'country' => $request->country,
+                'years_of_experience' => $request->years_of_experience,
+                'skills' => $request->skills ?? [],
+                'resume_path' => $resumePath,
+                'profile_completeness' => $completeness,
+            ]);
+        } else {
+            // Create new profile
+            $profile->create([
+                'professional_title' => $request->professional_title,
+                'city' => $request->city,
+                'state' => $request->state,
+                'country' => $request->country,
+                'years_of_experience' => $request->years_of_experience,
+                'skills' => $request->skills ?? [],
+                'resume_path' => $resumePath,
+                'profile_completeness' => $completeness,
+            ]);
+        }
 
         $user->update(['profile_completed' => true]);
 
