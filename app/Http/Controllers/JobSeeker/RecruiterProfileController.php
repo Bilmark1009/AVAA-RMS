@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\JobListing;
 use Inertia\Inertia;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 
 class RecruiterProfileController extends Controller
@@ -24,11 +25,13 @@ class RecruiterProfileController extends Controller
         }
 
         // 3. Map jobs to include the COMPANY logo specifically for the cards
+        $authUserId = Auth::id();
+
         $postedJobs = JobListing::where('employer_id', $user->id)
     ->where('status', 'active')
     ->latest()
     ->get()
-    ->map(function ($job) use ($profile) {
+    ->map(function ($job) use ($profile, $authUserId) {
         return [
             'id' => $job->id,
             'title' => $job->title,
@@ -45,7 +48,9 @@ class RecruiterProfileController extends Controller
             'salary_max' => $job->salary_max ?? 0,
             'salary_currency' => $job->salary_currency ?? 'USD',
             'skills_required' => $job->skills_required ?? [],
-            'has_applied' => auth()->check() ? $job->applications()->where('id', auth()->id())->exists() : false,
+            'has_applied' => $authUserId
+                ? $job->applications()->where('user_id', $authUserId)->exists()
+                : false,
         ];
     });
 

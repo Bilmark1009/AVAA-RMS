@@ -84,7 +84,7 @@ class ProfileController extends Controller
         return Inertia::render('JobSeeker/Profile', [
             'user' => $user,
             'profile' => $user->jobSeekerProfile,
-            'experiences' => $user->workExperiences,
+            'experiences' => $experiences,
             'timelineEvents' => $user->timelineEvents,
             'documents' => $documents,
         ]);
