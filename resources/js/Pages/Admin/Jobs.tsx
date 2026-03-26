@@ -117,7 +117,7 @@ function JobCard({ job }: { job: Job }) {
     return (
         <Link
             href={route('admin.jobs.show', job.id)}
-            className="group bg-white rounded-2xl border border-gray-200 p-5 hover:border-[#3d9e9e]/40 hover:shadow-md hover:shadow-[#3d9e9e]/5 transition-all block"
+            className="group bg-white rounded-2xl border border-gray-200 p-5 hover:border-[#3d9e9e]/40 hover:shadow-md hover:shadow-[#3d9e9e]/5 transition-all block flex flex-col"
         >
             {/* Header */}
             <div className="flex items-start justify-between gap-2 mb-3">
@@ -164,6 +164,9 @@ function JobCard({ job }: { job: Job }) {
                     )}
                 </div>
             )}
+
+            {/* Spacer to push footer down */}
+            <div className="flex-1" />
 
             {/* Footer */}
             <div className="flex items-center justify-between pt-3 border-t border-gray-100">
@@ -222,14 +225,14 @@ export default function AdminJobs({ jobs, filters }: Props) {
 
                     {/* Search */}
                     <form onSubmit={e => { e.preventDefault(); applyFilters({}); }}
-                        className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 h-10 w-64 shadow-sm">
+                        className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 h-10 w-64 shadow-sm focus-within:border-[#3d9e9e] transition-colors">
                         <span className="text-gray-400 flex-shrink-0"><IcoSearch /></span>
                         <input
                             type="text"
                             value={search}
                             onChange={e => setSearch(e.target.value)}
                             placeholder="Search jobs..."
-                            className="bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none border-0 w-full"
+                            className="bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none border-0 w-full focus:outline-none ring-0 focus:ring-0"
                         />
                     </form>
                 </div>

@@ -494,7 +494,7 @@ export default function AdminUsers({ users, filters }: Props) {
                                 value={search}
                                 onChange={e => setSearch(e.target.value)}
                                 placeholder="Search user..."
-                                className="bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none border-0 w-full"
+                                className="bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none border-0 w-full focus:outline-none ring-0 focus:ring-0"
                             />
                         </form>
 
