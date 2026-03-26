@@ -309,6 +309,7 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
 
         // User Management
         Route::get('/users', [UserManagementController::class, 'index'])->name('users.index');
+        Route::get('/users/{user}/profile', [UserManagementController::class, 'show'])->name('users.show');
         Route::delete('/users/{user}', [UserManagementController::class, 'destroy'])->name('users.destroy');
         Route::post('/users/{id}/restore', [UserManagementController::class, 'restore'])->name('users.restore');
         Route::patch('/users/{user}/status', [UserManagementController::class, 'updateStatus'])->name('users.status');

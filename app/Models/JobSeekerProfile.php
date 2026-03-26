@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Schema;
 
 class JobSeekerProfile extends Model
 {
@@ -63,7 +64,15 @@ class JobSeekerProfile extends Model
     protected static function booted()
     {
         static::updated(function ($profile) {
-            if ($profile->isDirty('open_to_work')) {
+            if (!$profile->wasChanged('open_to_work')) {
+                return;
+            }
+
+            if (!Schema::hasTable('user_timeline_events')) {
+                return;
+            }
+
+            try {
                 $status = $profile->open_to_work ? 'Open to Work' : 'Not Open to Work';
                 \App\Models\UserTimelineEvent::create([
                     'user_id' => $profile->user_id,
@@ -73,6 +82,8 @@ class JobSeekerProfile extends Model
                         'status' => $profile->open_to_work ? 'open_to_work' : 'not_open_to_work',
                     ],
                 ]);
+            } catch (\Throwable $e) {
+                // Timeline logging should never block profile/status updates.
             }
         });
     }

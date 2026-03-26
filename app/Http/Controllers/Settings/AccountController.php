@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -18,7 +19,7 @@ class AccountController extends Controller
         $profileFrame = null;
         if ($user->role === 'job_seeker') {
             $user->loadMissing('jobSeekerProfile');
-            $profileFrame = optional($user->jobSeekerProfile)->profile_frame ?? 'default';
+            $profileFrame = $this->resolveProfileFrame(optional($user->jobSeekerProfile));
         }
 
         return Inertia::render('Settings/Account', [
@@ -54,13 +55,13 @@ class AccountController extends Controller
 
             $frame = $validated['profile_frame'] ?? 'default';
 
-            $user->jobSeekerProfile()->updateOrCreate(
-                ['user_id' => $user->id],
-                [
-                    'profile_frame' => $frame,
-                    'open_to_work' => $frame === 'open_to_work',
-                ]
-            );
+            $profileUpdates = $this->framePersistencePayload($frame);
+            if (!empty($profileUpdates)) {
+                $user->jobSeekerProfile()->updateOrCreate(
+                    ['user_id' => $user->id],
+                    $profileUpdates
+                );
+            }
 
             return back()->with('status', 'account-updated');
         }
@@ -88,13 +89,13 @@ class AccountController extends Controller
         if ($user->role === 'job_seeker' && $request->has('profile_frame')) {
             $frame = $request->profile_frame ?? 'default';
 
-            $user->jobSeekerProfile()->updateOrCreate(
-                ['user_id' => $user->id],
-                [
-                    'profile_frame' => $frame,
-                    'open_to_work' => $frame === 'open_to_work',
-                ]
-            );
+            $profileUpdates = $this->framePersistencePayload($frame);
+            if (!empty($profileUpdates)) {
+                $user->jobSeekerProfile()->updateOrCreate(
+                    ['user_id' => $user->id],
+                    $profileUpdates
+                );
+            }
         }
 
         unset($validated['profile_frame']);
@@ -156,5 +157,42 @@ class AccountController extends Controller
         $request->session()->regenerateToken();
 
         return redirect('/');
+    }
+
+    private function framePersistencePayload(string $frame): array
+    {
+        $updates = [];
+
+        if (Schema::hasColumn('job_seeker_profiles', 'profile_frame')) {
+            $updates['profile_frame'] = $frame;
+        }
+
+        if (Schema::hasColumn('job_seeker_profiles', 'open_to_work')) {
+            $updates['open_to_work'] = $frame === 'open_to_work';
+        }
+
+        return $updates;
+    }
+
+    private function resolveProfileFrame($profile): string
+    {
+        if (!$profile) {
+            return 'default';
+        }
+
+        $frameValue = null;
+        if (Schema::hasColumn('job_seeker_profiles', 'profile_frame')) {
+            $frameValue = $profile->profile_frame ?? null;
+        }
+
+        if (in_array($frameValue, ['default', 'open_to_work', 'not_open_to_work'], true)) {
+            return $frameValue;
+        }
+
+        if (Schema::hasColumn('job_seeker_profiles', 'open_to_work')) {
+            return (bool) ($profile->open_to_work ?? false) ? 'open_to_work' : 'default';
+        }
+
+        return 'default';
     }
 }

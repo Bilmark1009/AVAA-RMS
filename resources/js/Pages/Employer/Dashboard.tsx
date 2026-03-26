@@ -27,6 +27,8 @@ interface Props {
     weeklyApplications: { week: string; count: number }[];
     yearlyApplications: { year: string; count: number }[];
     recentJobs: RecentJob[];
+    suspendedJobs: RecentJob[];
+    isSuspended: boolean;
 }
 
 /* ── Icons ─────────────────────────────────────────────────── */
@@ -102,6 +104,7 @@ function StatusBadge({ status }: { status: string }) {
         inactive: { bg: 'bg-gray-100', dot: 'bg-gray-400', text: 'text-gray-600' },
         closed: { bg: 'bg-red-50', dot: 'bg-red-400', text: 'text-red-600' },
         draft: { bg: 'bg-amber-50', dot: 'bg-amber-400', text: 'text-amber-700' },
+        suspended: { bg: 'bg-orange-50', dot: 'bg-orange-400', text: 'text-orange-700' },
     };
     const st = map[s] ?? map.active;
     return (
@@ -427,6 +430,8 @@ export default function EmployerDashboard({
     weeklyApplications,
     yearlyApplications,
     recentJobs,
+    suspendedJobs,
+    isSuspended,
 }: Props) {
     const companyName = profile?.company_name ?? `${user.first_name} ${user.last_name}`;
 
@@ -593,6 +598,76 @@ export default function EmployerDashboard({
                         </div>
                     )}
                 </div>
+
+                {/* ── Suspended Jobs Table ── */}
+                {isSuspended && suspendedJobs.length > 0 && (
+                    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                        {/* header */}
+                        <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+                            <div>
+                                <h2 className="text-xl font-bold text-gray-900">Suspended Jobs</h2>
+                                <p className="text-base text-gray-400">{suspendedJobs.length} suspended job{suspendedJobs.length !== 1 ? 's' : ''}</p>
+                            </div>
+                        </div>
+
+                        {/* table */}
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead>
+                                    <tr className="text-sm uppercase tracking-wider text-gray-400 border-b border-gray-100">
+                                        <th className="px-6 py-3 font-semibold">Job</th>
+                                        <th className="px-6 py-3 font-semibold">Status</th>
+                                        <th className="px-6 py-3 font-semibold">Applications</th>
+                                        <th className="px-6 py-3 font-semibold">Posted</th>
+                                        <th className="px-6 py-3 font-semibold text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-50">
+                                    {suspendedJobs.map(job => (
+                                        <tr key={job.id} className="hover:bg-gray-50/60 transition-colors">
+                                            {/* Job info */}
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-3">
+                                                    <InitialsAvatar name={job.title} color={pickColor(job.title)} />
+                                                    <div className="min-w-0">
+                                                        <p className="text-base font-semibold text-gray-900 truncate">{job.title}</p>
+                                                        <p className="text-sm text-gray-400 truncate">{profile?.company_name ?? 'Company'} · {job.location ?? 'Remote'}</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+
+                                            {/* Status */}
+                                            <td className="px-6 py-4">
+                                                <StatusBadge status={job.status} />
+                                            </td>
+
+                                            {/* Applications */}
+                                            <td className="px-6 py-4 text-base text-gray-600 font-medium">
+                                                {job.applications_count}
+                                            </td>
+
+                                            {/* Posted date */}
+                                            <td className="px-6 py-4 text-base text-gray-500">
+                                                {fmtDate(job.created_at)}
+                                            </td>
+
+                                            {/* Actions */}
+                                            <td className="px-6 py-4 text-right">
+                                                <button
+                                                    onClick={() => alert('Appeal functionality will be available soon. Please contact admin for now.')}
+                                                    className="inline-flex items-center justify-center px-4 py-2 rounded-xl text-sm font-semibold
+                                                               text-white bg-avaa-primary hover:bg-avaa-primary-hover transition-colors"
+                                                >
+                                                    Appeal
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
             </AppLayout>
         </>
     );

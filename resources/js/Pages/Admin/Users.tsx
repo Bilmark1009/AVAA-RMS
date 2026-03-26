@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
 import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
 
@@ -394,11 +394,26 @@ export default function AdminUsers({ users, filters }: Props) {
     const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
     const [detailTarget, setDetailTarget] = useState<User | null>(null);
     const [processingId, setProcessingId] = useState<number | null>(null);
+    const roleDropRef = useRef<HTMLDivElement>(null);
 
     /* ── Persist view mode to localStorage ── */
     useEffect(() => {
         localStorage.setItem('adminUsersViewMode', viewMode);
     }, [viewMode]);
+
+    /* ── Close dropdown on outside click ── */
+    useEffect(() => {
+        if (!roleDropOpen) return;
+
+        function handleClickOutside(e: MouseEvent) {
+            if (roleDropRef.current && !roleDropRef.current.contains(e.target as Node)) {
+                setRoleDropOpen(false);
+            }
+        }
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [roleDropOpen]);
 
     /* ── Filter navigation ── */
     const applyFilters = useCallback((overrides: Partial<{ search: string; role: string; status: string }>) => {
@@ -479,12 +494,12 @@ export default function AdminUsers({ users, filters }: Props) {
                                 value={search}
                                 onChange={e => setSearch(e.target.value)}
                                 placeholder="Search user..."
-                                className="bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none border-0 w-full"
+                                className="bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none border-0 w-full focus:outline-none ring-0 focus:ring-0"
                             />
                         </form>
 
                         {/* Role Dropdown */}
-                        <div className="relative">
+                        <div className="relative" ref={roleDropRef}>
                             <button
                                 onClick={() => setRoleDropOpen(o => !o)}
                                 className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 h-10 text-sm font-semibold text-gray-700 hover:border-[#3d9e9e] hover:text-[#3d9e9e] transition-colors"

@@ -625,7 +625,7 @@ function NewMessageModal({ onClose, onStart }: {
                             value={query}
                             onChange={handleInput}
                             placeholder="Search by email..."
-                            className="flex-1 bg-transparent text-[13.5px] text-avaa-dark placeholder-avaa-muted outline-none border-0"
+                            className="flex-1 bg-transparent text-[13.5px] text-avaa-dark placeholder-avaa-muted outline-none border-0 focus:outline-none ring-0 focus:ring-0"
                         />
                         {loading && (
                             <span className="text-avaa-muted flex-shrink-0"><IcoSpinner /></span>
@@ -1897,7 +1897,7 @@ const [showBlockModal, setShowBlockModal] = useState(false);
                                     value={searchQuery}
                                     onChange={e => handleSidebarSearch(e.target.value)}
                                     placeholder="Search users by email..."
-                                    className="flex-1 bg-transparent text-[13px] text-avaa-dark placeholder-avaa-muted outline-none border-0"
+                                    className="flex-1 bg-transparent text-[13px] text-avaa-dark placeholder-avaa-muted outline-none border-0 focus:outline-none ring-0 focus:ring-0"
                                 />
                                 {searchQuery && (
                                     <button onClick={clearSearch} className="text-avaa-muted hover:text-avaa-dark transition-colors flex-shrink-0">

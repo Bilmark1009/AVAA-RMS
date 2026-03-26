@@ -33,7 +33,8 @@ class DashboardController extends Controller
             ->count();
         $jobsPostedCount = JobListing::where('employer_id', $user->id)->count();
         $applicationsCount = JobApplication::whereHas('jobListing', fn($q) => $q->where('employer_id', $user->id))->count();
-        $totalVisitsCount = JobApplication::count(); // total applications on platform
+        // Count only applications tied to non-deleted jobs.
+        $totalVisitsCount = JobApplication::whereHas('jobListing')->count();
 
         // ── Monthly applications data for chart ─────────────────────────
         $monthlyApplications = [];
@@ -81,6 +82,16 @@ class DashboardController extends Controller
             ->take(6)
             ->get();
 
+        // For suspended users, also show suspended jobs
+        $suspendedJobs = [];
+        if ($user->status === 'suspended') {
+            $suspendedJobs = JobListing::where('employer_id', $user->id)
+                ->where('status', 'suspended')
+                ->withCount('applications')
+                ->latest()
+                ->get();
+        }
+
         return Inertia::render('Employer/Dashboard', [
             'user' => $user,
             'profile' => $user->employerProfile,
@@ -101,6 +112,8 @@ class DashboardController extends Controller
             'weeklyApplications' => $weeklyApplications,
             'yearlyApplications' => $yearlyApplications,
             'recentJobs' => $recentJobs,
+            'suspendedJobs' => $suspendedJobs,
+            'isSuspended' => $user->status === 'suspended',
         ]);
     }
 }

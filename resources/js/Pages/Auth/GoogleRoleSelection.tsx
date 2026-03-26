@@ -9,7 +9,28 @@ interface Props {
 
 export default function GoogleRoleSelection({ googleName, googleEmail, googleAvatar }: Props) {
     const selectRole = (role: 'employer' | 'job_seeker') => {
-        router.post(route('auth.google.role.store'), { role });
+        // Create a form and submit it to ensure proper CSRF handling
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = route('auth.google.role.store');
+        form.style.display = 'none';
+        
+        // Add CSRF token
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = '_token';
+        csrfInput.value = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        form.appendChild(csrfInput);
+        
+        // Add role
+        const roleInput = document.createElement('input');
+        roleInput.type = 'hidden';
+        roleInput.name = 'role';
+        roleInput.value = role;
+        form.appendChild(roleInput);
+        
+        document.body.appendChild(form);
+        form.submit();
     };
 
     return (

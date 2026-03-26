@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\JobSeeker;
 
 use App\Http\Controllers\Controller;
+use App\Models\JobApplication;
 use App\Models\UserDocument;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -18,7 +19,55 @@ class ProfileController extends Controller
      */
     public function show(Request $request): Response
     {
-        $user = $request->user()->load(['jobSeekerProfile', 'workExperiences', 'documents', 'timelineEvents']);
+        $user = $request->user()->load(['jobSeekerProfile', 'workExperiences', 'documents']);
+
+        $placementExperiences = JobApplication::query()
+            ->where('user_id', $user->id)
+            ->whereIn('status', ['hired', 'contract_ended'])
+            ->whereNotNull('hired_at')
+            ->with([
+                'jobListing' => fn($q) => $q->withTrashed()->with('employer.employerProfile'),
+            ])
+            ->orderByDesc('hired_at')
+            ->get()
+            ->map(function (JobApplication $application) {
+                $job = $application->jobListing;
+                $employer = $job?->employer;
+                $companyName = $job?->company_name
+                    ?? $employer?->employerProfile?->company_name
+                    ?? trim(($employer?->first_name ?? '') . ' ' . ($employer?->last_name ?? ''))
+                    ?: 'Unknown Company';
+
+                return [
+                    'id' => 1000000000 + $application->id,
+                    'job_title' => $job?->title ?? 'Deleted Job',
+                    'company' => $companyName,
+                    'employment_type' => $job?->employment_type,
+                    'location' => $job?->location,
+                    'start_date' => optional($application->hired_at)?->toDateString(),
+                    'end_date' => optional($application->contract_ended_at)?->toDateString(),
+                    'is_current' => $application->contract_ended_at === null,
+                    'description' => null,
+                ];
+            });
+
+        $experiences = collect($user->workExperiences)
+            ->map(fn($exp) => [
+                'id' => $exp->id,
+                'job_title' => $exp->job_title,
+                'company' => $exp->company,
+                'employment_type' => $exp->employment_type,
+                'location' => $exp->location,
+                'start_date' => optional($exp->start_date)?->toDateString(),
+                'end_date' => optional($exp->end_date)?->toDateString(),
+                'is_current' => (bool) $exp->is_current,
+                'description' => $exp->description,
+            ])
+            ->merge($placementExperiences)
+            ->sortByDesc(function ($exp) {
+                return ($exp['is_current'] ? 1 : 0) . '|' . ($exp['start_date'] ?? '0000-00-00');
+            })
+            ->values();
 
         $documents = $user->documents
             ->sortByDesc('created_at')
@@ -35,8 +84,7 @@ class ProfileController extends Controller
         return Inertia::render('JobSeeker/Profile', [
             'user' => $user,
             'profile' => $user->jobSeekerProfile,
-            'experiences' => $user->workExperiences,
-            'timelineEvents' => $user->timelineEvents,
+            'experiences' => $experiences,
             'documents' => $documents,
         ]);
     }
@@ -90,16 +138,33 @@ class ProfileController extends Controller
 
         $completeness = $this->calculateCompleteness($request, $resumePath);
 
-        $user->jobSeekerProfile()->create([
-            'professional_title' => $request->professional_title,
-            'city' => $request->city,
-            'state' => $request->state,
-            'country' => $request->country,
-            'years_of_experience' => $request->years_of_experience,
-            'skills' => $request->skills ?? [],
-            'resume_path' => $resumePath,
-            'profile_completeness' => $completeness,
-        ]);
+        // Check if profile already exists, update instead of create
+        $profile = $user->jobSeekerProfile();
+        if ($user->jobSeekerProfile) {
+            // Update existing profile
+            $user->jobSeekerProfile->update([
+                'professional_title' => $request->professional_title,
+                'city' => $request->city,
+                'state' => $request->state,
+                'country' => $request->country,
+                'years_of_experience' => $request->years_of_experience,
+                'skills' => $request->skills ?? [],
+                'resume_path' => $resumePath,
+                'profile_completeness' => $completeness,
+            ]);
+        } else {
+            // Create new profile
+            $profile->create([
+                'professional_title' => $request->professional_title,
+                'city' => $request->city,
+                'state' => $request->state,
+                'country' => $request->country,
+                'years_of_experience' => $request->years_of_experience,
+                'skills' => $request->skills ?? [],
+                'resume_path' => $resumePath,
+                'profile_completeness' => $completeness,
+            ]);
+        }
 
         $user->update(['profile_completed' => true]);
 

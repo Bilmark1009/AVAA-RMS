@@ -32,6 +32,7 @@ interface Props {
     recentUsers: RecentUser[];
     recentJobSeekers: RecentJobSeeker[];
     pendingCount?: number;
+    pendingCountTrend?: number;
 }
 
 /* ── Icons ── */
@@ -325,9 +326,11 @@ function RecentUsersPanel({ users }: { users: RecentUser[] }) {
 
 /* ── Main Page ── */
 export default function AdminDashboard({
-    auth, stats, jobCount, applicationCount, applicationTrends, recentJobs, recentUsers, recentJobSeekers, pendingCount = 0
+    auth, stats, jobCount, applicationCount, applicationTrends, recentJobs, recentUsers, recentJobSeekers, pendingCount = 0, pendingCountTrend = 0
 }: Props) {
     const user = auth.user;
+    const trendDirection = pendingCountTrend >= 0;
+    const trendText = `${trendDirection ? '↑' : '↓'} ${Math.abs(pendingCountTrend)}%`;
 
     return (
         <>
@@ -365,10 +368,10 @@ export default function AdminDashboard({
                     />
                     <StatCard
                         label="Pending Verifications"
-                        value="18,200"
+                        value={pendingCount}
                         sub="Pending verification requests"
-                        trend="↑ +18%"
-                        trendUp={true}
+                        trend={trendText}
+                        trendUp={trendDirection}
                         icon={<IcoEye />}
                     />
                 </div>

@@ -159,14 +159,29 @@ export default function AdminSettingsAccount({ mustVerifyEmail, status, user }: 
         router.post(route('admin.settings.avatar'), fd, {
             forceFormData: true,
             preserveScroll: true,
+            onSuccess: () => {
+                setAvatarPreview(null); // Clear preview to show actual uploaded image
+                setUploadingAvatar(false);
+                // Reload page props to get updated user data
+                router.reload();
+            },
+            onError: () => {
+                setAvatarPreview(null);
+                setUploadingAvatar(false);
+            },
             onFinish: () => setUploadingAvatar(false),
-            onError: () => setAvatarPreview(null),
         });
     };
 
     const handleAvatarRemove = () => {
         setAvatarPreview(null);
-        router.delete(route('admin.settings.avatar.remove'), { preserveScroll: true });
+        router.delete(route('admin.settings.avatar.remove'), { 
+            preserveScroll: true,
+            onSuccess: () => {
+                // Reload page props to get updated user data
+                router.reload();
+            }
+        });
     };
 
     const initials = `${user.first_name[0] ?? ''}${user.last_name[0] ?? ''}`.toUpperCase();

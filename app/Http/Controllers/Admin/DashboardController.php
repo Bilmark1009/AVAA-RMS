@@ -98,6 +98,39 @@ class DashboardController extends Controller
             'pendingCount' => User::where('role', 'employer')
                 ->whereHas('employerProfile', fn($q) => $q->where('is_verified', false))
                 ->count(),
+            'pendingCountTrend' => $this->calculatePendingTrend(),
         ]);
+    }
+
+    /**
+     * Calculate the trend percentage for pending verifications
+     * by comparing current month with previous month
+     */
+    private function calculatePendingTrend(): int
+    {
+        $currentMonth = Carbon::now()->startOfMonth();
+        $previousMonth = $currentMonth->copy()->subMonth();
+
+        $currentPending = User::where('role', 'employer')
+            ->whereHas('employerProfile', fn($q) => $q->where('is_verified', false)
+                ->whereBetween('created_at', [
+                    $currentMonth,
+                    $currentMonth->copy()->endOfMonth(),
+                ]))
+            ->count();
+
+        $previousPending = User::where('role', 'employer')
+            ->whereHas('employerProfile', fn($q) => $q->where('is_verified', false)
+                ->whereBetween('created_at', [
+                    $previousMonth,
+                    $previousMonth->copy()->endOfMonth(),
+                ]))
+            ->count();
+
+        if ($previousPending === 0) {
+            return $currentPending > 0 ? 100 : 0;
+        }
+
+        return (int) round((($currentPending - $previousPending) / $previousPending) * 100);
     }
 }
