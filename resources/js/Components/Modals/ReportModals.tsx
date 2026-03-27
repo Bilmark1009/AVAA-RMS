@@ -284,8 +284,8 @@ export function MessageDetailsModal({ report, onClose, onDecline, onSuspend, onB
                     <div className="flex items-start justify-between mb-6">
                         <div>
                             <div className="flex items-center gap-2 mb-0.5">
-                                <h2 className="text-xl font-bold text-gray-900">{report.employer_name || report.job_title}</h2>
-                                <span className="bg-[#76a09a]/10 text-[#76a09a] text-[10px] font-bold px-2.5 py-1 rounded-full border border-[#76a09a]/20">Employer</span>
+                                <h2 className="text-xl font-bold text-gray-900">{report.employer_name}</h2>
+                                <span className="bg-[#76a09a]/10 text-[#76a09a] text-[10px] font-bold px-2.5 py-1 rounded-full border border-[#76a09a]/20">Reported User</span>
                             </div>
                         </div>
                         <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors p-1 -mt-1 -mr-1">
@@ -312,20 +312,32 @@ export function MessageDetailsModal({ report, onClose, onDecline, onSuspend, onB
 
                     <hr className="border-gray-100 mb-6" />
 
-                    {/* Recruiter Details */}
+                    {/* Reported User Details */}
                     <div className="mb-6">
-                        <h3 className="text-sm font-bold text-gray-700 mb-4">Recruiter Details</h3>
+                        <h3 className="text-sm font-bold text-gray-700 mb-4">Reported User Details</h3>
                         <div className="grid grid-cols-2 gap-x-8 gap-y-4">
-                            <InfoRow label="Title" value={report.employer_name || report.job_title} />
+                            <InfoRow label="Name" value={report.employer_name} />
                             <InfoRow label="Company" value={report.company} />
                         </div>
                     </div>
 
                     <hr className="border-gray-100 mb-6" />
 
-                    {/* Recruiter History */}
+                    {/* Message Content */}
+                    {report.message_content && (
+                        <div className="mb-6">
+                            <h3 className="text-sm font-bold text-gray-700 mb-4">Reported Message</h3>
+                            <div className="bg-gray-50 border border-gray-100 rounded-xl px-5 py-4">
+                                <p className="text-sm text-gray-600 leading-relaxed">{report.message_content}</p>
+                            </div>
+                        </div>
+                    )}
+
+                    <hr className="border-gray-100 mb-6" />
+
+                    {/* User History */}
                     <div className="mb-6">
-                        <h3 className="text-sm font-bold text-gray-700 mb-4">Recruiter History</h3>
+                        <h3 className="text-sm font-bold text-gray-700 mb-4">User History</h3>
                         <div className="border border-gray-100 rounded-xl p-5">
                             <SectionLabel>Previous Reports</SectionLabel>
                             <p className="text-3xl font-bold text-gray-800">{report.previous_reports_count}</p>
