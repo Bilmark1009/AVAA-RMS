@@ -23,6 +23,7 @@ interface User {
     jobSeekerProfile?: JobSeekerProfile | null;
     employerProfile?: EmployerProfile | null;
     job_applications_count?: number;
+    profile_company_name?: string | null; // Direct join fallback
 }
 
 interface Paginator {
@@ -312,7 +313,9 @@ function UserDetailsModal({ user, onClose }: { user: User; onClose: () => void }
                                 <>
                                     <div>
                                         <label className="text-xs text-gray-500 font-semibold uppercase tracking-wide">Company Name</label>
-                                        <p className="text-gray-900 font-medium mt-1">{user.employerProfile?.company_name || 'Not specified'}</p>
+                                        <p className="text-gray-900 font-medium mt-1">
+                                            {user.employerProfile?.company_name || user.profile_company_name || 'Not specified'}
+                                        </p>
                                     </div>
                                     <div>
                                         <label className="text-xs text-gray-500 font-semibold uppercase tracking-wide">Total Applications</label>
@@ -573,7 +576,7 @@ export default function AdminUsers({ users, filters }: Props) {
                                         const initials = `${(user.first_name ?? '').charAt(0)}${(user.last_name ?? '').charAt(0)}`.toUpperCase();
                                         const skills = parseSkills(user.jobSeekerProfile?.skills);
                                         const frame = getProfileFrame(user.jobSeekerProfile?.profile_frame);
-                                        const company = user.employerProfile?.company_name;
+                                        const company = user.employerProfile?.company_name || user.profile_company_name;
                                         const isActive = effectiveStatus(user);
                                         const isDeleted = !!user.deleted_at;
                                         const isBusy = processingId === user.id;

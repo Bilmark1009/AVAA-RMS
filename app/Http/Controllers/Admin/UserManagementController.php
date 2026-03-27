@@ -35,8 +35,15 @@ class UserManagementController extends Controller
                 $inner->whereNotNull('deleted_at')
                     ->orWhere('status', '!=', 'active');
             }))
+            ->leftJoin('employer_profiles', 'users.id', '=', 'employer_profiles.user_id')
             ->with(['jobSeekerProfile:user_id,skills,profile_frame', 'employerProfile:user_id,company_name'])
-            ->withCount('jobApplications')
+            ->select('users.*', 'employer_profiles.company_name as profile_company_name')
+            ->selectSub(function ($query) {
+                $query->selectRaw('COUNT(*)')
+                    ->from('job_applications')
+                    ->join('job_listings', 'job_applications.job_listing_id', '=', 'job_listings.id')
+                    ->whereRaw('job_listings.employer_id = users.id');
+            }, 'job_applications_count')
             ->latest()
             ->paginate(15)
             ->withQueryString();

@@ -78,10 +78,9 @@ class AdminReportController extends Controller
             $employerName = $jobListing?->employer?->employerProfile?->company_name
                 ?? ($jobListing?->employer
                     ? trim(($jobListing->employer->first_name ?? '') . ' ' . ($jobListing->employer->last_name ?? ''))
-                    : ($reportedUser?->employerProfile?->company_name
-                        ?? ($reportedUser
-                            ? trim(($reportedUser->first_name ?? '') . ' ' . ($reportedUser->last_name ?? ''))
-                            : 'Unknown')));
+                    : ($reportedUser
+                        ? trim(($reportedUser->first_name ?? '') . ' ' . ($reportedUser->last_name ?? ''))
+                        : 'Unknown'));
 
             $reporterName = $r->reporter
                 ? "{$r->reporter->first_name} {$r->reporter->last_name}"
@@ -98,8 +97,8 @@ class AdminReportController extends Controller
 
             // Evidence: convert stored paths to public URLs
             $evidenceUrls = collect($r->evidence ?? [])->map(
-                fn ($path) => Storage::url($path)
-            )->values()->all();
+                fn ($path) => asset('storage/' . $path)
+            )->filter(fn ($path) => file_exists(storage_path('app/public/' . $path)))->values()->all();
 
             $activeJobsCount = $jobListing?->employer_id
                 ? JobListing::where('employer_id', $jobListing->employer_id)
@@ -131,13 +130,15 @@ class AdminReportController extends Controller
 
             return [
                 'id'                    => $r->id,
-                'job_title'             => $isJobReport ? ($jobListing?->title ?? 'Unknown') : $employerName,
+                'job_title'             => $isJobReport ? ($jobListing?->title ?? 'Unknown') : 'Message Report',
                 'company'               => $isJobReport
                     ? ($jobListing?->company_name
                         ?? $jobListing?->employer?->employerProfile?->company_name
                         ?? 'N/A')
                     : ($reportedUser?->employerProfile?->company_name ?? 'N/A'),
                 'location'              => $isJobReport ? ($jobListing?->location ?? 'N/A') : 'N/A',
+                'salary_range'          => $isJobReport && $jobListing ? $this->formatSalaryRange($jobListing) : 'N/A',
+                'posted'                => $isJobReport && $jobListing ? $jobListing->created_at->diffForHumans() : 'N/A',
                 'reason_title'          => $reasonLabels[$r->reason] ?? $r->reason,
                 'reason_description'    => $r->details ?? $r->description ?? '',
                 'reported_by'           => $reporterName,
@@ -356,23 +357,32 @@ class AdminReportController extends Controller
             'action_note' => 'nullable|string|max:500',
         ]);
 
-        // Get the reported job if this is a job report
+        // Get the reported user (for message reports) or job owner (for job reports)
+        $user = null;
         $job = $report->jobListing;
-        if (!$job) {
-            return redirect()->back()->with('error', 'This report is not for a job posting.');
+        
+        if ($job) {
+            // This is a job report - ban the employer and deactivate the job
+            $user = $job->employer;
+            if (!$user) {
+                return redirect()->back()->with('error', 'Employer not found.');
+            }
+            
+            // Deactivate the specific reported job
+            $job->update([
+                'status' => 'inactive',
+                'updated_at' => now(),
+            ]);
+        } else {
+            // This is a message report - ban the reported user
+            $user = $report->reportedUser;
+            if (!$user) {
+                return redirect()->back()->with('error', 'Reported user not found.');
+            }
         }
 
-        // Only deactivate the specific reported job
-        $job->update([
-            'status' => 'inactive',
-            'updated_at' => now(),
-        ]);
-
-        // Get the employer for notification
-        $user = $job->employer;
-        if (!$user) {
-            return redirect()->back()->with('error', 'Employer not found.');
-        }
+        // Ban the user
+        $user->update(['status' => 'banned']);
 
         // Update report
         $report->update([
@@ -388,7 +398,7 @@ class AdminReportController extends Controller
             Mail::to($user->email)->send(new AccountBanned(
                 user: $user,
                 report: $report,
-                activeJobsCount: 1,  // Only this one job was banned
+                activeJobsCount: $job ? 1 : 0,  // Job reports: 1 job, Message reports: 0 jobs
                 reportReason: $report->reason_title ?? 'Policy Violation'
             ));
         } catch (\Exception $e) {
@@ -396,7 +406,11 @@ class AdminReportController extends Controller
             Log::error('Failed to send ban email: ' . $e->getMessage());
         }
 
-        return redirect()->back()->with('success', 'Job posting permanently removed successfully. Notification sent to employer.');
+        $message = $job 
+            ? 'Job posting permanently removed and employer account banned successfully. Notification sent to employer.'
+            : 'User account banned successfully. Notification sent to user.';
+
+        return redirect()->back()->with('success', $message);
     }
 
     /**
@@ -411,7 +425,7 @@ class AdminReportController extends Controller
         }
 
         // Only allow approving pending appeals
-        if ($report->appeal_status !== 'pending') {
+        if (!in_array($report->appeal_status, ['pending', 'info_requested'])) {
             return redirect()->back()->with('error', 'This appeal has already been processed.');
         }
 
@@ -494,7 +508,7 @@ class AdminReportController extends Controller
         }
 
         // Only allow rejecting pending appeals
-        if ($report->appeal_status !== 'pending') {
+        if (!in_array($report->appeal_status, ['pending', 'info_requested'])) {
             return redirect()->back()->with('error', 'This appeal has already been processed.');
         }
 
@@ -595,5 +609,27 @@ class AdminReportController extends Controller
             'suspended' => 'Suspended',
             default     => 'Active',
         };
+    }
+
+    /**
+     * Format salary range for display.
+     */
+    private function formatSalaryRange(JobListing $job): string
+    {
+        if (!$job->salary_min && !$job->salary_max) {
+            return 'Not specified';
+        }
+
+        $currency = $job->salary_currency ?? 'USD';
+        $min = $job->salary_min;
+        $max = $job->salary_max;
+
+        if ($min && $max) {
+            return "{$currency} {$min} - {$max}";
+        } elseif ($min) {
+            return "{$currency} {$min}+";
+        } else {
+            return "Up to {$currency} {$max}";
+        }
     }
 }
