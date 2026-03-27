@@ -1,0 +1,94 @@
+name: Deploy to Hostinger (SSH Only)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Build frontend assets
+      run: npm run build
+      
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.2'
+        extensions: bcmath, ctype, fileinfo, json, mbstring, openssl, pdo, tokenizer, xml
+        coverage: none
+        
+    - name: Install Composer dependencies
+      run: composer install --no-dev --optimize-autoloader
+      
+    - name: Create deployment package
+      run: |
+        # Create deploy directory
+        mkdir deploy
+        
+        # Copy essential files
+        cp -r app bootstrap config database public resources routes storage vendor deploy/
+        cp composer.json composer.lock artisan deploy/
+        
+        # Remove development files
+        rm -rf deploy/node_modules deploy/.git deploy/tests deploy/.github deploy/storage/logs/*
+        
+    - name: Deploy via SSH
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.SSH_HOST }}
+        port: ${{ secrets.SSH_PORT }}
+        username: ${{ secrets.SSH_USERNAME }}
+        key: ${{ secrets.SSH_KEY }}
+        source: "deploy/*"
+        target: "/home/u850020960/domains/autopilotvirtual.com/public_html/avaa"
+        strip_components: 1
+        overwrite: true
+        
+    - name: Run post-deployment commands
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.SSH_HOST }}
+        port: ${{ secrets.SSH_PORT }}
+        username: ${{ secrets.SSH_USERNAME }}
+        key: ${{ secrets.SSH_KEY }}
+        script: |
+          cd /home/u850020960/domains/autopilotvirtual.com/public_html/avaa
+          
+          # Clear Laravel caches
+          php artisan route:clear
+          php artisan view:clear
+          php artisan config:clear
+          php artisan cache:clear
+          
+          # Set proper permissions
+          chmod -R 755 storage bootstrap/cache
+          chown -R u850020960:u850020960 storage bootstrap/cache
+          
+          # Optimize for production
+          php artisan config:cache
+          php artisan route:cache
+          php artisan view:cache
+          
+          echo "✅ Deployment completed successfully!"
+          
+    - name: Deployment complete
+      run: |
+        echo "🚀 SSH Deployment completed at $(date)"
+        echo "📊 Frontend assets built and deployed"
+        echo "🗂️ All files uploaded to production"
+        echo "🔧 Dashboard should now show real data instead of 18,200"

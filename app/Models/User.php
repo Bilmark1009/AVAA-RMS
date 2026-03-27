@@ -119,8 +119,10 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasManyThrough(
             JobApplication::class,
             JobListing::class,
-            'employer_id',
-            'job_listing_id'
+            'employer_id',        // Foreign key on JobListing table
+            'job_listing_id',     // Foreign key on JobApplication table
+            'id',                 // Local key on User table
+            'id'                  // Local key on JobListing table
         );
     }
 
