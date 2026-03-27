@@ -38,12 +38,13 @@ class RegisteredUserController extends Controller
     public function storeEmployer(Request $request): RedirectResponse
     {
         $request->validate([
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'username' => 'required|string|max:50|unique:users',
-            'email' => 'required|string|email|max:255|unique:users',
+            'first_name' => ['required', 'string', 'min:2', 'max:50', 'regex:/^[A-Za-z]+$/'],
+            'last_name' => ['required', 'string', 'max:50', 'regex:/^[A-Za-z]+$/'],
+            'username' => 'required|string|max:30|unique:users',
+            'email' => ['required', 'string', 'email', 'min:6', 'max:30', 'unique:users', function($attribute, $value, $fail) { if (str_ends_with($value, '@gmail.com')) { $local = substr($value, 0, strpos($value, '@')); if (strlen($local) < 6 || strlen($local) > 30) { $fail('The email local part must be between 6 and 30 characters.'); } } }],
             'phone' => 'required|string|max:20',
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'password' => ['required', 'string', 'min:8', 'max:30', 'confirmed', Rules\Password::defaults()],
+            'password_confirmation' => 'required|string|max:30',
             'terms'      => 'accepted',
         ]);
 
@@ -73,12 +74,13 @@ class RegisteredUserController extends Controller
     public function storeJobSeeker(Request $request): RedirectResponse
     {
         $request->validate([
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'username' => 'required|string|max:50|unique:users',
-            'email' => 'required|string|email|max:255|unique:users',
+            'first_name' => ['required', 'string', 'min:2', 'max:50', 'regex:/^[A-Za-z]+$/'],
+            'last_name' => ['required', 'string', 'max:50', 'regex:/^[A-Za-z]+$/'],
+            'username' => 'required|string|max:30|unique:users',
+            'email' => ['required', 'string', 'email', 'min:6', 'max:30', 'unique:users', function($attribute, $value, $fail) { if (str_ends_with($value, '@gmail.com')) { $local = substr($value, 0, strpos($value, '@')); if (strlen($local) < 6 || strlen($local) > 30) { $fail('The email local part must be between 6 and 30 characters.'); } } }],
             'phone' => 'required|string|max:20',
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'password' => ['required', 'string', 'min:8', 'max:30', 'confirmed', Rules\Password::defaults()],
+            'password_confirmation' => 'required|string|max:30',
         ]);
 
         $user = User::create([

@@ -4,6 +4,18 @@ import InputError from "@/Components/InputError";
 import AuthLayout from "@/Layouts/AuthLayout";
 import PrivacyPolicyModal from "@/Components/Modals/PrivacyPolicyModal";
 
+const FIELD_LIMITS = {
+    first_name: { min: 2, max: 50 },
+    last_name: { min: 0, max: 50 },
+    username: { min: 0, max: 30 },
+    email: { min: 6, max: 30 },
+    phone: { min: 0, max: 20 }, // unchanged
+    password: { min: 8, max: 30 },
+    password_confirmation: { min: 8, max: 30 },
+} as const;
+
+const NAME_REGEX = /^[A-Za-z]+$/;
+
 interface Props {
     role: "employer" | "job_seeker";
     storeRoute: string;
@@ -58,7 +70,7 @@ export default function RegisterForm({
 }: Props) {
     const [showPrivacy, setShowPrivacy] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
-    const { data, setData, post, processing, errors } = useForm({
+    const { data, setData, post, processing, errors, setError, clearErrors } = useForm({
         first_name: "",
         last_name: "",
         username: "",
@@ -71,8 +83,63 @@ export default function RegisterForm({
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
+
+        const fieldKeys = Object.keys(FIELD_LIMITS) as Array<
+            keyof typeof FIELD_LIMITS
+        >;
+
+        let hasLengthError = false;
+        fieldKeys.forEach((field) => {
+            const min = FIELD_LIMITS[field].min;
+            const max = FIELD_LIMITS[field].max;
+            if ((min && data[field].length < min) || data[field].length > max) {
+                hasLengthError = true;
+                let msg = '';
+                if (data[field].length > max) {
+                    msg = `This field may not be greater than ${max} characters.`;
+                } else if (min && data[field].length < min) {
+                    msg = `This field must be at least ${min} characters.`;
+                }
+                setError(field, msg);
+            } else {
+                clearErrors(field);
+            }
+        });
+
+        if (data.first_name && !NAME_REGEX.test(data.first_name)) {
+            hasLengthError = true;
+            setError("first_name", "First name can contain letters A-Z only.");
+        }
+
+        if (data.last_name && !NAME_REGEX.test(data.last_name)) {
+            hasLengthError = true;
+            setError("last_name", "Last name can contain letters A-Z only.");
+        }
+
+        if (hasLengthError) {
+            return;
+        }
+
         post(storeRoute);
     };
+
+    const hasFieldError =
+        data.first_name.length < FIELD_LIMITS.first_name.min ||
+        data.first_name.length > FIELD_LIMITS.first_name.max ||
+        !NAME_REGEX.test(data.first_name) ||
+        data.last_name.length > FIELD_LIMITS.last_name.max ||
+        !NAME_REGEX.test(data.last_name) ||
+        data.username.length > FIELD_LIMITS.username.max ||
+        data.email.length < FIELD_LIMITS.email.min ||
+        data.email.length > FIELD_LIMITS.email.max ||
+        (data.email.endsWith('@gmail.com') && (data.email.split('@')[0].length < 6 || data.email.split('@')[0].length > 30)) ||
+        data.password.length < FIELD_LIMITS.password.min ||
+        data.password.length > FIELD_LIMITS.password.max ||
+        data.password_confirmation.length < FIELD_LIMITS.password_confirmation.min ||
+        data.password_confirmation.length > FIELD_LIMITS.password_confirmation.max;
+
+    const isAtFieldLimit = (value: string, max: number) => value.length === max;
+    const isBelowFieldMin = (value: string, min: number) => value.length > 0 && value.length < min;
 
     const inputClass =
         "mt-1 block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-base text-avaa-dark placeholder-avaa-muted focus:outline-none focus:ring-2 focus:ring-avaa-primary/40 focus:border-avaa-primary transition";
@@ -93,6 +160,9 @@ export default function RegisterForm({
                             id="first_name"
                             type="text"
                             value={data.first_name}
+                            maxLength={FIELD_LIMITS.first_name.max}
+                            pattern="[A-Za-z]+"
+                            title="Use letters A-Z only"
                             className={inputClass}
                             autoComplete="given-name"
                             autoFocus
@@ -106,6 +176,15 @@ export default function RegisterForm({
                             message={errors.first_name}
                             className="mt-1"
                         />
+                        {isAtFieldLimit(data.first_name, FIELD_LIMITS.first_name.max) && (
+                            <p className="mt-1 text-xs text-avaa-muted">Maximum {FIELD_LIMITS.first_name.max} characters reached.</p>
+                        )}
+                        {isBelowFieldMin(data.first_name, FIELD_LIMITS.first_name.min) && (
+                            <p className="mt-1 text-xs text-red-500">Minimum {FIELD_LIMITS.first_name.min} characters required.</p>
+                        )}
+                        {data.first_name.length > 0 && !NAME_REGEX.test(data.first_name) && (
+                            <p className="mt-1 text-xs text-red-500">Only letters A-Z are allowed.</p>
+                        )}
                     </div>
                     <div>
                         <label
@@ -118,6 +197,9 @@ export default function RegisterForm({
                             id="last_name"
                             type="text"
                             value={data.last_name}
+                            maxLength={FIELD_LIMITS.last_name.max}
+                            pattern="[A-Za-z]+"
+                            title="Use letters A-Z only"
                             className={inputClass}
                             autoComplete="family-name"
                             placeholder="Doe"
@@ -130,6 +212,12 @@ export default function RegisterForm({
                             message={errors.last_name}
                             className="mt-1"
                         />
+                        {isAtFieldLimit(data.last_name, FIELD_LIMITS.last_name.max) && (
+                            <p className="mt-1 text-xs text-avaa-muted">Maximum {FIELD_LIMITS.last_name.max} characters reached.</p>
+                        )}
+                        {data.last_name.length > 0 && !NAME_REGEX.test(data.last_name) && (
+                            <p className="mt-1 text-xs text-red-500">Only letters A-Z are allowed.</p>
+                        )}
                     </div>
                     <div>
                         <label
@@ -142,6 +230,7 @@ export default function RegisterForm({
                             id="username"
                             type="text"
                             value={data.username}
+                            maxLength={FIELD_LIMITS.username.max}
                             className={inputClass}
                             autoComplete="username"
                             placeholder="@johndoe"
@@ -154,6 +243,9 @@ export default function RegisterForm({
                             message={errors.username}
                             className="mt-1"
                         />
+                        {isAtFieldLimit(data.username, FIELD_LIMITS.username.max) && (
+                            <p className="mt-1 text-xs text-avaa-muted">Maximum {FIELD_LIMITS.username.max} characters reached.</p>
+                        )}
                     </div>
                 </div>
 
@@ -170,6 +262,7 @@ export default function RegisterForm({
                             id="email"
                             type="email"
                             value={data.email}
+                            maxLength={FIELD_LIMITS.email.max}
                             className={inputClass}
                             autoComplete="email"
                             placeholder="you@example.com"
@@ -177,6 +270,15 @@ export default function RegisterForm({
                             required
                         />
                         <InputError message={errors.email} className="mt-1" />
+                        {isAtFieldLimit(data.email, FIELD_LIMITS.email.max) && (
+                            <p className="mt-1 text-xs text-avaa-muted">Maximum {FIELD_LIMITS.email.max} characters reached.</p>
+                        )}
+                        {isBelowFieldMin(data.email, FIELD_LIMITS.email.min) && (
+                            <p className="mt-1 text-xs text-red-500">Minimum {FIELD_LIMITS.email.min} characters required.</p>
+                        )}
+                        {data.email.endsWith('@gmail.com') && (data.email.split('@')[0].length < 6 || data.email.split('@')[0].length > 30) && (
+                            <p className="mt-1 text-xs text-red-500">Gmail local part must be 6-30 characters.</p>
+                        )}
                     </div>
                     <div>
                         <label
@@ -189,6 +291,7 @@ export default function RegisterForm({
                             id="phone"
                             type="tel"
                             value={data.phone}
+                            maxLength={FIELD_LIMITS.phone.max}
                             className={inputClass}
                             autoComplete="tel"
                             placeholder="+1 (555) 000-0000"
@@ -196,6 +299,9 @@ export default function RegisterForm({
                             required
                         />
                         <InputError message={errors.phone} className="mt-1" />
+                        {isAtFieldLimit(data.phone, FIELD_LIMITS.phone.max) && (
+                            <p className="mt-1 text-xs text-avaa-muted">Maximum {FIELD_LIMITS.phone.max} characters reached.</p>
+                        )}
                     </div>
                 </div>
 
@@ -212,6 +318,7 @@ export default function RegisterForm({
                             id="password"
                             type={showPassword ? "text" : "password"}
                             value={data.password}
+                            maxLength={FIELD_LIMITS.password.max}
                             className={`${inputClass} pr-10`}
                             autoComplete="new-password"
                             placeholder="Create a strong password"
@@ -264,6 +371,12 @@ export default function RegisterForm({
                     </div>
                     <PasswordStrength password={data.password} />
                     <InputError message={errors.password} className="mt-1" />
+                    {isAtFieldLimit(data.password, FIELD_LIMITS.password.max) && (
+                        <p className="mt-1 text-xs text-avaa-muted">Maximum {FIELD_LIMITS.password.max} characters reached.</p>
+                    )}
+                    {isBelowFieldMin(data.password, FIELD_LIMITS.password.min) && (
+                        <p className="mt-1 text-xs text-red-500">Minimum {FIELD_LIMITS.password.min} characters required.</p>
+                    )}
                 </div>
 
                 {/* Confirm Password */}
@@ -278,6 +391,7 @@ export default function RegisterForm({
                         id="password_confirmation"
                         type={showPassword ? "text" : "password"}
                         value={data.password_confirmation}
+                        maxLength={FIELD_LIMITS.password_confirmation.max}
                         className={inputClass}
                         autoComplete="new-password"
                         placeholder="Confirm your password"
@@ -292,6 +406,12 @@ export default function RegisterForm({
                                 Passwords do not match
                             </p>
                         )}
+                    {isAtFieldLimit(data.password_confirmation, FIELD_LIMITS.password_confirmation.max) && (
+                        <p className="mt-1 text-xs text-avaa-muted">Maximum {FIELD_LIMITS.password_confirmation.max} characters reached.</p>
+                    )}
+                    {isBelowFieldMin(data.password_confirmation, FIELD_LIMITS.password_confirmation.min) && (
+                        <p className="mt-1 text-xs text-red-500">Minimum {FIELD_LIMITS.password_confirmation.min} characters required.</p>
+                    )}
                 </div>
                 <div className="flex items-start gap-3">
                     <input
@@ -323,7 +443,7 @@ export default function RegisterForm({
                 <button
                     type="submit"
                     // The button is disabled if 'processing' is true OR 'terms' is false
-                    disabled={processing || !data.terms}
+                    disabled={processing || !data.terms || hasFieldError}
                     className="w-full py-3 rounded-xl bg-avaa-primary text-white font-semibold text-base hover:bg-avaa-primary-hover focus:outline-none focus:ring-2 focus:ring-avaa-primary/50 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition"
                 >
                     {processing
