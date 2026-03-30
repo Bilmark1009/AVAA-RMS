@@ -175,7 +175,13 @@ export default function EmployerOnboarding({ needsPhone = false }: Props) {
             missingFields = required.filter(field => !String(data[field as keyof typeof data] ?? '').trim());
         } 
         else if (s === 3) {
-            if (!data.fein_tax_id.trim()) missingFields.push('fein_tax_id');
+            if (!data.fein_tax_id.trim()) {
+                missingFields.push('fein_tax_id');
+            } else if (!/^[0-9\-]+$/.test(data.fein_tax_id.trim())) {
+                setError('fein_tax_id', 'FEIN / Tax ID must contain only numbers and dashes.');
+                setStepWarning('FEIN / Tax ID must contain only numbers and dashes (no letters allowed).');
+                return false;
+            }
         } 
         else if (s === 4) {
             if (!data.phone || data.phone.trim().length < 7) missingFields.push('phone');
@@ -397,7 +403,7 @@ export default function EmployerOnboarding({ needsPhone = false }: Props) {
 
                                 <div>
                                     <label className={labelClass}>FEIN / Tax ID *</label>
-                                    <input type="text" value={data.fein_tax_id} onChange={e => setData('fein_tax_id', e.target.value)} className={fieldClass('fein_tax_id')} placeholder="XX-XXXXXXX" required />
+                                    <input type="text" value={data.fein_tax_id} onChange={e => setData('fein_tax_id', e.target.value.replace(/[^0-9\-]/g, ''))} className={fieldClass('fein_tax_id')} placeholder="XX-XXXXXXX" required />
                                     <InputError message={errors.fein_tax_id} className="mt-1" />
                                 </div>
 

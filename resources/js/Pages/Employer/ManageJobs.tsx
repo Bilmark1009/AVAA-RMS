@@ -995,7 +995,7 @@ export default function ManageJobs({ user, profile, jobs, isVerified, pendingInv
     };
 
     return (
-        <AppLayout pageTitle="Job Management" pageSubtitle="Monitor and manage job postings." activeNav="Manage Jobs">
+        <AppLayout pageTitle="Job Management" pageSubtitle="Monigs." activeNav="Manage Jobs">
             <Head title="Manage Jobs" />
 
             {showSuccess && (

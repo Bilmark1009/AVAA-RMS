@@ -114,7 +114,7 @@ function StatCard({ label, value, sub, trend, trendUp, icon }: {
                 </span>
             </div>
             <div>
-                <p className="text-sm text-gray-500 font-medium mb-0.5">{label}</p>
+                <p className={`text-gray-500 font-medium mb-0.5 line-clamp-1 ${label === "Pending Verifications" ? "text-[10px] sm:text-xs md:text-sm" : "text-sm"}`}>{label}</p>
                 <p className="text-3xl font-extrabold text-gray-900 tracking-tight leading-none">
                     {typeof value === 'number' ? value.toLocaleString() : value}
                 </p>

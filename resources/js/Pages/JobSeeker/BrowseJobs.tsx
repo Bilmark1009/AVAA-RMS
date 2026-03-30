@@ -350,13 +350,13 @@ export default function BrowseJobs({ jobs, savedJobIds, filters, availableSkills
                         {/* Company */}
                         {availableCompanies.length > 0 && (
                             <DrawerFilterSection title="Company">
-                                <div className="space-y-3">
+                                <div className="space-y-2 max-h-64 overflow-y-auto pr-1 border border-gray-100 rounded-lg p-2">
                                     {availableCompanies.map(c => (
-                                        <label key={c} className="flex items-center gap-3 cursor-pointer group">
+                                        <label key={c} className="w-full flex items-center gap-2 cursor-pointer group">
                                             <input type="checkbox" checked={selectedCompanies.includes(c)}
                                                 onChange={() => setSelectedCompanies(prev => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c])}
                                                 className="w-4 h-4 rounded border-gray-300 accent-avaa-primary cursor-pointer" />
-                                            <span className="text-sm text-gray-600 group-hover:text-avaa-dark transition-colors">{c}</span>
+                                            <span className="text-sm text-gray-600 group-hover:text-avaa-dark transition-colors truncate">{c}</span>
                                         </label>
                                     ))}
                                 </div>
@@ -472,13 +472,13 @@ export default function BrowseJobs({ jobs, savedJobIds, filters, availableSkills
                         {availableCompanies.length > 0 && (
                             <div>
                                 <p className="text-sm font-bold text-avaa-dark mb-3">Company</p>
-                                <div className="space-y-3">
+                                <div className="space-y-2 max-h-64 overflow-y-auto pr-1 border border-gray-100 rounded-lg p-2">
                                     {availableCompanies.map(c => (
-                                        <label key={c} className="flex items-center gap-3 cursor-pointer group">
+                                        <label key={c} className="w-full flex items-center gap-2 cursor-pointer group">
                                             <input type="checkbox" checked={selectedCompanies.includes(c)}
                                                 onChange={() => setSelectedCompanies(prev => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c])}
                                                 className="w-4 h-4 rounded border-gray-300 accent-avaa-primary cursor-pointer" />
-                                            <span className="text-sm text-gray-600 group-hover:text-avaa-dark transition-colors">{c}</span>
+                                            <span className="text-sm text-gray-600 group-hover:text-avaa-dark transition-colors truncate">{c}</span>
                                         </label>
                                     ))}
                                 </div>
