@@ -1,5 +1,6 @@
 import { Head, router } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
+import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
 import { useState, useEffect, useRef } from 'react';
 
 /* ── Types ── */
@@ -8,6 +9,7 @@ interface JobListing {
     title: string;
     location: string;
     company: string;
+    logo_url?: string | null;
     employment_type?: string | null;
     salary_min?: number | null;
     salary_max?: number | null;
@@ -75,9 +77,13 @@ function SavedJobCard({ job, onApply, onView }: {
 
             {/* Avatar + title */}
             <div className="flex items-start gap-4">
-                <div className={`w-14 h-14 rounded-full ${avatarColor(job.id)} flex items-center justify-center text-white text-base font-bold flex-shrink-0`}>
-                    {getInitials(job.company)}
-                </div>
+                <ImageInitialsFallback
+                    src={job.logo_url}
+                    alt={`${job.company} logo`}
+                    initials={getInitials(job.company)}
+                    className={`w-14 h-14 rounded-full border border-gray-200 flex-shrink-0 overflow-hidden ${job.logo_url ? 'bg-white' : avatarColor(job.id)}`}
+                    textClassName="text-white text-base font-bold flex items-center justify-center"
+                />
                 <div className="min-w-0 flex-1 pt-0.5">
                     <button onClick={onView}
                         className="text-[15px] font-bold text-avaa-dark hover:text-avaa-teal transition-colors text-left leading-snug block w-full whitespace-normal break-words">

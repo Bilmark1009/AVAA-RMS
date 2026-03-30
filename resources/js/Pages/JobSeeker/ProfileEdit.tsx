@@ -203,8 +203,8 @@ export default function ProfileEdit({ user, profile }: Props) {
 
     const certificationLabel = (value: string) => value.split('/').pop() || value;
     const certificationLink = (value: string) =>
-        value.startsWith('/storage/') || value.startsWith('http://') || value.startsWith('https://')
-            ? value
+        value.startsWith('/storage/') || value.startsWith('storage/') || value.startsWith('http://') || value.startsWith('https://')
+            ? `/documents/view?path=${encodeURIComponent(value)}`
             : null;
 
     return (

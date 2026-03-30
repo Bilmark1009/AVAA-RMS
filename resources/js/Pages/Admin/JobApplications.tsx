@@ -160,8 +160,8 @@ function ApplicantProfile({ app, onClose }: { app: Application; onClose: () => v
     const certs = p?.certifications ?? [];
     const certificationLabel = (value: string) => value.split('/').pop() || value;
     const certificationLink = (value: string) =>
-        value.startsWith('/storage/') || value.startsWith('http://') || value.startsWith('https://')
-            ? value
+        value.startsWith('/storage/') || value.startsWith('storage/') || value.startsWith('http://') || value.startsWith('https://')
+            ? `/documents/view?path=${encodeURIComponent(value)}`
             : null;
     const resumePath = app.resume_path ?? p?.resume_path ?? ad?.existing_resume;
     const resumeViewUrl = resumePath ? route('applications.resume', { application: app.id }) : null;
