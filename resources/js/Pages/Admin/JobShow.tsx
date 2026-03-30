@@ -131,17 +131,18 @@ export default function AdminJobShow({ job, appCounts }: Props) {
                         <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
                             <div className="h-20 bg-gradient-to-r from-[#3d9e9e]/70 via-[#3d9e9e] to-emerald-400" />
                             <div className="px-6 pb-6 -mt-8">
-                                <div className="flex items-end gap-4 mb-4">
+                                {/* items-start + pt-8 on title column: title lines stay below the gradient; avatar keeps -mt overlap only */}
+                                <div className="flex items-start gap-4 mb-4">
                                     <ImageInitialsFallback
                                         src={job.logo_url}
                                         alt={job.company}
                                         initials={companyInitials}
-                                        className={`w-16 h-16 rounded-2xl ring-4 ring-white overflow-hidden shadow-md ${job.logo_url ? 'bg-white border border-gray-200' : AVATAR_BG[bgIdx]}`}
+                                        className={`w-16 h-16 rounded-2xl ring-4 ring-white overflow-hidden shadow-md shrink-0 ${job.logo_url ? 'bg-white border border-gray-200' : AVATAR_BG[bgIdx]}`}
                                         imgClassName="w-full h-full object-cover"
                                         textClassName="text-white text-xl font-bold flex items-center justify-center"
                                     />
-                                    <div className="pb-1">
-                                        <h1 className="text-xl font-bold text-gray-900">{job.title}</h1>
+                                    <div className="pb-1 min-w-0 flex-1 pt-8">
+                                        <h1 className="text-xl font-bold text-gray-900 leading-snug">{job.title}</h1>
                                         <div className="flex items-center flex-wrap gap-3 mt-1">
                                             <span className="text-sm text-gray-500 font-medium">{job.company}</span>
                                             <span className="flex items-center gap-1 text-xs text-gray-400"><IcoMapPin />{job.is_remote ? 'Remote' : job.location}</span>

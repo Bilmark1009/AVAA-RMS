@@ -739,25 +739,33 @@ export default function JobApplications({ job, applications, employerAddress }: 
                 </div>
             </div>
 
-            {/* Toolbar */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-                <div className="inline-flex items-center bg-white border border-gray-200 rounded-xl p-1 gap-0.5 shadow-sm flex-wrap">
-                    {(['all', 'pending', 'approved', 'rejected', 'withdrawn'] as const).map(tab => (
-                        <button key={tab} onClick={() => setFilter(tab)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all ${
-                                filter === tab
-                                    ? tab === 'withdrawn' ? 'bg-slate-500 text-white shadow-sm' : 'bg-avaa-dark text-white shadow-sm'
-                                    : 'text-gray-500 hover:text-avaa-dark hover:bg-gray-50'
-                            }`}>
-                            {tab}
-                            <span className={`ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${filter === tab ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'}`}>{counts[tab]}</span>
-                        </button>
-                    ))}
+            {/* Toolbar — status filters scroll horizontally on touch / narrow layouts */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+                <div className="min-w-0 w-full sm:flex-1 sm:min-w-0">
+                    <div
+                        className="overflow-x-auto overflow-y-hidden overscroll-x-contain [touch-action:pan-x] [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+                        role="region"
+                        aria-label="Filter applicants by status"
+                    >
+                        <div className="inline-flex flex-nowrap items-center bg-white border border-gray-200 rounded-xl p-1 gap-0.5 shadow-sm w-max max-w-none">
+                            {(['all', 'pending', 'approved', 'rejected', 'withdrawn'] as const).map(tab => (
+                                <button key={tab} type="button" onClick={() => setFilter(tab)}
+                                    className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all ${
+                                        filter === tab
+                                            ? tab === 'withdrawn' ? 'bg-slate-500 text-white shadow-sm' : 'bg-avaa-dark text-white shadow-sm'
+                                            : 'text-gray-500 hover:text-avaa-dark hover:bg-gray-50'
+                                    }`}>
+                                    {tab}
+                                    <span className={`ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${filter === tab ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'}`}>{counts[tab]}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
                 </div>
-                {/* Search input is now fully responsive on mobile */}
-                <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 h-10 w-full sm:w-64 shadow-sm shrink-0">
+                <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 h-10 w-full sm:w-64 shadow-sm shrink-0 transition-[border-color,box-shadow] focus-within:border-avaa-teal focus-within:ring-2 focus-within:ring-avaa-primary/25">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="text-gray-400 flex-shrink-0"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-                    <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search applicants..." className="text-sm bg-transparent text-gray-900 placeholder-gray-400 font-medium focus:outline-none focus:ring-0 border-0 w-full" />
+                    <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search applicants..."
+                        className="text-sm bg-transparent text-gray-900 placeholder-gray-400 font-medium w-full min-w-0 rounded-none border-0 shadow-none outline-none ring-0 focus:outline-none focus:ring-0 focus:border-0 focus:shadow-none" />
                 </div>
             </div>
 
