@@ -7,7 +7,6 @@ interface Props {
     currentPosition: any;
     pastPlacements: any[];
     manualExperiences: any[];
-    timelineEvents?: any[];
 }
 
 export default function ApplicantTimeline({
@@ -15,7 +14,6 @@ export default function ApplicantTimeline({
     currentPosition,
     pastPlacements = [],
     manualExperiences = [],
-    timelineEvents = [],
 }: Props) {
     if (!applicant) return null;
 
@@ -27,6 +25,36 @@ export default function ApplicantTimeline({
         // If the path already contains 'storage', don't double it
         if (path.includes("storage/")) return path;
         return path.startsWith("http") ? path : `/storage/${path}`;
+    };
+
+    const certificationLabel = (cert: any) => {
+        if (typeof cert === 'string') return cert.split('/').pop() || cert;
+        return cert?.name || cert?.title || 'Certification';
+    };
+
+    const certificationMeta = (cert: any) => {
+        if (typeof cert === 'string') return null;
+        const meta = [cert?.issuer, cert?.year].filter(Boolean).join(' • ');
+        return meta || null;
+    };
+
+    const certificationHref = (cert: any) => {
+        if (typeof cert === 'string') {
+            if (cert.startsWith('/storage/') || cert.startsWith('storage/') || cert.startsWith('http://') || cert.startsWith('https://')) {
+                return `/documents/view?path=${encodeURIComponent(cert)}`;
+            }
+            return null;
+        }
+
+        const url = cert?.url || cert?.file_url || cert?.file_path;
+        if (typeof url === 'string' && url.length > 0) {
+            if (url.startsWith('/storage/') || url.startsWith('storage/') || url.startsWith('http://') || url.startsWith('https://')) {
+                return `/documents/view?path=${encodeURIComponent(url)}`;
+            }
+            return url;
+        }
+
+        return null;
     };
 
     return (
@@ -176,30 +204,11 @@ export default function ApplicantTimeline({
                                     />
                                 ))}
 
-                            {/* Status Change Events */}
-                            {timelineEvents &&
-                                timelineEvents.length > 0 &&
-                                timelineEvents.map((evt: any) => (
-                                    <TimelineItem
-                                        key={`event-${evt.id}`}
-                                        placement={{
-                                            job_title: evt.event_type === 'status_change' ? 'Status Update' : 'Event',
-                                            company: evt.description,
-                                            start_date: new Date(evt.event_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
-                                            end_date: new Date(evt.event_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
-                                            description: "",
-                                        }}
-                                        isCurrent={false}
-                                        isManual={true}
-                                    />
-                                ))}
-
                             {/* Empty State */}
                             {(!currentPosition ||
                                 Object.keys(currentPosition).length === 0) &&
                                 pastPlacements.length === 0 &&
-                                manualExperiences.length === 0 &&
-                                (!timelineEvents || timelineEvents.length === 0) && (
+                                manualExperiences.length === 0 && (
                                     <div className="flex items-center gap-4 ml-6 py-4">
                                         <div className="w-12 h-12 rounded-xl bg-gray-50 border border-dashed border-gray-200 flex items-center justify-center flex-shrink-0">
                                             <svg className="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -278,12 +287,25 @@ export default function ApplicantTimeline({
                                                 </svg>
                                             </div>
                                             <div className="min-w-0">
-                                                <h4 className="text-sm font-bold text-gray-800 break-words">
-                                                    {cert.name}
-                                                </h4>
-                                                <p className="text-xs text-gray-500 break-words mt-0.5">
-                                                    {cert.issuer} • {cert.year}
-                                                </p>
+                                                {certificationHref(cert) ? (
+                                                    <a
+                                                        href={certificationHref(cert) ?? '#'}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        className="text-sm font-bold text-gray-800 break-words hover:text-avaa-teal hover:underline"
+                                                    >
+                                                        {certificationLabel(cert)}
+                                                    </a>
+                                                ) : (
+                                                    <h4 className="text-sm font-bold text-gray-800 break-words">
+                                                        {certificationLabel(cert)}
+                                                    </h4>
+                                                )}
+                                                {certificationMeta(cert) && (
+                                                    <p className="text-xs text-gray-500 break-words mt-0.5">
+                                                        {certificationMeta(cert)}
+                                                    </p>
+                                                )}
                                             </div>
                                         </div>
                                     ),
@@ -294,6 +316,41 @@ export default function ApplicantTimeline({
                                 </p>
                             )}
                         </div>
+                    </div>
+
+                    {/* Documents Section */}
+                    <div className="bg-white rounded-2xl p-5 sm:p-8 border border-gray-200 shadow-sm">
+                        <h3 className="text-lg font-bold text-gray-800 mb-5 sm:mb-6">
+                            Documents
+                        </h3>
+                        {applicant.documents?.length > 0 ? (
+                            <div className="space-y-3">
+                                {applicant.documents.map((doc: any) => (
+                                    <div key={doc.id} className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5">
+                                        <div className="min-w-0">
+                                            <p className="text-sm font-medium text-avaa-dark truncate">{doc.file_name}</p>
+                                            <p className="text-xs text-avaa-muted mt-0.5">{doc.document_type ?? 'Document'}</p>
+                                        </div>
+                                        {doc.view_url ? (
+                                            <a
+                                                href={doc.view_url}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="text-xs font-semibold text-avaa-teal hover:underline flex-shrink-0"
+                                            >
+                                                View
+                                            </a>
+                                        ) : (
+                                            <span className="text-xs text-gray-400 flex-shrink-0">Unavailable</span>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-sm text-gray-400 italic">
+                                No documents uploaded yet.
+                            </p>
+                        )}
                     </div>
 
                     {/* Portfolio & Projects Section */}
@@ -392,9 +449,9 @@ export default function ApplicantTimeline({
                                 </div>
                             ))}
                         </div>
-                        {applicant.resume_path ? (
+                        {(applicant.resume_download_url || applicant.resume_path) ? (
                             <a
-                                href={formatUrl(applicant.resume_path) ?? "#"}
+                                href={applicant.resume_download_url ?? formatUrl(applicant.resume_path) ?? "#"}
                                 download={`${applicant.full_name.replace(/\s+/g, "_")}_Resume.pdf`}
                                 className="w-full mt-6 py-3 bg-avaa-teal text-white text-xs font-bold rounded-xl shadow-sm hover:bg-opacity-90 transition-all uppercase tracking-widest flex items-center justify-center no-underline text-center"
                             >

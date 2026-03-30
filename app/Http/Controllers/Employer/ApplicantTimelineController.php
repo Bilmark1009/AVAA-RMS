@@ -21,10 +21,12 @@ class ApplicantTimelineController extends Controller
         $user->load([
             'jobSeekerProfile', 
             'timelineEvents',
+            'documents',
+            'workExperiences',
         ]);
 
         // Fetch system-verified placements via job_applications
-        $applications = JobApplication::with(['jobListing.company'])
+        $applications = JobApplication::with(['jobListing.employer'])
             ->where('user_id', $user->id)
             ->whereNotNull('hired_at')
             ->orderBy('hired_at', 'desc')
@@ -61,6 +63,16 @@ class ApplicantTimelineController extends Controller
                 // Projects & Certifications
                 'projects' => $user->jobSeekerProfile?->projects ?? [], 
                 'certifications' => $user->jobSeekerProfile?->certifications ?? [],
+                'documents' => $user->documents
+                    ->sortByDesc('created_at')
+                    ->values()
+                    ->map(fn($doc) => [
+                        'id' => $doc->id,
+                        'file_name' => $doc->file_name,
+                        'document_type' => $doc->document_type,
+                        'view_url' => route('documents.view', ['path' => $doc->file_path]),
+                    ])
+                    ->all(),
                 
                 'availability' => [
                     'weekly_hours' => $user->jobSeekerProfile?->weekly_hours ?? 'No data available',
@@ -173,7 +185,9 @@ class ApplicantTimelineController extends Controller
      */
     public function show(Request $request, JobApplication $application): Response
     {
-        abort_if($application->jobListing->employer_id !== $request->user()->id, 403);
+        $job = $application->jobListing;
+
+        abort_if(!$job || !$job->isAccessibleBy($request->user()), 403);
 
         $application->load(['user.jobSeekerProfile', 'user.timelineEvents', 'user.workExperiences', 'user.documents','jobListing']);
 
@@ -216,7 +230,7 @@ class ApplicantTimelineController extends Controller
         }
 
         // Fetch system-verified placements via job_applications
-        $applications = JobApplication::with(['jobListing.company', 'jobListing.employer'])
+        $applications = JobApplication::with(['jobListing.employer'])
             ->where('user_id', $user->id)
             ->whereNotNull('hired_at')
             ->orderBy('hired_at', 'desc')
@@ -233,6 +247,7 @@ class ApplicantTimelineController extends Controller
                 'title' => $profile?->professional_title,
                 'about' => $profile?->about, 
                 'resume_path' => $resumePath,
+                'resume_download_url' => $resumePath ? route('applications.resume', ['application' => $application->id, 'download' => 1]) : null,
                 'location' => $profile 
                     ? trim(($profile->city ?? '') . ', ' . ($profile->state ?? '') . ', ' . ($profile->country ?? ''), ', ')
                     : 'Location not provided',
@@ -246,6 +261,18 @@ class ApplicantTimelineController extends Controller
                         'field' => $profile->field_of_study,
                     ]
                 ] : [],
+                'certifications' => $profile?->certifications ?? [],
+                'projects' => $profile?->projects ?? [],
+                'documents' => $user->documents
+                    ->sortByDesc('created_at')
+                    ->values()
+                    ->map(fn($doc) => [
+                        'id' => $doc->id,
+                        'file_name' => $doc->file_name,
+                        'document_type' => $doc->document_type,
+                        'view_url' => route('documents.view', ['path' => $doc->file_path]),
+                    ])
+                    ->all(),
 
                 'is_open_to_work' => $profile?->is_open_to_work ?? true,
                 'availability' => [

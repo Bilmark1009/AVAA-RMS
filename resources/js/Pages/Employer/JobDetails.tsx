@@ -1,6 +1,7 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import { useState, useRef, useEffect } from 'react';
+import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
 
 /* ── Types ── */
 interface JobListing {
@@ -29,6 +30,7 @@ interface JobListing {
     work_arrangement?: string;
     views_count?: number;
     clicks_count?: number;
+    logo_url?: string | null;
     hiring_team?: { id: number | null; name: string; role: string; status: string; avatar?: string | null; email?: string }[];
 }
 
@@ -358,9 +360,13 @@ export default function JobDetails({ user, profile, job, isVerified }: Props) {
                     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6">
                         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
                             <div className="flex items-start gap-3 sm:gap-4 min-w-0">
-                                <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl ${avatarColor(job.id)} flex items-center justify-center text-white text-lg sm:text-xl font-bold flex-shrink-0 shadow-sm`}>
-                                    {getInitials(job.company || job.title)}
-                                </div>
+                                <ImageInitialsFallback
+                                    src={job.logo_url}
+                                    alt={`${job.company} logo`}
+                                    initials={getInitials(job.company || job.title)}
+                                    className={`w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl overflow-hidden flex-shrink-0 shadow-sm ${job.logo_url ? 'bg-white border border-gray-200' : avatarColor(job.id)}`}
+                                    textClassName="text-white text-lg sm:text-xl font-bold flex items-center justify-center"
+                                />
                                 <div className="min-w-0 flex-1">
                                     <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 leading-tight break-words">{job.title}</h1>
                                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-sm text-gray-400">

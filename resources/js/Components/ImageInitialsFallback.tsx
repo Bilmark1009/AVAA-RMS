@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface ImageInitialsFallbackProps {
     src?: string | null;
@@ -20,6 +20,11 @@ export default function ImageInitialsFallback({
     imgClassName = 'w-full h-full object-cover',
 }: ImageInitialsFallbackProps) {
     const [hasError, setHasError] = useState(false);
+
+    useEffect(() => {
+        setHasError(false);
+    }, [src]);
+
     const showImage = Boolean(src) && !hasError;
 
     return (

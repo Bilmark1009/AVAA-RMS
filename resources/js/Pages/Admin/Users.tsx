@@ -560,7 +560,14 @@ export default function AdminUsers({ users, filters }: Props) {
 
                         /* ── LIST VIEW (TABLE) ── */
                         <div className="overflow-x-auto">
-                            <table className="w-full text-sm min-w-[700px]">
+                            <table className="w-full text-sm min-w-[700px] table-fixed">
+                                <colgroup>
+                                    <col className="w-[38%]" />
+                                    <col className="w-[24%]" />
+                                    <col className="w-[12%]" />
+                                    <col className="w-[16%]" />
+                                    <col className="w-[10%]" />
+                                </colgroup>
                                 <thead>
                                     <tr className="border-b border-gray-100">
                                         {['User', 'Skills / Company', 'Status', 'Joined Date', ''].map(h => (
@@ -585,7 +592,7 @@ export default function AdminUsers({ users, filters }: Props) {
                                             <tr key={user.id} className={`transition-colors ${isDeleted ? 'opacity-60 bg-gray-50/60' : 'hover:bg-gray-50/50'}`}>
 
                                                 {/* User */}
-                                                <td className="px-6 py-4">
+                                                <td className="px-6 py-4 min-w-0">
                                                     <div className="flex items-center gap-3">
                                                         <div className="relative">
                                                             <ImageInitialsFallback
@@ -600,31 +607,31 @@ export default function AdminUsers({ users, filters }: Props) {
                                                             </span>
                                                         </div>
 
-                                                        <div className="min-w-0">
+                                                        <div className="min-w-0 flex-1">
                                                             <p className="font-semibold text-gray-800 leading-tight truncate">
                                                                 {user.first_name} {user.last_name}
                                                                 {isDeleted && (
                                                                     <span className="ml-2 text-[10px] font-bold text-red-400 bg-red-50 px-1.5 py-0.5 rounded-full">DELETED</span>
                                                                 )}
                                                             </p>
-                                                            <p className="text-xs text-gray-400 truncate mt-0.5">{user.email}</p>
+                                                            <p className="text-xs text-gray-400 truncate mt-0.5 max-w-full">{user.email}</p>
                                                         </div>
                                                     </div>
                                                 </td>
 
                                                 {/* Skills / Company */}
-                                                <td className="px-6 py-4">
+                                                <td className="px-6 py-4 min-w-0">
                                                     {user.role === 'job_seeker' && skills.length > 0 ? (
-                                                        <div className="flex flex-wrap gap-1">
+                                                        <div className="flex flex-wrap gap-1 overflow-hidden">
                                                             {skills.slice(0, 3).map(s => (
-                                                                <span key={s} className="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 text-xs font-medium">{s}</span>
+                                                                <span key={s} className="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 text-xs font-medium truncate max-w-full">{s}</span>
                                                             ))}
                                                             {skills.length > 3 && (
                                                                 <span className="px-2 py-1 rounded-lg bg-gray-100 text-gray-400 text-xs font-medium">+{skills.length - 3}</span>
                                                             )}
                                                         </div>
                                                     ) : company ? (
-                                                        <span className="px-2.5 py-1 rounded-lg bg-[#e8f4f4] text-[#3d9e9e] text-xs font-medium">{company}</span>
+                                                        <span className="inline-block px-2.5 py-1 rounded-lg bg-[#e8f4f4] text-[#3d9e9e] text-xs font-medium truncate max-w-full align-top">{company}</span>
                                                     ) : (
                                                         <span className="text-gray-300 text-xs">—</span>
                                                     )}
