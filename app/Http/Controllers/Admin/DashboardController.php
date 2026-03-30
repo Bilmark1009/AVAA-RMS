@@ -16,8 +16,9 @@ class DashboardController extends Controller
     {
         // ── Monthly application trends (last 6 months) ──
         $trends = [];
+        $now = Carbon::now();
         for ($i = 5; $i >= 0; $i--) {
-            $month = Carbon::now()->subMonths($i)->startOfMonth();
+            $month = $now->copy()->subMonths($i)->startOfMonth();
             $trends[] = [
                 'month' => $month->format('M'),
                 'count' => JobApplication::whereBetween('created_at', [
