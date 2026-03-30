@@ -23,6 +23,7 @@ interface ApplicationUser {
     profile_frame?: 'default' | 'open_to_work' | 'not_open_to_work' | null;
     profile?: {
         profile_frame?: 'default' | 'open_to_work' | 'not_open_to_work' | null;
+        about?: string;
         professional_title?: string;
         current_job_title?: string;
         current_company?: string;
@@ -30,6 +31,13 @@ interface ApplicationUser {
         state?: string;
         country?: string;
         skills?: string[];
+        certifications?: string[];
+        documents?: Array<{
+            id: number;
+            file_name: string;
+            document_type?: string;
+            view_url?: string;
+        }>;
         resume_path?: string;
     } | null;
 }
@@ -461,9 +469,16 @@ function ApplicantModal({ app, jobId, onClose, onReject, onApprove }: {
 
     const u = app.user;
     const ad = app.application_data;
-    const fullName = (ad?.full_name) ?? `${u.first_name} ${u.last_name}`;
+    const fullName = `${u.first_name} ${u.last_name}`;
     const initials = getInitials(u.first_name, u.last_name);
     const frame = getProfileFrame(u.profile_frame ?? u.profile?.profile_frame);
+    const certifications = u.profile?.certifications ?? [];
+    const documents = u.profile?.documents ?? [];
+    const certificationLabel = (value: string) => value.split('/').pop() || value;
+    const certificationLink = (value: string) =>
+        value.startsWith('/storage/') || value.startsWith('storage/') || value.startsWith('http://') || value.startsWith('https://')
+            ? `/documents/view?path=${encodeURIComponent(value)}`
+            : null;
     const resumePath = (app.resume_path) ?? (u.profile?.resume_path) ?? (ad?.existing_resume);
     const resumeName = resumePath ? resumePath.split('/').pop() : null;
     const resumeViewUrl = resumePath ? route('applications.resume', { application: app.id }) : null;
@@ -528,9 +543,9 @@ function ApplicantModal({ app, jobId, onClose, onReject, onApprove }: {
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
                             <div><p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Full Name</p><p className="text-sm font-semibold text-avaa-dark mt-0.5 truncate">{fullName}</p></div>
-                            <div><p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Email</p><p className="text-sm font-semibold text-avaa-dark mt-0.5 break-all">{(ad?.email) ?? u.email}</p></div>
-                            <div><p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Phone Number</p><p className="text-sm font-semibold text-avaa-dark mt-0.5">{(ad?.phone) ?? (u.phone) ?? '—'}</p></div>
-                            <div><p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Location</p><p className="text-sm font-semibold text-avaa-dark mt-0.5">{((ad?.location) ?? [u.profile?.city, u.profile?.state, u.profile?.country].filter(Boolean).join(', ')) || '—'}</p></div>
+                            <div><p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Email</p><p className="text-sm font-semibold text-avaa-dark mt-0.5 break-all">{u.email}</p></div>
+                            <div><p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Phone Number</p><p className="text-sm font-semibold text-avaa-dark mt-0.5">{u.phone ?? ad?.phone ?? '—'}</p></div>
+                            <div><p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Location</p><p className="text-sm font-semibold text-avaa-dark mt-0.5">{([u.profile?.city, u.profile?.state, u.profile?.country].filter(Boolean).join(', ')) || ad?.location || '—'}</p></div>
                         </div>
                     </div>
 
@@ -541,16 +556,60 @@ function ApplicantModal({ app, jobId, onClose, onReject, onApprove }: {
                             <h4 className="text-sm font-bold text-avaa-dark">Professional Experience</h4>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
-                            <div><p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Current Job Title</p><p className="text-sm font-semibold text-avaa-dark mt-0.5">{(ad?.current_job_title) ?? (u.profile?.current_job_title) ?? '—'}</p></div>
-                            <div><p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Company</p><p className="text-sm font-semibold text-avaa-dark mt-0.5">{(ad?.current_company) ?? (u.profile?.current_company) ?? '—'}</p></div>
+                            <div><p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Current Job Title</p><p className="text-sm font-semibold text-avaa-dark mt-0.5">{(u.profile?.current_job_title) ?? (ad?.current_job_title) ?? '—'}</p></div>
+                            <div><p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Company</p><p className="text-sm font-semibold text-avaa-dark mt-0.5">{(u.profile?.current_company) ?? (ad?.current_company) ?? '—'}</p></div>
                         </div>
 
-                        {((ad?.skills?.length) ?? (u.profile?.skills?.length) ?? 0) > 0 && (
+                        {((u.profile?.skills?.length) ?? (ad?.skills?.length) ?? 0) > 0 && (
                             <div className="mt-5">
                                 <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-2">Skills & Expertise</p>
                                 <div className="flex flex-wrap gap-2">
-                                    {((ad?.skills) ?? (u.profile?.skills) ?? []).map((s: string) => (
+                                    {((u.profile?.skills) ?? (ad?.skills) ?? []).map((s: string) => (
                                         <span key={s} className="px-3 py-1 bg-avaa-primary-light text-avaa-teal text-xs font-semibold rounded-full border border-avaa-primary/20">{s}</span>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {certifications.length > 0 && (
+                            <div className="mt-5">
+                                <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-2">Certifications</p>
+                                <div className="flex flex-wrap gap-2">
+                                    {certifications.map((cert) => (
+                                        certificationLink(cert) ? (
+                                            <a
+                                                key={cert}
+                                                href={certificationLink(cert) ?? '#'}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="px-3 py-1 bg-amber-50 text-amber-700 text-xs font-semibold rounded-full border border-amber-100 hover:underline"
+                                            >
+                                                {certificationLabel(cert)}
+                                            </a>
+                                        ) : (
+                                            <span key={cert} className="px-3 py-1 bg-amber-50 text-amber-700 text-xs font-semibold rounded-full border border-amber-100">
+                                                {certificationLabel(cert)}
+                                            </span>
+                                        )
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {documents.length > 0 && (
+                            <div className="mt-5">
+                                <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-2">Documents</p>
+                                <div className="space-y-2">
+                                    {documents.map((doc) => (
+                                        <div key={doc.id} className="flex items-center justify-between gap-3 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
+                                            <div className="min-w-0">
+                                                <p className="text-xs font-medium text-avaa-dark truncate">{doc.file_name}</p>
+                                                <p className="text-[10px] text-gray-500 mt-0.5">{doc.document_type ?? 'Document'}</p>
+                                            </div>
+                                            {doc.view_url && (
+                                                <a href={doc.view_url} target="_blank" rel="noreferrer" className="text-xs font-semibold text-avaa-teal hover:underline flex-shrink-0">View</a>
+                                            )}
+                                        </div>
                                     ))}
                                 </div>
                             </div>
@@ -666,6 +725,22 @@ export default function JobApplications({ job, applications, employerAddress }: 
     const [approveApp, setApproveApp] = useState<Application | null>(null);
     const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'withdrawn'>('all');
     const [search, setSearch] = useState('');
+
+    useEffect(() => {
+        const refreshApplications = () => {
+            router.reload({
+                only: ['applications'],
+            });
+        };
+
+        const timer = window.setInterval(refreshApplications, 30000);
+        window.addEventListener('focus', refreshApplications);
+
+        return () => {
+            window.clearInterval(timer);
+            window.removeEventListener('focus', refreshApplications);
+        };
+    }, []);
 
     const filtered = applications.filter(a => {
         const matchFilter = filter === 'all' || a.status === filter;

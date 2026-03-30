@@ -150,6 +150,10 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
     Route::get('/applications/{application}/resume', [JobApplicationController::class, 'resume'])
         ->name('applications.resume');
 
+    // Shared document/certificate file viewer endpoint for profile links.
+    Route::get('/documents/view', [DocumentsController::class, 'viewByPath'])
+        ->name('documents.view');
+
     // ── Settings (shared across all roles) ───────────────────────────────────
     Route::prefix('settings')->name('settings.')->group(function () {
 

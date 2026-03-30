@@ -2,6 +2,7 @@ import { Head, Link } from '@inertiajs/react';
 import { useState, useEffect, useRef } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
 import EmployerOnboarding from '@/Components/Modals/EmployerOnboarding';
+import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
 
 /* ── Types ─────────────────────────────────────────────────── */
 interface RecentJob {
@@ -11,6 +12,7 @@ interface RecentJob {
     status: string;
     applications_count: number;
     created_at: string;
+    logo_url?: string | null;
 }
 
 interface Props {
@@ -119,9 +121,29 @@ function StatusBadge({ status }: { status: string }) {
 function InitialsAvatar({ name, color }: { name: string; color: string }) {
     const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
     return (
-        <span className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0 ${color}`}>
-            {initials}
-        </span>
+        <ImageInitialsFallback
+            src={null}
+            alt={name}
+            initials={initials}
+            className={`w-9 h-9 rounded-full overflow-hidden flex-shrink-0 ${color}`}
+            fallbackClassName={`${color} flex items-center justify-center`}
+            textClassName="text-white text-sm font-bold"
+        />
+    );
+}
+
+function LogoAvatar({ name, color, logoUrl }: { name: string; color: string; logoUrl?: string | null }) {
+    const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+
+    return (
+        <ImageInitialsFallback
+            src={logoUrl}
+            alt={`${name} logo`}
+            initials={initials}
+            className={`w-9 h-9 rounded-full overflow-hidden flex-shrink-0 ${logoUrl ? 'bg-white' : color}`}
+            fallbackClassName={`${color} flex items-center justify-center`}
+            textClassName="text-white text-sm font-bold"
+        />
     );
 }
 
@@ -556,7 +578,7 @@ export default function EmployerDashboard({
                                             {/* Job info */}
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
-                                                    <InitialsAvatar name={job.title} color={pickColor(job.title)} />
+                                                    <LogoAvatar name={job.title} color={pickColor(job.title)} logoUrl={job.logo_url} />
                                                     <div className="min-w-0">
                                                         <p className="text-base font-semibold text-gray-900 truncate">{job.title}</p>
                                                         <p className="text-sm text-gray-400 truncate">{profile?.company_name ?? 'Company'} · {job.location ?? 'Remote'}</p>
@@ -628,7 +650,7 @@ export default function EmployerDashboard({
                                             {/* Job info */}
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
-                                                    <InitialsAvatar name={job.title} color={pickColor(job.title)} />
+                                                    <LogoAvatar name={job.title} color={pickColor(job.title)} logoUrl={job.logo_url} />
                                                     <div className="min-w-0">
                                                         <p className="text-base font-semibold text-gray-900 truncate">{job.title}</p>
                                                         <p className="text-sm text-gray-400 truncate">{profile?.company_name ?? 'Company'} · {job.location ?? 'Remote'}</p>
