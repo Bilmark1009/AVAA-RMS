@@ -764,8 +764,8 @@ function JobFormModal({ mode, job, companyName, onClose }: {
                                     <label className={lbl}>Skills / Tags</label>
                                     <div className="relative">
                                         <div className="flex gap-2">
-                                            <input value={skillInput} onChange={e => setSkillInput(e.target.value)} onFocus={() => setSkillDropOpen(true)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSkill(skillInput); } }} placeholder="Search or type a skill..." className={`${inp} flex-1`} />
-                                            <button type="button" onClick={() => addSkill(skillInput)} className="px-3 py-2 bg-[#6D9886] hover:bg-[#5a8371] text-white text-xs font-semibold rounded-xl transition-colors">Add</button>
+                                            <input value={skillInput} onChange={e => setSkillInput(e.target.value)} onFocus={() => setSkillDropOpen(true)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSkill(skillInput); setSkillDropOpen(false); } }} placeholder="Search or type a skill..." className={`${inp} flex-1`} />
+                                            <button type="button" onClick={() => { addSkill(skillInput); setSkillDropOpen(false); }} className="px-3 py-2 bg-[#6D9886] hover:bg-[#5a8371] text-white text-xs font-semibold rounded-xl transition-colors">Add</button>
                                         </div>
                                         {skillDropOpen && filteredSkills.length > 0 && (
                                             <div className="absolute top-full left-0 right-0 mt-1 z-30 bg-white border border-gray-200 rounded-xl shadow-lg max-h-32 overflow-y-auto">
