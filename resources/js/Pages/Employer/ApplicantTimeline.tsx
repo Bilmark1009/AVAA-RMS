@@ -1,4 +1,5 @@
-import { Head, Link } from "@inertiajs/react";
+import { Head, router } from "@inertiajs/react";
+import { useEffect } from "react";
 import AppLayout from "@/Layouts/AppLayout";
 import ImageInitialsFallback from "@/Components/ImageInitialsFallback";
 
@@ -17,14 +18,36 @@ export default function ApplicantTimeline({
 }: Props) {
     if (!applicant) return null;
 
+    useEffect(() => {
+        const timer = window.setInterval(() => {
+            router.reload({
+                only: ["applicant", "currentPosition", "pastPlacements", "manualExperiences"],
+            });
+        }, 15000);
+
+        return () => window.clearInterval(timer);
+    }, []);
+
     const displayName =
         applicant.full_name ?? applicant.name ?? "No Data Available";
 
     const formatUrl = (path?: string | null) => {
         if (!path) return null;
-        // If the path already contains 'storage', don't double it
-        if (path.includes("storage/")) return path;
-        return path.startsWith("http") ? path : `/storage/${path}`;
+        const value = String(path).trim();
+        if (!value) return null;
+        if (value.startsWith("http://") || value.startsWith("https://")) return value;
+        if (value.startsWith("/storage/")) return value;
+        if (value.startsWith("storage/")) return `/${value}`;
+        if (value.startsWith("/public/storage/")) return `/storage/${value.replace("/public/storage/", "")}`;
+        if (value.startsWith("public/storage/")) return `/storage/${value.replace("public/storage/", "")}`;
+        return `/storage/${value.replace(/^\/+/, "")}`;
+    };
+
+    const normalizeExternalUrl = (url?: string | null) => {
+        if (!url) return null;
+        const value = String(url).trim();
+        if (!value) return null;
+        return value.startsWith("http://") || value.startsWith("https://") ? value : `https://${value}`;
     };
 
     const certificationLabel = (cert: any) => {
@@ -40,7 +63,10 @@ export default function ApplicantTimeline({
 
     const certificationHref = (cert: any) => {
         if (typeof cert === 'string') {
-            if (cert.startsWith('/storage/') || cert.startsWith('storage/') || cert.startsWith('http://') || cert.startsWith('https://')) {
+            if (cert.startsWith('http://') || cert.startsWith('https://')) {
+                return cert;
+            }
+            if (cert.startsWith('/storage/') || cert.startsWith('storage/')) {
                 return `/documents/view?path=${encodeURIComponent(cert)}`;
             }
             return null;
@@ -48,7 +74,10 @@ export default function ApplicantTimeline({
 
         const url = cert?.url || cert?.file_url || cert?.file_path;
         if (typeof url === 'string' && url.length > 0) {
-            if (url.startsWith('/storage/') || url.startsWith('storage/') || url.startsWith('http://') || url.startsWith('https://')) {
+            if (url.startsWith('http://') || url.startsWith('https://')) {
+                return url;
+            }
+            if (url.startsWith('/storage/') || url.startsWith('storage/')) {
                 return `/documents/view?path=${encodeURIComponent(url)}`;
             }
             return url;
@@ -87,15 +116,19 @@ export default function ApplicantTimeline({
                                     {displayName}
                                 </h1>
 
-                                {applicant.is_open_to_work ? (
+                                {applicant.activity_status === "currently_working" ? (
+                                    <span className="px-2.5 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-full uppercase tracking-wider whitespace-nowrap">
+                                        Currently Working
+                                    </span>
+                                ) : applicant.activity_status === "open_to_work" ? (
                                     <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-600 text-[10px] font-bold rounded-full uppercase tracking-wider whitespace-nowrap">
                                         Open to Work
                                     </span>
-                                ) : (
+                                ) : applicant.activity_status === "not_open_to_work" ? (
                                     <span className="px-2.5 py-0.5 bg-gray-100 text-gray-500 text-[10px] font-bold rounded-full uppercase tracking-wider whitespace-nowrap">
-                                        Not Available
+                                        Not Open to Work
                                     </span>
-                                )}
+                                ) : null}
                             </div>
 
                             <p className="text-gray-500 font-medium break-words mt-1">
@@ -358,6 +391,30 @@ export default function ApplicantTimeline({
                         <h3 className="text-lg font-bold text-gray-800 mb-5 sm:mb-6">
                             Portfolio & Projects
                         </h3>
+                        <div className="space-y-3 mb-5">
+                            {normalizeExternalUrl(applicant.linkedin_url) && (
+                                <a
+                                    href={normalizeExternalUrl(applicant.linkedin_url) ?? "#"}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="block text-sm font-semibold text-avaa-teal hover:underline break-all"
+                                >
+                                    LinkedIn: {normalizeExternalUrl(applicant.linkedin_url)}
+                                </a>
+                            )}
+
+                            {normalizeExternalUrl(applicant.portfolio_url) && (
+                                <a
+                                    href={normalizeExternalUrl(applicant.portfolio_url) ?? "#"}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="block text-sm font-semibold text-avaa-teal hover:underline break-all"
+                                >
+                                    Portfolio: {normalizeExternalUrl(applicant.portfolio_url)}
+                                </a>
+                            )}
+                        </div>
+
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             {applicant.projects?.length > 0 ? (
                                 applicant.projects.map(
@@ -392,11 +449,11 @@ export default function ApplicantTimeline({
                                         </div>
                                     ),
                                 )
-                            ) : (
+                            ) : !normalizeExternalUrl(applicant.linkedin_url) && !normalizeExternalUrl(applicant.portfolio_url) ? (
                                 <p className="text-sm text-gray-400 col-span-full">
-                                    No Projects Available
+                                    No Portfolio or Projects Available
                                 </p>
-                            )}
+                            ) : null}
                         </div>
                     </div>
                 </div>
@@ -509,10 +566,13 @@ function TimelineItem({ placement, isCurrent, isManual }: any) {
     const title = placement?.job_title || placement?.job_listing?.title;
     const company = placement?.company || placement?.job_listing?.company?.name;
 
-    const dateRange =
-        placement?.is_current || isCurrent
-            ? `${placement?.start_date ?? "N/A"} — Present`
-            : `${placement?.start_date ?? "N/A"} — ${placement?.end_date ?? "N/A"}`;
+    const startDate = placement?.start_date ?? "N/A";
+    const endDate = placement?.end_date ?? "Present";
+    const isOngoing = Boolean(placement?.is_current || isCurrent);
+    const dateRange = isOngoing ? `${startDate} — Present` : `${startDate} — ${endDate}`;
+    const experienceHeadline = isOngoing
+        ? `Currently working at ${title || "No Title Provided"}, ${company || "No Company Provided"}`
+        : `Worked at ${title || "No Title Provided"}, ${company || "No Company Provided"}, ${dateRange}`;
 
     return (
         <div className="relative flex items-start gap-4 sm:gap-6 group">
@@ -539,7 +599,7 @@ function TimelineItem({ placement, isCurrent, isManual }: any) {
                 </div>
 
                 <p className="text-sm font-bold text-avaa-teal mb-3 break-words">
-                    {company || "No Company Provided"}
+                    {experienceHeadline}
                 </p>
 
                 {/* Updated max-w-md to max-w-full to fully utilize available space */}

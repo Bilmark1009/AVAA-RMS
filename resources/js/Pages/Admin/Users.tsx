@@ -6,6 +6,9 @@ import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
 /* ── Types ── */
 interface JobSeekerProfile {
     skills?: string | null;
+    professional_title?: string | null;
+    current_job_title?: string | null;
+    open_to_work?: boolean | null;
     profile_frame?: 'default' | 'open_to_work' | 'not_open_to_work' | null;
 }
 interface EmployerProfile { company_name?: string | null }
@@ -21,9 +24,12 @@ interface User {
     deleted_at: string | null;
     avatar?: string | null;
     jobSeekerProfile?: JobSeekerProfile | null;
+    job_seeker_profile?: JobSeekerProfile | null;
     employerProfile?: EmployerProfile | null;
+    employer_profile?: EmployerProfile | null;
     job_applications_count?: number;
     profile_company_name?: string | null; // Direct join fallback
+    currently_working?: boolean;
 }
 
 interface Paginator {
@@ -133,20 +139,35 @@ function getProfileFrame(frame?: string | null) {
     return frame === 'open_to_work' || frame === 'not_open_to_work' ? frame : 'default';
 }
 
-function profileFrameRingClass(frame?: string | null) {
+function getJobSeekerProfile(user: User): JobSeekerProfile | null {
+    return user.jobSeekerProfile ?? user.job_seeker_profile ?? null;
+}
+
+function getEmployerProfile(user: User): EmployerProfile | null {
+    return user.employerProfile ?? user.employer_profile ?? null;
+}
+
+function profileFrameRingClass(frame?: string | null, currentlyWorking = false) {
+    if (currentlyWorking) return 'ring-2 ring-blue-400';
     if (frame === 'open_to_work') return 'ring-2 ring-emerald-400';
     if (frame === 'not_open_to_work') return 'ring-2 ring-red-400';
     return '';
 }
 
-function profileFrameLabel(frame?: string | null) {
-    if (frame === 'open_to_work') return { text: 'Available', cls: 'bg-emerald-500 text-white', icon: null };
-    if (frame === 'not_open_to_work') return { text: 'Unavailable', cls: 'bg-red-500 text-white', icon: null };
+function profileFrameLabel(user: User) {
+    const jobSeekerProfile = getJobSeekerProfile(user);
+    if (user.currently_working) return { text: 'Working', cls: 'bg-blue-500 text-white', icon: null };
+    if (jobSeekerProfile?.profile_frame === 'open_to_work') {
+        return { text: 'Open to Work', cls: 'bg-emerald-500 text-white', icon: null };
+    }
+    if (jobSeekerProfile?.profile_frame === 'not_open_to_work') {
+        return { text: 'Not Open to Work', cls: 'bg-red-500 text-white', icon: null };
+    }
     return null;
 }
 
-function ProfileFrameBadge({ frame, size = 'sm' }: { frame?: string | null; size?: 'xs' | 'sm' }) {
-    const badge = profileFrameLabel(frame);
+function ProfileFrameBadge({ user, size = 'sm' }: { user: User; size?: 'xs' | 'sm' }) {
+    const badge = profileFrameLabel(user);
     if (!badge) return null;
     const px = size === 'xs' ? 'px-2 py-0.5 text-[8px]' : 'px-2.5 py-0.5 text-[10px]';
     return (
@@ -205,9 +226,12 @@ function DeleteModal({ user, onConfirm, onCancel }: {
 }
 
 function UserDetailsModal({ user, onClose }: { user: User; onClose: () => void }) {
+    const jobSeekerProfile = getJobSeekerProfile(user);
+    const employerProfile = getEmployerProfile(user);
     const initials = `${(user.first_name ?? '').charAt(0)}${(user.last_name ?? '').charAt(0)}`.toUpperCase();
-    const skills = parseSkills(user.jobSeekerProfile?.skills);
-    const frame = getProfileFrame(user.jobSeekerProfile?.profile_frame);
+    const skills = parseSkills(jobSeekerProfile?.skills);
+    const frame = getProfileFrame(jobSeekerProfile?.profile_frame);
+    const activity = profileFrameLabel(user);
     const isActive = effectiveStatus(user) === 'active';
     const roleLabel = user.role === 'job_seeker' ? 'Job Seeker' : user.role === 'employer' ? 'Employer' : user.role;
     const appCount = user.job_applications_count ?? 0;
@@ -232,11 +256,11 @@ function UserDetailsModal({ user, onClose }: { user: User; onClose: () => void }
                             src={user.avatar}
                             alt={initials}
                             initials={initials}
-                            className={`w-14 h-14 sm:w-20 sm:h-20 rounded-full overflow-hidden ${profileFrameRingClass(frame)} ${user.avatar ? 'bg-white border border-gray-200' : 'bg-[#3d9e9e]'}`}
+                            className={`w-14 h-14 sm:w-20 sm:h-20 rounded-full overflow-hidden ${profileFrameRingClass(frame, !!user.currently_working)} ${user.avatar ? 'bg-white border border-gray-200' : 'bg-[#3d9e9e]'}`}
                             textClassName="text-white text-base sm:text-lg font-bold flex items-center justify-center"
                         />
                         <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-20">
-                            {user.role === 'job_seeker' && <ProfileFrameBadge frame={frame} size="xs" />}
+                            {user.role === 'job_seeker' && <ProfileFrameBadge user={user} size="xs" />}
                         </span>
                     </div>
                     <div className="min-w-0 flex-1">
@@ -248,8 +272,8 @@ function UserDetailsModal({ user, onClose }: { user: User; onClose: () => void }
                         </div>
                         <p className="text-gray-500 text-xs sm:text-sm leading-relaxed">
                             {user.role === 'job_seeker'
-                                ? `Job Seeker${profileFrameLabel(frame) ? ` · ${profileFrameLabel(frame)!.text}` : ''}`
-                                : `Employer${user.employerProfile?.company_name ? ` • ${user.employerProfile.company_name}` : ''}`}
+                                ? `Job Seeker${activity ? ` · ${activity.text}` : ''}`
+                                : `Employer${employerProfile?.company_name ? ` • ${employerProfile.company_name}` : ''}`}
                         </p>
                     </div>
                 </div>
@@ -309,7 +333,7 @@ function UserDetailsModal({ user, onClose }: { user: User; onClose: () => void }
                                     <div>
                                         <label className="text-xs text-gray-500 font-semibold uppercase tracking-wide">Company Name</label>
                                         <p className="text-gray-900 font-medium mt-1 text-sm sm:text-base">
-                                            {user.employerProfile?.company_name || user.profile_company_name || 'Not specified'}
+                                            {employerProfile?.company_name || user.profile_company_name || 'Not specified'}
                                         </p>
                                     </div>
                                     <div>
@@ -412,6 +436,15 @@ export default function AdminUsers({ users, filters }: Props) {
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [roleDropOpen]);
+
+    /* ── Keep statuses synced while page is open ── */
+    useEffect(() => {
+        const timer = window.setInterval(() => {
+            router.reload({ only: ['users'] });
+        }, 20000);
+
+        return () => window.clearInterval(timer);
+    }, []);
 
     /* ── Filter navigation ── */
     const applyFilters = useCallback((overrides: Partial<{ search: string; role: string; status: string }>) => {
@@ -575,10 +608,13 @@ export default function AdminUsers({ users, filters }: Props) {
 
                                 <tbody className="divide-y divide-gray-50">
                                     {users.data.map((user, i) => {
+                                        const jobSeekerProfile = getJobSeekerProfile(user);
+                                        const employerProfile = getEmployerProfile(user);
                                         const initials = `${(user.first_name ?? '').charAt(0)}${(user.last_name ?? '').charAt(0)}`.toUpperCase();
-                                        const skills = parseSkills(user.jobSeekerProfile?.skills);
-                                        const frame = getProfileFrame(user.jobSeekerProfile?.profile_frame);
-                                        const company = user.employerProfile?.company_name || user.profile_company_name;
+                                        const professionalTitle = jobSeekerProfile?.professional_title?.trim()
+                                            || jobSeekerProfile?.current_job_title?.trim();
+                                        const frame = getProfileFrame(jobSeekerProfile?.profile_frame);
+                                        const company = employerProfile?.company_name || user.profile_company_name;
                                         const isActive = effectiveStatus(user);
                                         const isDeleted = !!user.deleted_at;
                                         const isBusy = processingId === user.id;
@@ -594,11 +630,11 @@ export default function AdminUsers({ users, filters }: Props) {
                                                                 src={user.avatar}
                                                                 alt={initials}
                                                                 initials={initials}
-                                                                className={`w-9 h-9 rounded-full flex-shrink-0 overflow-hidden ${profileFrameRingClass(frame)} ${user.avatar ? 'bg-white' : AVATAR_BG[i % AVATAR_BG.length]}`}
+                                                                className={`w-9 h-9 rounded-full flex-shrink-0 overflow-hidden ${profileFrameRingClass(frame, !!user.currently_working)} ${user.avatar ? 'bg-white' : AVATAR_BG[i % AVATAR_BG.length]}`}
                                                                 textClassName="text-white text-xs font-bold flex items-center justify-center"
                                                             />
                                                             <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-10">
-                                                                {user.role === 'job_seeker' && <ProfileFrameBadge frame={frame} size="xs" />}
+                                                                {user.role === 'job_seeker' && <ProfileFrameBadge user={user} size="xs" />}
                                                             </span>
                                                         </div>
 
@@ -616,15 +652,12 @@ export default function AdminUsers({ users, filters }: Props) {
 
                                                 {/* Skills / Company */}
                                                 <td className="px-6 py-4 min-w-0">
-                                                    {user.role === 'job_seeker' && skills.length > 0 ? (
-                                                        <div className="flex flex-wrap gap-1 overflow-hidden">
-                                                            {skills.slice(0, 3).map(s => (
-                                                                <span key={s} className="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 text-xs font-medium truncate max-w-full">{s}</span>
-                                                            ))}
-                                                            {skills.length > 3 && (
-                                                                <span className="px-2 py-1 rounded-lg bg-gray-100 text-gray-400 text-xs font-medium">+{skills.length - 3}</span>
-                                                            )}
-                                                        </div>
+                                                    {user.role === 'job_seeker' ? (
+                                                        professionalTitle ? (
+                                                            <span className="inline-block px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 text-xs font-medium truncate max-w-full align-top">{professionalTitle}</span>
+                                                        ) : (
+                                                            <span className="text-gray-300 text-xs">—</span>
+                                                        )
                                                     ) : company ? (
                                                         <span className="inline-block px-2.5 py-1 rounded-lg bg-[#e8f4f4] text-[#3d9e9e] text-xs font-medium truncate max-w-full align-top">{company}</span>
                                                     ) : (
@@ -720,7 +753,7 @@ export default function AdminUsers({ users, filters }: Props) {
                         <div className="p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
                             {users.data.map((user, i) => {
                                 const initials = `${(user.first_name ?? '').charAt(0)}${(user.last_name ?? '').charAt(0)}`.toUpperCase();
-                                const frame = getProfileFrame(user.jobSeekerProfile?.profile_frame);
+                                const frame = getProfileFrame(getJobSeekerProfile(user)?.profile_frame);
                                 const isActive = effectiveStatus(user);
                                 const isDeleted = !!user.deleted_at;
                                 const isBusy = processingId === user.id;
@@ -735,11 +768,11 @@ export default function AdminUsers({ users, filters }: Props) {
                                                     src={user.avatar}
                                                     alt={initials}
                                                     initials={initials}
-                                                    className={`w-10 h-10 rounded-full overflow-hidden ${profileFrameRingClass(frame)} ${user.avatar ? 'bg-white' : AVATAR_BG[i % AVATAR_BG.length]}`}
+                                                    className={`w-10 h-10 rounded-full overflow-hidden ${profileFrameRingClass(frame, !!user.currently_working)} ${user.avatar ? 'bg-white' : AVATAR_BG[i % AVATAR_BG.length]}`}
                                                     textClassName="text-white text-sm font-bold flex items-center justify-center"
                                                 />
                                                 <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-10">
-                                                    {user.role === 'job_seeker' && <ProfileFrameBadge frame={frame} size="xs" />}
+                                                    {user.role === 'job_seeker' && <ProfileFrameBadge user={user} size="xs" />}
                                                 </span>
                                             </div>
 

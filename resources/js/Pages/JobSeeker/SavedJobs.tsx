@@ -9,6 +9,11 @@ interface JobListing {
     location: string;
     company: string;
     logo_url?: string | null;
+    logoUrl?: string | null;
+    logo_path?: string | null;
+    logoPath?: string | null;
+    company_data?: { logo_url?: string | null; logoUrl?: string | null } | null;
+    company_info?: { logo_url?: string | null; logoUrl?: string | null } | null;
     employment_type?: string | null;
     salary_min?: number | null;
     salary_max?: number | null;
@@ -53,6 +58,30 @@ const getInitials = (name: string) =>
         .slice(0, 2)
         .toUpperCase();
 const avatarColor = (id: number) => AVATAR_COLORS[id % AVATAR_COLORS.length];
+
+function normalizeLogoUrl(path?: string | null): string | null {
+    if (!path) return null;
+    const value = String(path).trim();
+    if (!value) return null;
+    if (value.startsWith('http://') || value.startsWith('https://')) return value;
+    if (value.startsWith('/')) return value;
+    if (value.startsWith('storage/')) return `/${value}`;
+    if (value.startsWith('public/storage/')) return `/storage/${value.replace('public/storage/', '')}`;
+    return `/${value}`;
+}
+
+function getJobLogo(job: JobListing): string | null {
+    return (
+        normalizeLogoUrl(job.logo_url)
+        ?? normalizeLogoUrl(job.logoUrl)
+        ?? normalizeLogoUrl(job.logo_path)
+        ?? normalizeLogoUrl(job.logoPath)
+        ?? normalizeLogoUrl(job.company_data?.logo_url)
+        ?? normalizeLogoUrl(job.company_data?.logoUrl)
+        ?? normalizeLogoUrl(job.company_info?.logo_url)
+        ?? normalizeLogoUrl(job.company_info?.logoUrl)
+    );
+}
 
 function timeAgo(dateStr: string) {
     const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
@@ -111,6 +140,7 @@ function SavedJobCard({
     onView: () => void;
     onUnsave: () => void;
 }) {
+    const logoSrc = getJobLogo(job);
     const salary = formatSalary(
         job.salary_min,
         job.salary_max,
@@ -135,10 +165,10 @@ function SavedJobCard({
                 {/* Updated Logo/Avatar Section */}
                 <div className="flex-shrink-0">
                     <ImageInitialsFallback
-                        src={job.logo_url}
+                        src={logoSrc}
                         alt={`${job.company} logo`}
                         initials={getInitials(job.company)}
-                        className={`w-14 h-14 rounded-full border border-gray-200 flex-shrink-0 overflow-hidden ${job.logo_url ? "bg-white" : avatarColor(job.id)}`}
+                        className={`w-14 h-14 rounded-full border border-gray-200 flex-shrink-0 overflow-hidden ${logoSrc ? "bg-white" : avatarColor(job.id)}`}
                         textClassName="text-white text-base font-bold flex items-center justify-center"
                     />
                 </div>
