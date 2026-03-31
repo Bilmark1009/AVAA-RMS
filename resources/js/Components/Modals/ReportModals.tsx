@@ -219,7 +219,7 @@ export function JobDetailsModal({ report, onClose, onDecline, onSuspend, onBan }
 
                         {/* Warning */}
                         {report.previous_reports_count > 0 && (
-                            <div className="bg-gray-50 border border-gray-100 rounded-xl px-5 py-4 mb-6 flex gap-3">
+                            <div className="bg-gray-50 border border-gray-100 rounded-xl px-5 py-4 mb-8 flex gap-3">
                                 <span className="text-gray-400 flex-shrink-0 mt-0.5"><IcoAlert /></span>
                                 <p className="text-xs text-gray-500 leading-relaxed">
                                     This employer has {report.previous_reports_count} previous approved report{report.previous_reports_count > 1 ? 's' : ''}. Approving this report will lower their priority ranking.
@@ -228,17 +228,17 @@ export function JobDetailsModal({ report, onClose, onDecline, onSuspend, onBan }
                         )}
 
                         {/* Actions */}
-                        <div className="flex items-center gap-3 flex-wrap">
-                            <button onClick={onClose} className="px-5 py-2.5 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors">
+                        <div className="mt-2 sm:mt-4 pt-6 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center sm:flex-wrap gap-2 sm:gap-3">
+                            <button onClick={onClose} className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors text-center">
                                 Cancel
                             </button>
-                            <button onClick={() => setActiveModal('decline')} className="px-5 py-2.5 rounded-xl text-sm font-semibold text-red-500 border border-red-200 hover:bg-red-50 transition-colors flex items-center gap-2">
+                            <button onClick={() => setActiveModal('decline')} className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-sm font-semibold text-red-500 border border-red-200 hover:bg-red-50 transition-colors flex items-center justify-center gap-2">
                                 <IcoCircleOff /> Decline Report
                             </button>
-                            <button onClick={() => setActiveModal('suspend')} className="px-5 py-2.5 rounded-xl text-sm font-semibold text-orange-500 border border-orange-200 hover:bg-orange-50 transition-colors flex items-center gap-2">
+                            <button onClick={() => setActiveModal('suspend')} className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-sm font-semibold text-orange-500 border border-orange-200 hover:bg-orange-50 transition-colors flex items-center justify-center gap-2">
                                 <IcoWarning /> Suspend
                             </button>
-                            <button onClick={() => onBan()} className="px-5 py-2.5 rounded-xl text-sm font-semibold text-red-600 border border-red-300 hover:bg-red-50 transition-colors flex items-center gap-2">
+                            <button onClick={() => onBan()} className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-sm font-semibold text-red-600 border border-red-300 hover:bg-red-50 transition-colors flex items-center justify-center gap-2">
                                 <IcoCircleOff /> Ban Account
                             </button>
                         </div>
@@ -347,10 +347,10 @@ export function MessageDetailsModal({ report, onClose, onDecline, onSuspend, onB
                     <hr className="border-gray-100 mb-6" />
 
                     {/* Uploaded Evidences */}
-                    <div className="mb-6">
-                        <h3 className="text-sm font-bold text-gray-700 mb-4">Uploaded Evidences</h3>
+                    <div className="mb-8">
+                        <h3 className="text-sm font-bold text-gray-700 mb-3 sm:mb-4">Uploaded Evidences</h3>
                         {report.evidence && report.evidence.length > 0 ? (
-                            <div className="grid grid-cols-3 gap-3">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
                                 {report.evidence.map((url, i) => (
                                     <a key={i} href={url} target="_blank" rel="noopener noreferrer"
                                         className="block rounded-xl overflow-hidden border border-gray-100 hover:opacity-90 transition-opacity aspect-square">
@@ -359,7 +359,7 @@ export function MessageDetailsModal({ report, onClose, onDecline, onSuspend, onB
                                 ))}
                             </div>
                         ) : (
-                            <div className="border border-gray-100 rounded-xl p-10 flex items-center justify-center text-gray-300">
+                            <div className="border border-gray-100 rounded-xl p-8 sm:p-10 flex items-center justify-center text-gray-300">
                                 <IcoImage />
                             </div>
                         )}
@@ -367,7 +367,7 @@ export function MessageDetailsModal({ report, onClose, onDecline, onSuspend, onB
 
                     {/* Warning */}
                     {report.previous_reports_count > 0 && (
-                        <div className="bg-gray-50 border border-gray-100 rounded-xl px-5 py-4 mb-6 flex gap-3">
+                        <div className="bg-gray-50 border border-gray-100 rounded-xl px-5 py-4 mb-8 flex gap-3">
                             <span className="text-gray-400 flex-shrink-0 mt-0.5"><IcoAlert /></span>
                             <p className="text-xs text-gray-500 leading-relaxed">
                                 This employer has {report.previous_reports_count} previous approved report{report.previous_reports_count > 1 ? 's' : ''}. Approving this report will lower their priority ranking.
@@ -375,18 +375,18 @@ export function MessageDetailsModal({ report, onClose, onDecline, onSuspend, onB
                         </div>
                     )}
 
-                    {/* Actions */}
-                    <div className="flex items-center gap-3 flex-wrap">
-                        <button onClick={onClose} className="px-5 py-2.5 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors">
+                    {/* Actions — separated from content scroll so labels never crowd evidence thumbnails */}
+                    <div className="mt-2 sm:mt-4 pt-6 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center sm:flex-wrap gap-2 sm:gap-3">
+                        <button onClick={onClose} className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors text-center">
                             Cancel
                         </button>
-                        <button onClick={onDecline} className="px-5 py-2.5 rounded-xl text-sm font-semibold text-red-500 border border-red-200 hover:bg-red-50 transition-colors flex items-center gap-2">
+                        <button onClick={onDecline} className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-sm font-semibold text-red-500 border border-red-200 hover:bg-red-50 transition-colors flex items-center justify-center gap-2">
                             <IcoCircleOff /> Decline Report
                         </button>
-                        <button onClick={onSuspend} className="px-5 py-2.5 rounded-xl text-sm font-semibold text-orange-500 border border-orange-200 hover:bg-orange-50 transition-colors flex items-center gap-2">
+                        <button onClick={onSuspend} className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-sm font-semibold text-orange-500 border border-orange-200 hover:bg-orange-50 transition-colors flex items-center justify-center gap-2">
                             <IcoWarning /> Suspend
                         </button>
-                        <button onClick={onBan} className="px-5 py-2.5 rounded-xl text-sm font-semibold text-red-600 border border-red-300 hover:bg-red-50 transition-colors flex items-center gap-2">
+                        <button onClick={onBan} className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-sm font-semibold text-red-600 border border-red-300 hover:bg-red-50 transition-colors flex items-center justify-center gap-2">
                             <IcoCircleOff /> Ban Account
                         </button>
                     </div>

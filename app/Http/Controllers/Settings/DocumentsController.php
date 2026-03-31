@@ -65,6 +65,25 @@ class DocumentsController extends Controller
         ]);
     }
 
+    public function viewByPath(Request $request)
+    {
+        $rawPath = trim((string) $request->query('path', ''));
+        abort_if($rawPath === '' || str_contains($rawPath, '..'), 404);
+
+        $resolved = $this->resolvePathForView($rawPath);
+        abort_unless($resolved !== null, 404);
+
+        ['disk' => $disk, 'path' => $path] = $resolved;
+        $absolutePath = Storage::disk($disk)->path($path);
+        abort_unless(file_exists($absolutePath), 404);
+
+        $fileName = basename($path) ?: 'document';
+
+        return response()->file($absolutePath, [
+            'Content-Disposition' => 'inline; filename="' . $fileName . '"',
+        ]);
+    }
+
     public function destroy(Request $request, UserDocument $document)
     {
         abort_unless($document->user_id === $request->user()->id, 403);
@@ -228,6 +247,46 @@ class DocumentsController extends Controller
                     }
                 }
             }
+        }
+
+        return null;
+    }
+
+    private function resolvePathForView(string $rawPath): ?array
+    {
+        $path = trim($rawPath);
+
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            $parsedPath = parse_url($path, PHP_URL_PATH);
+            $path = is_string($parsedPath) ? $parsedPath : '';
+        }
+
+        if ($path === '') {
+            return null;
+        }
+
+        if (str_starts_with($path, '/storage/')) {
+            $publicPath = ltrim(substr($path, strlen('/storage/')), '/');
+            if (Storage::disk('public')->exists($publicPath)) {
+                return ['disk' => 'public', 'path' => $publicPath];
+            }
+        }
+
+        if (str_starts_with($path, 'storage/')) {
+            $publicPath = ltrim(substr($path, strlen('storage/')), '/');
+            if (Storage::disk('public')->exists($publicPath)) {
+                return ['disk' => 'public', 'path' => $publicPath];
+            }
+        }
+
+        $normalized = ltrim($path, '/');
+
+        if (Storage::disk('public')->exists($normalized)) {
+            return ['disk' => 'public', 'path' => $normalized];
+        }
+
+        if (Storage::disk('local')->exists($normalized)) {
+            return ['disk' => 'local', 'path' => $normalized];
         }
 
         return null;

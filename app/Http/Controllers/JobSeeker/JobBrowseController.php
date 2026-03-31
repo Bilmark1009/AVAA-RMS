@@ -492,18 +492,35 @@ class JobBrowseController extends Controller
             return $trimmed;
         }
 
-        if (str_starts_with($trimmed, '/storage/') || str_starts_with($trimmed, '/logos/')) {
+        if (str_starts_with($trimmed, '/logos/')) {
             return $trimmed;
         }
 
-        if (str_starts_with($trimmed, 'storage/') || str_starts_with($trimmed, 'logos/')) {
+        if (str_starts_with($trimmed, 'logos/')) {
             return '/'.$trimmed;
         }
 
-        if (Storage::disk('public')->exists($trimmed)) {
-            return Storage::url($trimmed);
+        $diskPath = ltrim($trimmed, '/');
+
+        if (str_starts_with($diskPath, 'storage/')) {
+            $diskPath = substr($diskPath, strlen('storage/'));
         }
 
-        return '/'.ltrim($trimmed, '/');
+        if (str_starts_with($diskPath, 'public/')) {
+            $diskPath = substr($diskPath, strlen('public/'));
+        }
+
+        if (str_starts_with($trimmed, '/storage/')) {
+            $publicPath = ltrim(substr($trimmed, strlen('/storage/')), '/');
+            if ($publicPath !== '' && Storage::disk('public')->exists($publicPath)) {
+                return Storage::url($publicPath);
+            }
+        }
+
+        if ($diskPath !== '' && Storage::disk('public')->exists($diskPath)) {
+            return Storage::url($diskPath);
+        }
+
+        return str_starts_with($trimmed, '/') ? $trimmed : '/'.$trimmed;
     }
 }

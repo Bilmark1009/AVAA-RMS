@@ -160,8 +160,8 @@ function ApplicantProfile({ app, onClose }: { app: Application; onClose: () => v
     const certs = p?.certifications ?? [];
     const certificationLabel = (value: string) => value.split('/').pop() || value;
     const certificationLink = (value: string) =>
-        value.startsWith('/storage/') || value.startsWith('http://') || value.startsWith('https://')
-            ? value
+        value.startsWith('/storage/') || value.startsWith('storage/') || value.startsWith('http://') || value.startsWith('https://')
+            ? `/documents/view?path=${encodeURIComponent(value)}`
             : null;
     const resumePath = app.resume_path ?? p?.resume_path ?? ad?.existing_resume;
     const resumeViewUrl = resumePath ? route('applications.resume', { application: app.id }) : null;
@@ -432,28 +432,36 @@ export default function AdminJobApplications({ job, applications }: Props) {
                     ))}
                 </div>
 
-                {/* Filter toolbar */}
-                <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-                    <div className="inline-flex items-center bg-white border border-gray-200 rounded-xl p-1 gap-0.5">
-                        {(['all', 'pending', 'approved', 'rejected'] as const).map(tab => (
-                            <button key={tab} onClick={() => setFilter(tab)}
-                                className={`px-4 py-1.5 rounded-lg text-xs font-bold capitalize transition-all
-                                    ${filter === tab ? 'bg-avaa-dark text-white shadow-sm' : 'text-gray-500 hover:text-avaa-dark hover:bg-gray-50'}`}>
-                                {tab}
-                                <span className={`ml-1 text-xs px-1.5 py-0.5 rounded-full font-bold
-                                    ${filter === tab ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'}`}>
-                                    {counts[tab]}
-                                </span>
-                            </button>
-                        ))}
+                {/* Filter toolbar — horizontal scroll on narrow viewports for status pills */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                    <div className="min-w-0 w-full sm:w-auto sm:flex-1 sm:min-w-0">
+                        <div
+                            className="overflow-x-auto overflow-y-hidden overscroll-x-contain [touch-action:pan-x] [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+                            role="region"
+                            aria-label="Filter applicants by status"
+                        >
+                            <div className="inline-flex flex-nowrap items-center bg-white border border-gray-200 rounded-xl p-1 gap-0.5 w-max max-w-none">
+                                {(['all', 'pending', 'approved', 'rejected'] as const).map(tab => (
+                                    <button key={tab} type="button" onClick={() => setFilter(tab)}
+                                        className={`shrink-0 px-4 py-1.5 rounded-lg text-xs font-bold capitalize transition-all
+                                            ${filter === tab ? 'bg-avaa-dark text-white shadow-sm' : 'text-gray-500 hover:text-avaa-dark hover:bg-gray-50'}`}>
+                                        {tab}
+                                        <span className={`ml-1 text-xs px-1.5 py-0.5 rounded-full font-bold
+                                            ${filter === tab ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'}`}>
+                                            {counts[tab]}
+                                        </span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 h-10 w-64 shadow-sm">
+                    <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 h-10 w-full sm:w-64 shadow-sm shrink-0 transition-[border-color,box-shadow] focus-within:border-avaa-teal focus-within:ring-2 focus-within:ring-avaa-primary/25">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="text-gray-400 flex-shrink-0">
                             <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
                         </svg>
                         <input value={search} onChange={e => setSearch(e.target.value)}
                             placeholder="Search applicants..."
-                            className="text-sm bg-transparent text-gray-700 placeholder-gray-400 focus:outline-none w-full" />
+                            className="text-sm bg-transparent text-gray-700 placeholder-gray-400 w-full min-w-0 rounded-none border-0 shadow-none outline-none ring-0 focus:outline-none focus:ring-0 focus:border-0 focus:shadow-none" />
                     </div>
                 </div>
 

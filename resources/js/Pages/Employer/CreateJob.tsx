@@ -736,9 +736,9 @@ export default function CreateJob({ user, profile, companyName, mode = 'create',
                                             <div className="flex flex-col sm:flex-row gap-2">
                                                 <input value={skillInput} onChange={e => setSkillInput(e.target.value)}
                                                     onFocus={() => setSkillDropOpen(true)}
-                                                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSkill(skillInput); } }}
+                                                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSkill(skillInput); setSkillDropOpen(false); } }}
                                                     placeholder="Search or type a skill..." className={`${inp} flex-1 min-w-0`}/>
-                                                <button type="button" onClick={() => addSkill(skillInput)}
+                                                <button type="button" onClick={() => { addSkill(skillInput); setSkillDropOpen(false); }}
                                                     className="px-3 py-2 bg-[#6D9886] hover:bg-[#5a8371] text-white text-xs font-semibold rounded-xl transition-colors flex-shrink-0">Add</button>
                                             </div>
                                             {skillDropOpen && filteredSkills.length > 0 && (

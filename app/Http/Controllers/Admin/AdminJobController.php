@@ -25,6 +25,7 @@ class AdminJobController extends Controller
         $jobs = JobListing::with('employer:id,first_name,last_name,employerProfile')
             ->with('employer.employerProfile:user_id,company_name,logo_path')
             ->withCount('applications')
+            ->where('status', '!=', 'draft')
             ->when($search, fn($q) => $q->where(function ($inner) use ($search) {
                 $inner->where('title', 'like', "%{$search}%")
                     ->orWhere('location', 'like', "%{$search}%")
