@@ -112,6 +112,16 @@ class DashboardController extends Controller
                 ]);
         }
 
+        // For suspended users, also show suspended jobs
+        $suspendedJobs = [];
+        if ($user->status === 'suspended') {
+            $suspendedJobs = JobListing::where('employer_id', $user->id)
+                ->where('status', 'suspended')
+                ->withCount('applications')
+                ->latest()
+                ->get();
+        }
+
         return Inertia::render('Employer/Dashboard', [
             'user' => $user,
             'profile' => $user->employerProfile,

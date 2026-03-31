@@ -2,7 +2,7 @@ import { Head, router } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import JobSeekerOnboarding from '@/Components/Modals/JobSeekerOnboarding';
 import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 
 /* ── Types ── */
 interface JobListing {
@@ -229,7 +229,7 @@ export default function BrowseJobs({ jobs, savedJobIds, filters, availableSkills
     const [dateFilter, setDateFilter] = useState(filters.date_posted ?? 'all');
     const [selectedSkills, setSelectedSkills] = useState<string[]>(filters.skills ?? []);
     const [selectedCompanies, setSelectedCompanies] = useState<string[]>(filters.companies ?? []);
-    const [saved, setSaved] = useState<Set<number>>(new Set(savedJobIds));
+    const saved = useMemo(() => new Set(savedJobIds), [savedJobIds]);
     const [drawerOpen, setDrawerOpen] = useState(false);
     const isFirstRender = useRef(true);
     const isFirstRenderSearch = useRef(true);
@@ -256,13 +256,19 @@ export default function BrowseJobs({ jobs, savedJobIds, filters, availableSkills
     }, [selectedSkills, selectedCompanies, dateFilter]);
 
     const toggleSave = (jobId: number) => {
-        setSaved(prev => {
-            const next = new Set(prev);
-            if (next.has(jobId)) { next.delete(jobId); router.delete(route('job-seeker.jobs.unsave', jobId), { preserveScroll: true }); }
-            else { next.add(jobId); router.post(route('job-seeker.jobs.save', jobId), {}, { preserveScroll: true }); }
-            return next;
+    // Check status using the Memoized Set
+    const isCurrentlySaved = saved.has(jobId);
+
+    if (isCurrentlySaved) {
+        router.delete(route('job-seeker.jobs.unsave', jobId), {
+            preserveScroll: true,
         });
-    };
+    } else {
+        router.post(route('job-seeker.jobs.save', jobId), {}, {
+            preserveScroll: true,
+        });
+    }
+};
 
     const handleApply = (jobId: number) => router.visit(route('job-seeker.jobs.apply', jobId));
     const handleView = (jobId: number) => router.visit(route('job-seeker.jobs.show', jobId));
