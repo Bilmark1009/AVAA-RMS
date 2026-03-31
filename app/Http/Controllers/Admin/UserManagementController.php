@@ -36,8 +36,24 @@ class UserManagementController extends Controller
                     ->orWhere('status', '!=', 'active');
             }))
             ->leftJoin('employer_profiles', 'users.id', '=', 'employer_profiles.user_id')
-            ->with(['jobSeekerProfile:user_id,skills,profile_frame', 'employerProfile:user_id,company_name'])
+            ->with(['jobSeekerProfile:user_id,skills,professional_title,current_job_title,profile_frame,open_to_work', 'employerProfile:user_id,company_name'])
             ->select('users.*', 'employer_profiles.company_name as profile_company_name')
+            ->selectRaw("(
+                EXISTS (
+                    SELECT 1
+                    FROM job_applications ja
+                    WHERE ja.user_id = users.id
+                      AND ja.hired_at IS NOT NULL
+                      AND ja.contract_ended_at IS NULL
+                )
+                OR EXISTS (
+                    SELECT 1
+                    FROM work_experiences we
+                    WHERE we.user_id = users.id
+                      AND we.is_current = 1
+                      AND (we.job_title IS NULL OR LOWER(we.job_title) <> 'status update')
+                )
+            ) as currently_working")
             ->selectSub(function ($query) {
                 $query->selectRaw('COUNT(*)')
                     ->from('job_applications')

@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Http\RedirectResponse;
+use Carbon\Carbon;
 
 class ApplicantTimelineController extends Controller
 {
@@ -32,37 +33,96 @@ class ApplicantTimelineController extends Controller
             ->orderBy('hired_at', 'desc')
             ->get();
 
+        $profile = $user->jobSeekerProfile;
+
+        $manualExperiences = $user->workExperiences
+            ->filter(function ($exp) {
+                return !(
+                    strcasecmp((string) $exp->job_title, 'Status Update') === 0
+                    || str_starts_with(strtolower((string) $exp->description), 'status changed to')
+                );
+            })
+            ->values()
+            ->map(function ($exp) {
+                return [
+                    'id' => $exp->id,
+                    'job_title' => $exp->job_title,
+                    'company' => $exp->company,
+                    'employment_type' => $exp->employment_type,
+                    'start_date' => $exp->start_date ? Carbon::parse($exp->start_date)->format('M Y') : null,
+                    'end_date' => $exp->end_date ? Carbon::parse($exp->end_date)->format('M Y') : null,
+                    'description' => $exp->description,
+                    'is_current' => (bool) $exp->is_current,
+                ];
+            })
+            ->all();
+
+        $currentPosition = $applications->firstWhere('contract_ended_at', null);
+        $pastPlacements = $applications->whereNotNull('contract_ended_at')->values();
+
+        $isCurrentlyWorking = (bool) $currentPosition
+            || collect($manualExperiences)->contains(fn($exp) => (bool) ($exp['is_current'] ?? false));
+
+        $isOpenToWork = $profile?->profile_frame === 'open_to_work';
+        $isNotOpenToWork = $profile?->profile_frame === 'not_open_to_work';
+
+        $profileCertifications = collect($profile?->certifications ?? [])->filter()->values();
+        $documentCertifications = $user->documents
+            ->filter(function ($doc) {
+                $type = strtolower((string) ($doc->document_type ?? ''));
+                return str_contains($type, 'certificate') || str_contains($type, 'certification') || str_contains($type, 'license');
+            })
+            ->map(fn($doc) => [
+                'name' => $doc->file_name,
+                'file_path' => $doc->file_path,
+            ]);
+        $certifications = $profileCertifications->merge($documentCertifications)->values()->all();
+
         return Inertia::render('Employer/ApplicantTimeline', [
             'applicant' => [
                 'id' => $user->id,
                 'full_name' => trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')),
                 'email' => $user->email,
                 'avatar' => $user->avatar,
-                'is_open_to_work' => $user->jobSeekerProfile?->is_open_to_work ?? false,
+                'is_open_to_work' => $isOpenToWork,
+                'activity_status' => $isCurrentlyWorking
+                    ? 'currently_working'
+                    : ($isOpenToWork
+                        ? 'open_to_work'
+                        : ($isNotOpenToWork ? 'not_open_to_work' : null)),
+                'activity_status_label' => $isCurrentlyWorking
+                    ? 'Currently Working'
+                    : ($isOpenToWork
+                        ? 'Open to Work'
+                        : ($isNotOpenToWork ? 'Not Open to Work' : null)),
                 
                 // Profile data mapping
-                'about' => $user->jobSeekerProfile?->about ?? 'No professional summary provided.',
-                'title' => $user->jobSeekerProfile?->professional_title ?? 'No data available',
-                'location' => $user->jobSeekerProfile 
-                    ? trim(($user->jobSeekerProfile->city ?? '') . ', ' . ($user->jobSeekerProfile->country ?? '')) 
+                'about' => $profile?->about ?? 'No professional summary provided.',
+                'title' => $profile?->professional_title ?? 'No data available',
+                'location' => $profile
+                    ? trim(($profile->city ?? '') . ', ' . ($profile->country ?? ''))
                     : 'No data available',
+                'linkedin_url' => $profile?->linkedin_url,
+                'portfolio_url' => $profile?->portfolio_url,
                 
                 // Education mapping
                 'education_history' => [
                     [
-                        'school' => $user->jobSeekerProfile?->institution_name ?? 'No data available',
-                        'degree' => $user->jobSeekerProfile?->highest_education ?? 'No data available',
-                        'field' => $user->jobSeekerProfile?->field_of_study ?? 'No data available',
+                        'school' => $profile?->institution_name ?? 'No data available',
+                        'degree' => $profile?->highest_education ?? 'No data available',
+                        'field' => $profile?->field_of_study ?? 'No data available',
                         'year' => 'No data available' 
                     ]
                 ],
 
                 // Skills (Decodes JSON if stored as string, or returns array)
-                'skills' => $user->jobSeekerProfile?->skills ?? [],
+                'skills' => is_string($profile?->skills)
+                    ? (json_decode($profile->skills, true) ?: [])
+                    : ($profile?->skills ?? []),
 
                 // Projects & Certifications
-                'projects' => $user->jobSeekerProfile?->projects ?? [], 
-                'certifications' => $user->jobSeekerProfile?->certifications ?? [],
+                'projects' => $profile?->projects ?? [],
+                'certifications' => $certifications,
                 'documents' => $user->documents
                     ->sortByDesc('created_at')
                     ->values()
@@ -75,32 +135,41 @@ class ApplicantTimelineController extends Controller
                     ->all(),
                 
                 'availability' => [
-                    'weekly_hours' => $user->jobSeekerProfile?->weekly_hours ?? 'No data available',
-                    'notice_period' => $user->jobSeekerProfile?->notice_period ?? 'No data available',
-                    'work_style' => $user->jobSeekerProfile?->work_style ?? 'No data available',
-                    'preferred_location' => $user->jobSeekerProfile?->city ?? 'No data available',
+                    'weekly_hours' => $profile?->weekly_hours ?? 'No data available',
+                    'notice_period' => $profile?->notice_period ?? 'No data available',
+                    'work_style' => $profile?->work_style ?? 'No data available',
+                    'preferred_location' => $profile?->city ?? 'No data available',
                 ],
             ],
 
             // Placements tracked within the AVAA system
-            'currentPosition' => $applications->whereNull('contract_ended_at')->first(),
-            'pastPlacements' => $applications->whereNotNull('contract_ended_at')->values(),
+            'currentPosition' => $currentPosition ? [
+                'id' => $currentPosition->id,
+                'job_title' => $currentPosition->jobListing?->title,
+                'company' => $currentPosition->jobListing?->company_name
+                    ?? $currentPosition->jobListing?->employer?->employerProfile?->company_name
+                    ?? trim(($currentPosition->jobListing?->employer?->first_name ?? '') . ' ' . ($currentPosition->jobListing?->employer?->last_name ?? '')),
+                'start_date' => $currentPosition->hired_at ? Carbon::parse($currentPosition->hired_at)->format('M Y') : null,
+                'end_date' => null,
+                'description' => null,
+                'is_current' => true,
+            ] : null,
+            'pastPlacements' => $pastPlacements->map(fn($placement) => [
+                'id' => $placement->id,
+                'job_title' => $placement->jobListing?->title,
+                'company' => $placement->jobListing?->company_name
+                    ?? $placement->jobListing?->employer?->employerProfile?->company_name
+                    ?? trim(($placement->jobListing?->employer?->first_name ?? '') . ' ' . ($placement->jobListing?->employer?->last_name ?? '')),
+                'start_date' => $placement->hired_at ? Carbon::parse($placement->hired_at)->format('M Y') : null,
+                'end_date' => $placement->contract_ended_at ? Carbon::parse($placement->contract_ended_at)->format('M Y') : null,
+                'description' => null,
+                'is_current' => false,
+            ])->values(),
 
             'timelineEvents' => $user->timelineEvents,
 
             // Manual history from the work_experiences table
-            'manualExperiences' => $user->workExperiences->map(function($exp) {
-                return [
-                    'id' => $exp->id,
-                    'job_title' => $exp->job_title,
-                    'company' => $exp->company,
-                    'employment_type' => $exp->employment_type,
-                    'start_date' => $exp->start_date ? \Carbon\Carbon::parse($exp->start_date)->format('M Y') : null,
-                    'end_date' => $exp->end_date ? \Carbon\Carbon::parse($exp->end_date)->format('M Y') : 'Present',
-                    'description' => $exp->description,
-                    'is_current' => (bool)$exp->is_current,
-                ];
-            })
+            'manualExperiences' => $manualExperiences,
         ]);
     }
 
@@ -208,22 +277,31 @@ class ApplicantTimelineController extends Controller
             $resumePath = $resumeDocument ? $resumeDocument->file_path : null;
         }
 
-        $manualExperiences = $user->workExperiences->map(fn($exp) => [
-            'id' => $exp->id,
-            'job_title' => $exp->job_title,
-            'company' => $exp->company_name ?? $exp->company, 
-            'start_date' => $exp->start_date ? \Carbon\Carbon::parse($exp->start_date)->format('M Y') : 'N/A',
-            'end_date' => $exp->is_current ? 'Present' : ($exp->end_date ? \Carbon\Carbon::parse($exp->end_date)->format('M Y') : 'N/A'),
-            'description' => $exp->description,
-        ])->toArray();
+        $manualExperiences = $user->workExperiences
+            ->filter(function ($exp) {
+                return !(
+                    strcasecmp((string) $exp->job_title, 'Status Update') === 0
+                    || str_starts_with(strtolower((string) $exp->description), 'status changed to')
+                );
+            })
+            ->values()
+            ->map(fn($exp) => [
+                'id' => $exp->id,
+                'job_title' => $exp->job_title,
+                'company' => $exp->company_name ?? $exp->company,
+                'start_date' => $exp->start_date ? Carbon::parse($exp->start_date)->format('M Y') : null,
+                'end_date' => $exp->end_date ? Carbon::parse($exp->end_date)->format('M Y') : null,
+                'description' => $exp->description,
+                'is_current' => (bool) $exp->is_current,
+            ])->toArray();
 
         if (empty($manualExperiences) && $profile?->current_company) {
             $manualExperiences[] = [
                 'id' => 'profile-primary',
                 'job_title' => $profile->current_job_title ?? 'Professional',
                 'company' => $profile->current_company,
-                'start_date' => 'Previous',
-                'end_date' => 'Recent',
+                'start_date' => null,
+                'end_date' => null,
                 'description' => "Total experience: {$profile->years_of_experience}",
                 'is_current' => false,
             ];
@@ -235,6 +313,26 @@ class ApplicantTimelineController extends Controller
             ->whereNotNull('hired_at')
             ->orderBy('hired_at', 'desc')
             ->get();
+
+        $currentPosition = $applications->firstWhere('contract_ended_at', null);
+        $pastPlacements = $applications->whereNotNull('contract_ended_at')->values();
+        $isCurrentlyWorking = (bool) $currentPosition
+            || collect($manualExperiences)->contains(fn($exp) => (bool) ($exp['is_current'] ?? false));
+
+        $isOpenToWork = $profile?->profile_frame === 'open_to_work';
+        $isNotOpenToWork = $profile?->profile_frame === 'not_open_to_work';
+
+        $profileCertifications = collect($profile?->certifications ?? [])->filter()->values();
+        $documentCertifications = $user->documents
+            ->filter(function ($doc) {
+                $type = strtolower((string) ($doc->document_type ?? ''));
+                return str_contains($type, 'certificate') || str_contains($type, 'certification') || str_contains($type, 'license');
+            })
+            ->map(fn($doc) => [
+                'name' => $doc->file_name,
+                'file_path' => $doc->file_path,
+            ]);
+        $certifications = $profileCertifications->merge($documentCertifications)->values()->all();
 
         return Inertia::render('Employer/ApplicantTimeline', [
             'applicant' => [
@@ -261,7 +359,9 @@ class ApplicantTimelineController extends Controller
                         'field' => $profile->field_of_study,
                     ]
                 ] : [],
-                'certifications' => $profile?->certifications ?? [],
+                'linkedin_url' => $profile?->linkedin_url,
+                'portfolio_url' => $profile?->portfolio_url,
+                'certifications' => $certifications,
                 'projects' => $profile?->projects ?? [],
                 'documents' => $user->documents
                     ->sortByDesc('created_at')
@@ -274,7 +374,17 @@ class ApplicantTimelineController extends Controller
                     ])
                     ->all(),
 
-                'is_open_to_work' => $profile?->is_open_to_work ?? true,
+                'is_open_to_work' => $isOpenToWork,
+                'activity_status' => $isCurrentlyWorking
+                    ? 'currently_working'
+                    : ($isOpenToWork
+                        ? 'open_to_work'
+                        : ($isNotOpenToWork ? 'not_open_to_work' : null)),
+                'activity_status_label' => $isCurrentlyWorking
+                    ? 'Currently Working'
+                    : ($isOpenToWork
+                        ? 'Open to Work'
+                        : ($isNotOpenToWork ? 'Not Open to Work' : null)),
                 'availability' => [
                     'weekly_hours' => $profile?->weekly_hours,
                     'work_style' => $profile?->work_style,
@@ -282,8 +392,28 @@ class ApplicantTimelineController extends Controller
                 ]
             ],
 
-            'currentPosition' => $applications->whereNull('contract_ended_at')->first(),
-            'pastPlacements' => $applications->whereNotNull('contract_ended_at')->values(),
+            'currentPosition' => $currentPosition ? [
+                'id' => $currentPosition->id,
+                'job_title' => $currentPosition->jobListing?->title,
+                'company' => $currentPosition->jobListing?->company_name
+                    ?? $currentPosition->jobListing?->employer?->employerProfile?->company_name
+                    ?? trim(($currentPosition->jobListing?->employer?->first_name ?? '') . ' ' . ($currentPosition->jobListing?->employer?->last_name ?? '')),
+                'start_date' => $currentPosition->hired_at ? Carbon::parse($currentPosition->hired_at)->format('M Y') : null,
+                'end_date' => null,
+                'description' => null,
+                'is_current' => true,
+            ] : null,
+            'pastPlacements' => $pastPlacements->map(fn($placement) => [
+                'id' => $placement->id,
+                'job_title' => $placement->jobListing?->title,
+                'company' => $placement->jobListing?->company_name
+                    ?? $placement->jobListing?->employer?->employerProfile?->company_name
+                    ?? trim(($placement->jobListing?->employer?->first_name ?? '') . ' ' . ($placement->jobListing?->employer?->last_name ?? '')),
+                'start_date' => $placement->hired_at ? Carbon::parse($placement->hired_at)->format('M Y') : null,
+                'end_date' => $placement->contract_ended_at ? Carbon::parse($placement->contract_ended_at)->format('M Y') : null,
+                'description' => null,
+                'is_current' => false,
+            ])->values(),
             
             'timelineEvents' => $user->timelineEvents,
             'manualExperiences' => $manualExperiences,
