@@ -46,9 +46,23 @@ class DashboardController extends Controller
 
         // ── Recent user registrations (last 8) with application count ──
         $recentUsers = User::selectRaw('id, first_name, last_name, email, role, created_at,
-            (SELECT COUNT(*) FROM job_applications WHERE job_applications.user_id = users.id) as applications_count')
+            (SELECT COUNT(*) FROM job_applications WHERE job_applications.user_id = users.id) as applications_count,
+            (
+                EXISTS (
+                    SELECT 1 FROM job_applications ja
+                    WHERE ja.user_id = users.id
+                      AND ja.hired_at IS NOT NULL
+                      AND ja.contract_ended_at IS NULL
+                )
+                OR EXISTS (
+                    SELECT 1 FROM work_experiences we
+                    WHERE we.user_id = users.id
+                      AND we.is_current = 1
+                      AND (we.job_title IS NULL OR LOWER(we.job_title) <> \'status update\')
+                )
+            ) as currently_working')
             ->whereIn('role', ['employer', 'job_seeker'])
-            ->with('jobSeekerProfile:user_id,profile_frame')
+            ->with('jobSeekerProfile:user_id,profile_frame,open_to_work')
             ->latest()
             ->take(8)
             ->get()
@@ -61,12 +75,28 @@ class DashboardController extends Controller
                 'created_at' => $u->created_at,
                 'applications_count' => (int) ($u->applications_count ?? 0),
                 'profile_frame' => $u->jobSeekerProfile?->profile_frame ?? 'default',
+                'open_to_work' => $u->jobSeekerProfile?->open_to_work,
+                'currently_working' => (bool) ($u->currently_working ?? false),
             ]);
 
         $recentJobSeekers = User::selectRaw('id, first_name, last_name, email, role, status, created_at,
-            (SELECT COUNT(*) FROM job_applications WHERE job_applications.user_id = users.id) as applications_count')
+            (SELECT COUNT(*) FROM job_applications WHERE job_applications.user_id = users.id) as applications_count,
+            (
+                EXISTS (
+                    SELECT 1 FROM job_applications ja
+                    WHERE ja.user_id = users.id
+                      AND ja.hired_at IS NOT NULL
+                      AND ja.contract_ended_at IS NULL
+                )
+                OR EXISTS (
+                    SELECT 1 FROM work_experiences we
+                    WHERE we.user_id = users.id
+                      AND we.is_current = 1
+                      AND (we.job_title IS NULL OR LOWER(we.job_title) <> \'status update\')
+                )
+            ) as currently_working')
             ->where('role', 'job_seeker')
-            ->with('jobSeekerProfile:user_id,profile_frame')
+            ->with('jobSeekerProfile:user_id,profile_frame,open_to_work')
             ->latest()
             ->take(10)
             ->get()
@@ -80,6 +110,8 @@ class DashboardController extends Controller
                 'created_at' => $u->created_at,
                 'applications_count' => (int) ($u->applications_count ?? 0),
                 'profile_frame' => $u->jobSeekerProfile?->profile_frame ?? 'default',
+                'open_to_work' => $u->jobSeekerProfile?->open_to_work,
+                'currently_working' => (bool) ($u->currently_working ?? false),
             ]);
 
         return Inertia::render('Admin/Dashboard', [

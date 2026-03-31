@@ -476,9 +476,11 @@ function ApplicantModal({ app, jobId, onClose, onReject, onApprove }: {
     const documents = u.profile?.documents ?? [];
     const certificationLabel = (value: string) => value.split('/').pop() || value;
     const certificationLink = (value: string) =>
-        value.startsWith('/storage/') || value.startsWith('storage/') || value.startsWith('http://') || value.startsWith('https://')
-            ? `/documents/view?path=${encodeURIComponent(value)}`
-            : null;
+        value.startsWith('http://') || value.startsWith('https://')
+            ? value
+            : (value.startsWith('/storage/') || value.startsWith('storage/')
+                ? `/documents/view?path=${encodeURIComponent(value)}`
+                : null);
     const resumePath = (app.resume_path) ?? (u.profile?.resume_path) ?? (ad?.existing_resume);
     const resumeName = resumePath ? resumePath.split('/').pop() : null;
     const resumeViewUrl = resumePath ? route('applications.resume', { application: app.id }) : null;

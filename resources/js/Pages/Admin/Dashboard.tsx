@@ -1,5 +1,5 @@
-import { Head, Link } from '@inertiajs/react';
-import { ReactNode } from 'react';
+import { Head, Link, router } from '@inertiajs/react';
+import { ReactNode, useEffect } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
 
 /* ── Types ── */
@@ -13,6 +13,8 @@ interface RecentUser {
     email: string; role: string; created_at: string;
     applications_count: number;
     profile_frame?: 'default' | 'open_to_work' | 'not_open_to_work' | null;
+    open_to_work?: boolean | null;
+    currently_working?: boolean;
 }
 
 interface RecentJobSeeker {
@@ -20,6 +22,8 @@ interface RecentJobSeeker {
     email: string; role: string; status: string;
     created_at: string; applications_count: number;
     profile_frame?: 'default' | 'open_to_work' | 'not_open_to_work' | null;
+    open_to_work?: boolean | null;
+    currently_working?: boolean;
 }
 
 interface Props {
@@ -188,13 +192,15 @@ function getProfileFrame(frame?: string | null) {
     return frame === 'open_to_work' || frame === 'not_open_to_work' ? frame : 'default';
 }
 
-function profileFrameRingClass(frame?: string | null) {
+function profileFrameRingClass(frame?: string | null, currentlyWorking = false) {
+    if (currentlyWorking) return 'ring-2 ring-blue-400';
     if (frame === 'open_to_work') return 'ring-2 ring-emerald-400';
     if (frame === 'not_open_to_work') return 'ring-2 ring-red-400';
     return '';
 }
 
-function profileFrameLabel(frame?: string | null) {
+function profileFrameLabel(frame?: string | null, currentlyWorking?: boolean) {
+    if (currentlyWorking) return 'Currently Working';
     if (frame === 'open_to_work') return 'Open to Work';
     if (frame === 'not_open_to_work') return 'Not Open to Work';
     return null;
@@ -292,16 +298,17 @@ function RecentUsersPanel({ users }: { users: RecentUser[] }) {
                     users.map((u, i) => {
                         const initials = `${(u.first_name ?? '').charAt(0)}${(u.last_name ?? '').charAt(0)}`.toUpperCase();
                         const frame = getProfileFrame(u.profile_frame);
+                        const activityLabel = profileFrameLabel(frame, !!u.currently_working);
                         return (
                             <div key={u.id} className="px-5 py-3.5 flex items-center gap-3 hover:bg-gray-50/60 transition-colors">
-                                <div className={`w-9 h-9 rounded-full ${AVATAR_BG[i % AVATAR_BG.length]} ${profileFrameRingClass(frame)} flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>
+                                <div className={`w-9 h-9 rounded-full ${AVATAR_BG[i % AVATAR_BG.length]} ${profileFrameRingClass(frame, !!u.currently_working)} flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>
                                     {initials}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <p className="font-semibold text-gray-800 text-sm truncate leading-tight">
                                         {u.first_name} {u.last_name}
                                     </p>
-                                    {u.role === 'job_seeker' && profileFrameLabel(frame) && <p className="text-xs text-gray-500 truncate mt-0.5">{profileFrameLabel(frame)}</p>}
+                                    {u.role === 'job_seeker' && activityLabel && <p className="text-xs text-gray-500 truncate mt-0.5">{activityLabel}</p>}
                                     <p className="text-xs text-gray-400 truncate mt-0.5">{u.email}</p>
                                 </div>
                                 <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
@@ -331,6 +338,16 @@ export default function AdminDashboard({
     const user = auth.user;
     const trendDirection = pendingCountTrend >= 0;
     const trendText = `${trendDirection ? '↑' : '↓'} ${Math.abs(pendingCountTrend)}%`;
+
+    useEffect(() => {
+        const timer = window.setInterval(() => {
+            router.reload({
+                only: ['stats', 'jobCount', 'applicationCount', 'applicationTrends', 'recentJobs', 'recentUsers', 'recentJobSeekers', 'pendingCount', 'pendingCountTrend'],
+            });
+        }, 20000);
+
+        return () => window.clearInterval(timer);
+    }, []);
 
     return (
         <>
@@ -395,12 +412,12 @@ export default function AdminDashboard({
                             <p className="font-bold text-gray-900 text-base">Job Seeker Summary</p>
                             <p className="text-xs text-gray-400 mt-0.5">Recent job seeker registrations</p>
                         </div>
-                <Link
-                    href={route('admin.jobs.index')} // Ensure this matches your Admin Job route
-                    className="flex items-center gap-1.5 text-xs font-semibold text-[#3d9e9e] hover:text-[#2d7e7e] transition-colors"
-                >
-                    View All Jobs <IcoArrow />
-                </Link>
+                        <Link
+                            href={route('admin.users.index')}
+                            className="flex items-center gap-1.5 text-xs font-semibold text-[#3d9e9e] hover:text-[#2d7e7e] transition-colors"
+                        >
+                            View All Users <IcoArrow />
+                        </Link>
                     </div>
 
                     {/* Table */}
@@ -425,19 +442,20 @@ export default function AdminDashboard({
                                         const initials = `${(js.first_name ?? '').charAt(0)}${(js.last_name ?? '').charAt(0)}`.toUpperCase();
                                         const isActive = js.status === 'active';
                                         const frame = getProfileFrame(js.profile_frame);
+                                        const activityLabel = profileFrameLabel(frame, !!js.currently_working);
                                         return (
                                             <tr key={js.id} className="hover:bg-gray-50/70 transition-colors">
                                                 {/* User */}
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-3">
-                                                        <div className={`w-9 h-9 rounded-full ${AVATAR_BG[i % AVATAR_BG.length]} ${profileFrameRingClass(frame)} flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>
+                                                        <div className={`w-9 h-9 rounded-full ${AVATAR_BG[i % AVATAR_BG.length]} ${profileFrameRingClass(frame, !!js.currently_working)} flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>
                                                             {initials}
                                                         </div>
                                                         <div>
                                                             <p className="font-semibold text-gray-800 leading-tight">
                                                                 {js.first_name} {js.last_name}
                                                             </p>
-                                                            {profileFrameLabel(frame) && <p className="text-xs text-gray-500 mt-0.5">{profileFrameLabel(frame)}</p>}
+                                                            {activityLabel && <p className="text-xs text-gray-500 mt-0.5">{activityLabel}</p>}
                                                         </div>
                                                     </div>
                                                 </td>
