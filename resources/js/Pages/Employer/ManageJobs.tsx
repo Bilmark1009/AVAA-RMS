@@ -667,7 +667,21 @@ function JobFormModal({ mode, job, companyName, onClose }: {
         form.requirements.forEach((r, i) => data.append(`requirements[${i}]`, r));
         form.screener_questions.forEach((q, i) => data.append(`screener_questions[${i}]`, q));
         if (logoFile) data.append('logo', logoFile);
-        const opts = { preserveScroll: true, onSuccess: () => { setSaving(false); onClose(); }, onError: (errs: any) => { setErrors(errs); setSaving(false); }, forceFormData: true };
+        const opts = { 
+            preserveScroll: true, 
+            onSuccess: () => { 
+                // Clear temporary file and preview state after successful save
+                setLogoFile(null);
+                setLogoPreview(null);
+                setSaving(false); 
+                onClose(); 
+            }, 
+            onError: (errs: any) => { 
+                setErrors(errs); 
+                setSaving(false); 
+            }, 
+            forceFormData: true 
+        };
         if (mode === 'edit' && job) { data.append('_method', 'put'); router.post(route('employer.jobs.update', job.id), data as any, opts); }
         else { router.post(route('employer.jobs.store'), data as any, opts); }
     };

@@ -1,44 +1,44 @@
 {
-  "_AppLayout-CklvSKDf.js": {
-    "file": "assets/AppLayout-CklvSKDf.js",
+  "_AppLayout-Db8Jj83C.js": {
+    "file": "assets/AppLayout-Db8Jj83C.js",
     "name": "AppLayout",
     "imports": [
       "resources/js/app.tsx",
-      "_ImageInitialsFallback-D93MX980.js"
+      "_ImageInitialsFallback-j6UnGP5Y.js"
     ]
   },
-  "_AuthLayout-CBSeCbhx.js": {
-    "file": "assets/AuthLayout-CBSeCbhx.js",
+  "_AuthLayout-DWOA87TG.js": {
+    "file": "assets/AuthLayout-DWOA87TG.js",
     "name": "AuthLayout",
     "imports": [
       "resources/js/app.tsx"
     ]
   },
-  "_ImageInitialsFallback-D93MX980.js": {
-    "file": "assets/ImageInitialsFallback-D93MX980.js",
+  "_ImageInitialsFallback-j6UnGP5Y.js": {
+    "file": "assets/ImageInitialsFallback-j6UnGP5Y.js",
     "name": "ImageInitialsFallback",
     "imports": [
       "resources/js/app.tsx"
     ]
   },
-  "_InputError-CpOr3SPU.js": {
-    "file": "assets/InputError-CpOr3SPU.js",
+  "_InputError-2R7MNu6L.js": {
+    "file": "assets/InputError-2R7MNu6L.js",
     "name": "InputError",
     "imports": [
       "resources/js/app.tsx"
     ]
   },
-  "_RegisterForm-Ddo8SZBX.js": {
-    "file": "assets/RegisterForm-Ddo8SZBX.js",
+  "_RegisterForm-DyFnFkHu.js": {
+    "file": "assets/RegisterForm-DyFnFkHu.js",
     "name": "RegisterForm",
     "imports": [
       "resources/js/app.tsx",
-      "_InputError-CpOr3SPU.js",
-      "_AuthLayout-CBSeCbhx.js"
+      "_InputError-2R7MNu6L.js",
+      "_AuthLayout-DWOA87TG.js"
     ]
   },
-  "_SettingsLayout-BLNWDpPB.js": {
-    "file": "assets/SettingsLayout-BLNWDpPB.js",
+  "_SettingsLayout-CJndUOuS.js": {
+    "file": "assets/SettingsLayout-CJndUOuS.js",
     "name": "SettingsLayout",
     "imports": [
       "resources/js/app.tsx"
@@ -51,489 +51,489 @@
     "isDynamicEntry": true
   },
   "resources/js/Pages/Admin/Dashboard.tsx": {
-    "file": "assets/Dashboard-BSrbGqJY.js",
+    "file": "assets/Dashboard-XWRN-muK.js",
     "name": "Dashboard",
     "src": "resources/js/Pages/Admin/Dashboard.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AppLayout-CklvSKDf.js",
-      "_ImageInitialsFallback-D93MX980.js"
+      "_AppLayout-Db8Jj83C.js",
+      "_ImageInitialsFallback-j6UnGP5Y.js"
     ]
   },
   "resources/js/Pages/Admin/JobApplications.tsx": {
-    "file": "assets/JobApplications-CDO5D68T.js",
+    "file": "assets/JobApplications-BqBJvn4B.js",
     "name": "JobApplications",
     "src": "resources/js/Pages/Admin/JobApplications.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AppLayout-CklvSKDf.js",
-      "_ImageInitialsFallback-D93MX980.js"
+      "_AppLayout-Db8Jj83C.js",
+      "_ImageInitialsFallback-j6UnGP5Y.js"
     ]
   },
   "resources/js/Pages/Admin/JobShow.tsx": {
-    "file": "assets/JobShow-Bq32sDvq.js",
+    "file": "assets/JobShow-BssPKQeG.js",
     "name": "JobShow",
     "src": "resources/js/Pages/Admin/JobShow.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AppLayout-CklvSKDf.js",
-      "_ImageInitialsFallback-D93MX980.js"
+      "_AppLayout-Db8Jj83C.js",
+      "_ImageInitialsFallback-j6UnGP5Y.js"
     ]
   },
   "resources/js/Pages/Admin/Jobs.tsx": {
-    "file": "assets/Jobs-Dwlu-aSO.js",
+    "file": "assets/Jobs-EFQYznvN.js",
     "name": "Jobs",
     "src": "resources/js/Pages/Admin/Jobs.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AppLayout-CklvSKDf.js",
-      "_ImageInitialsFallback-D93MX980.js"
+      "_AppLayout-Db8Jj83C.js",
+      "_ImageInitialsFallback-j6UnGP5Y.js"
     ]
   },
   "resources/js/Pages/Admin/ReportView.tsx": {
-    "file": "assets/ReportView-Dg98j-QC.js",
+    "file": "assets/ReportView-CDys-3Dr.js",
     "name": "ReportView",
     "src": "resources/js/Pages/Admin/ReportView.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AppLayout-CklvSKDf.js",
-      "_ImageInitialsFallback-D93MX980.js"
+      "_AppLayout-Db8Jj83C.js",
+      "_ImageInitialsFallback-j6UnGP5Y.js"
     ]
   },
   "resources/js/Pages/Admin/Settings/Account.tsx": {
-    "file": "assets/Account-C5544gBH.js",
+    "file": "assets/Account-DzTuOyCr.js",
     "name": "Account",
     "src": "resources/js/Pages/Admin/Settings/Account.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AppLayout-CklvSKDf.js",
-      "_ImageInitialsFallback-D93MX980.js"
+      "_AppLayout-Db8Jj83C.js",
+      "_ImageInitialsFallback-j6UnGP5Y.js"
     ]
   },
   "resources/js/Pages/Admin/Settings/Notifications.tsx": {
-    "file": "assets/Notifications-D6czsIzA.js",
+    "file": "assets/Notifications-DEUHZcvA.js",
     "name": "Notifications",
     "src": "resources/js/Pages/Admin/Settings/Notifications.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AppLayout-CklvSKDf.js",
-      "_ImageInitialsFallback-D93MX980.js"
+      "_AppLayout-Db8Jj83C.js",
+      "_ImageInitialsFallback-j6UnGP5Y.js"
     ]
   },
   "resources/js/Pages/Admin/Settings/Security.tsx": {
-    "file": "assets/Security-B_Ns3V15.js",
+    "file": "assets/Security-CDX-_2FS.js",
     "name": "Security",
     "src": "resources/js/Pages/Admin/Settings/Security.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AppLayout-CklvSKDf.js",
-      "_ImageInitialsFallback-D93MX980.js"
+      "_AppLayout-Db8Jj83C.js",
+      "_ImageInitialsFallback-j6UnGP5Y.js"
     ]
   },
   "resources/js/Pages/Admin/Users.tsx": {
-    "file": "assets/Users-D6cPYDzO.js",
+    "file": "assets/Users-BE4rYWsM.js",
     "name": "Users",
     "src": "resources/js/Pages/Admin/Users.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AppLayout-CklvSKDf.js",
-      "_ImageInitialsFallback-D93MX980.js"
+      "_AppLayout-Db8Jj83C.js",
+      "_ImageInitialsFallback-j6UnGP5Y.js"
     ]
   },
   "resources/js/Pages/Admin/Verifications.tsx": {
-    "file": "assets/Verifications-B8q4dtnV.js",
+    "file": "assets/Verifications-Bx6ZTfWM.js",
     "name": "Verifications",
     "src": "resources/js/Pages/Admin/Verifications.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AppLayout-CklvSKDf.js",
-      "_ImageInitialsFallback-D93MX980.js"
+      "_AppLayout-Db8Jj83C.js",
+      "_ImageInitialsFallback-j6UnGP5Y.js"
     ]
   },
   "resources/js/Pages/Auth/ConfirmPassword.tsx": {
-    "file": "assets/ConfirmPassword-Mq0U2EXF.js",
+    "file": "assets/ConfirmPassword-Cl5bw2wG.js",
     "name": "ConfirmPassword",
     "src": "resources/js/Pages/Auth/ConfirmPassword.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_InputError-CpOr3SPU.js",
-      "_AuthLayout-CBSeCbhx.js"
+      "_InputError-2R7MNu6L.js",
+      "_AuthLayout-DWOA87TG.js"
     ]
   },
   "resources/js/Pages/Auth/ForgotPassword.tsx": {
-    "file": "assets/ForgotPassword-DQlImz9u.js",
+    "file": "assets/ForgotPassword-uQaptpHa.js",
     "name": "ForgotPassword",
     "src": "resources/js/Pages/Auth/ForgotPassword.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_InputError-CpOr3SPU.js",
-      "_AuthLayout-CBSeCbhx.js"
+      "_InputError-2R7MNu6L.js",
+      "_AuthLayout-DWOA87TG.js"
     ]
   },
   "resources/js/Pages/Auth/GoogleRoleSelection.tsx": {
-    "file": "assets/GoogleRoleSelection-CizKoR_E.js",
+    "file": "assets/GoogleRoleSelection-iADtymww.js",
     "name": "GoogleRoleSelection",
     "src": "resources/js/Pages/Auth/GoogleRoleSelection.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AuthLayout-CBSeCbhx.js"
+      "_AuthLayout-DWOA87TG.js"
     ]
   },
   "resources/js/Pages/Auth/Login.tsx": {
-    "file": "assets/Login-CNbXCCxY.js",
+    "file": "assets/Login-CEbc-J5z.js",
     "name": "Login",
     "src": "resources/js/Pages/Auth/Login.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_InputError-CpOr3SPU.js",
-      "_AuthLayout-CBSeCbhx.js"
+      "_InputError-2R7MNu6L.js",
+      "_AuthLayout-DWOA87TG.js"
     ]
   },
   "resources/js/Pages/Auth/Register.tsx": {
-    "file": "assets/Register-_FKy0nGc.js",
+    "file": "assets/Register-MThdDWvt.js",
     "name": "Register",
     "src": "resources/js/Pages/Auth/Register.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_InputError-CpOr3SPU.js"
+      "_InputError-2R7MNu6L.js"
     ]
   },
   "resources/js/Pages/Auth/RegisterEmployer.tsx": {
-    "file": "assets/RegisterEmployer-BGh7-itM.js",
+    "file": "assets/RegisterEmployer-CbH7VM89.js",
     "name": "RegisterEmployer",
     "src": "resources/js/Pages/Auth/RegisterEmployer.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_RegisterForm-Ddo8SZBX.js",
-      "_InputError-CpOr3SPU.js",
-      "_AuthLayout-CBSeCbhx.js"
+      "_RegisterForm-DyFnFkHu.js",
+      "_InputError-2R7MNu6L.js",
+      "_AuthLayout-DWOA87TG.js"
     ]
   },
   "resources/js/Pages/Auth/RegisterJobSeeker.tsx": {
-    "file": "assets/RegisterJobSeeker-DeOtg6nK.js",
+    "file": "assets/RegisterJobSeeker-BgDP6Tqz.js",
     "name": "RegisterJobSeeker",
     "src": "resources/js/Pages/Auth/RegisterJobSeeker.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_RegisterForm-Ddo8SZBX.js",
-      "_InputError-CpOr3SPU.js",
-      "_AuthLayout-CBSeCbhx.js"
+      "_RegisterForm-DyFnFkHu.js",
+      "_InputError-2R7MNu6L.js",
+      "_AuthLayout-DWOA87TG.js"
     ]
   },
   "resources/js/Pages/Auth/ResetPassword.tsx": {
-    "file": "assets/ResetPassword-CDpYUWCb.js",
+    "file": "assets/ResetPassword-DvevWEto.js",
     "name": "ResetPassword",
     "src": "resources/js/Pages/Auth/ResetPassword.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_InputError-CpOr3SPU.js",
-      "_AuthLayout-CBSeCbhx.js"
+      "_InputError-2R7MNu6L.js",
+      "_AuthLayout-DWOA87TG.js"
     ]
   },
   "resources/js/Pages/Auth/RoleSelection.tsx": {
-    "file": "assets/RoleSelection-CCTyseiU.js",
+    "file": "assets/RoleSelection-CmNuV0ob.js",
     "name": "RoleSelection",
     "src": "resources/js/Pages/Auth/RoleSelection.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AuthLayout-CBSeCbhx.js"
+      "_AuthLayout-DWOA87TG.js"
     ]
   },
   "resources/js/Pages/Auth/VerifyEmail.tsx": {
-    "file": "assets/VerifyEmail-X-UMUGsE.js",
+    "file": "assets/VerifyEmail-uef4m727.js",
     "name": "VerifyEmail",
     "src": "resources/js/Pages/Auth/VerifyEmail.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AuthLayout-CBSeCbhx.js"
+      "_AuthLayout-DWOA87TG.js"
     ]
   },
   "resources/js/Pages/Employer/ApplicantTimeline.tsx": {
-    "file": "assets/ApplicantTimeline-CcpK_Y2U.js",
+    "file": "assets/ApplicantTimeline-xKirp722.js",
     "name": "ApplicantTimeline",
     "src": "resources/js/Pages/Employer/ApplicantTimeline.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AppLayout-CklvSKDf.js",
-      "_ImageInitialsFallback-D93MX980.js"
+      "_AppLayout-Db8Jj83C.js",
+      "_ImageInitialsFallback-j6UnGP5Y.js"
     ]
   },
   "resources/js/Pages/Employer/CreateJob.tsx": {
-    "file": "assets/CreateJob-D1Cp3fzD.js",
+    "file": "assets/CreateJob-Bwz33XEM.js",
     "name": "CreateJob",
     "src": "resources/js/Pages/Employer/CreateJob.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AppLayout-CklvSKDf.js",
-      "_ImageInitialsFallback-D93MX980.js"
+      "_AppLayout-Db8Jj83C.js",
+      "_ImageInitialsFallback-j6UnGP5Y.js"
     ]
   },
   "resources/js/Pages/Employer/Dashboard.tsx": {
-    "file": "assets/Dashboard-rCMHiyXh.js",
+    "file": "assets/Dashboard-D0o3vRfB.js",
     "name": "Dashboard",
     "src": "resources/js/Pages/Employer/Dashboard.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AppLayout-CklvSKDf.js",
-      "_InputError-CpOr3SPU.js",
-      "_ImageInitialsFallback-D93MX980.js"
+      "_AppLayout-Db8Jj83C.js",
+      "_InputError-2R7MNu6L.js",
+      "_ImageInitialsFallback-j6UnGP5Y.js"
     ],
     "dynamicImports": [
       "node_modules/chart.js/auto/auto.js"
     ]
   },
   "resources/js/Pages/Employer/Interviews.tsx": {
-    "file": "assets/Interviews-gX5SnUQr.js",
+    "file": "assets/Interviews-zGsb5Uk5.js",
     "name": "Interviews",
     "src": "resources/js/Pages/Employer/Interviews.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AppLayout-CklvSKDf.js",
-      "_ImageInitialsFallback-D93MX980.js"
+      "_AppLayout-Db8Jj83C.js",
+      "_ImageInitialsFallback-j6UnGP5Y.js"
     ]
   },
   "resources/js/Pages/Employer/Invitations.tsx": {
-    "file": "assets/Invitations-D1AAMjak.js",
+    "file": "assets/Invitations-Cn7zD55n.js",
     "name": "Invitations",
     "src": "resources/js/Pages/Employer/Invitations.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AppLayout-CklvSKDf.js",
-      "_ImageInitialsFallback-D93MX980.js"
+      "_AppLayout-Db8Jj83C.js",
+      "_ImageInitialsFallback-j6UnGP5Y.js"
     ]
   },
   "resources/js/Pages/Employer/JobApplications.tsx": {
-    "file": "assets/JobApplications-DIOpiAN9.js",
+    "file": "assets/JobApplications-VkZRBhov.js",
     "name": "JobApplications",
     "src": "resources/js/Pages/Employer/JobApplications.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AppLayout-CklvSKDf.js",
-      "_ImageInitialsFallback-D93MX980.js"
+      "_AppLayout-Db8Jj83C.js",
+      "_ImageInitialsFallback-j6UnGP5Y.js"
     ]
   },
   "resources/js/Pages/Employer/JobDetails.tsx": {
-    "file": "assets/JobDetails-D_qe0yj6.js",
+    "file": "assets/JobDetails-DrDDHEA5.js",
     "name": "JobDetails",
     "src": "resources/js/Pages/Employer/JobDetails.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AppLayout-CklvSKDf.js",
-      "_ImageInitialsFallback-D93MX980.js"
+      "_AppLayout-Db8Jj83C.js",
+      "_ImageInitialsFallback-j6UnGP5Y.js"
     ]
   },
   "resources/js/Pages/Employer/ManageJobs.tsx": {
-    "file": "assets/ManageJobs-sSBfXpaJ.js",
+    "file": "assets/ManageJobs-rE_U7Z6G.js",
     "name": "ManageJobs",
     "src": "resources/js/Pages/Employer/ManageJobs.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AppLayout-CklvSKDf.js",
-      "_ImageInitialsFallback-D93MX980.js"
+      "_AppLayout-Db8Jj83C.js",
+      "_ImageInitialsFallback-j6UnGP5Y.js"
     ]
   },
   "resources/js/Pages/Employer/Profile.tsx": {
-    "file": "assets/Profile-CeSEP4nq.js",
+    "file": "assets/Profile-Cqp3Ba3H.js",
     "name": "Profile",
     "src": "resources/js/Pages/Employer/Profile.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AppLayout-CklvSKDf.js",
-      "_ImageInitialsFallback-D93MX980.js"
+      "_AppLayout-Db8Jj83C.js",
+      "_ImageInitialsFallback-j6UnGP5Y.js"
     ]
   },
   "resources/js/Pages/Employer/Settings.tsx": {
-    "file": "assets/Settings-4dZSJVvK.js",
+    "file": "assets/Settings-ZrlbebHy.js",
     "name": "Settings",
     "src": "resources/js/Pages/Employer/Settings.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AppLayout-CklvSKDf.js",
-      "_InputError-CpOr3SPU.js",
+      "_AppLayout-Db8Jj83C.js",
+      "_InputError-2R7MNu6L.js",
       "resources/js/Pages/Employer/Settings/BlockedUsers.tsx",
-      "_ImageInitialsFallback-D93MX980.js"
+      "_ImageInitialsFallback-j6UnGP5Y.js"
     ]
   },
   "resources/js/Pages/Employer/Settings/BlockedUsers.tsx": {
-    "file": "assets/BlockedUsers-BBA46hL1.js",
+    "file": "assets/BlockedUsers-Bkn8T1HS.js",
     "name": "BlockedUsers",
     "src": "resources/js/Pages/Employer/Settings/BlockedUsers.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_ImageInitialsFallback-D93MX980.js"
+      "_ImageInitialsFallback-j6UnGP5Y.js"
     ]
   },
   "resources/js/Pages/Employer/Users.tsx": {
-    "file": "assets/Users-BCfJ045F.js",
+    "file": "assets/Users-ByWOivOA.js",
     "name": "Users",
     "src": "resources/js/Pages/Employer/Users.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AppLayout-CklvSKDf.js",
-      "_ImageInitialsFallback-D93MX980.js"
+      "_AppLayout-Db8Jj83C.js",
+      "_ImageInitialsFallback-j6UnGP5Y.js"
     ],
     "dynamicImports": [
       "resources/js/app.tsx"
     ]
   },
   "resources/js/Pages/JobSeeker/ApplicationHistory.tsx": {
-    "file": "assets/ApplicationHistory-CNwT4_tl.js",
+    "file": "assets/ApplicationHistory-Bt61HZkC.js",
     "name": "ApplicationHistory",
     "src": "resources/js/Pages/JobSeeker/ApplicationHistory.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AppLayout-CklvSKDf.js",
-      "_ImageInitialsFallback-D93MX980.js"
+      "_AppLayout-Db8Jj83C.js",
+      "_ImageInitialsFallback-j6UnGP5Y.js"
     ]
   },
   "resources/js/Pages/JobSeeker/ApplyJob.tsx": {
-    "file": "assets/ApplyJob-DE7KjVub.js",
+    "file": "assets/ApplyJob-DQv0UrnM.js",
     "name": "ApplyJob",
     "src": "resources/js/Pages/JobSeeker/ApplyJob.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AppLayout-CklvSKDf.js",
-      "_InputError-CpOr3SPU.js",
-      "_ImageInitialsFallback-D93MX980.js"
+      "_AppLayout-Db8Jj83C.js",
+      "_InputError-2R7MNu6L.js",
+      "_ImageInitialsFallback-j6UnGP5Y.js"
     ]
   },
   "resources/js/Pages/JobSeeker/BrowseJobs.tsx": {
-    "file": "assets/BrowseJobs-tWSjFtwO.js",
+    "file": "assets/BrowseJobs-BXrefGxW.js",
     "name": "BrowseJobs",
     "src": "resources/js/Pages/JobSeeker/BrowseJobs.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AppLayout-CklvSKDf.js",
-      "_InputError-CpOr3SPU.js",
-      "_ImageInitialsFallback-D93MX980.js"
+      "_AppLayout-Db8Jj83C.js",
+      "_InputError-2R7MNu6L.js",
+      "_ImageInitialsFallback-j6UnGP5Y.js"
     ]
   },
   "resources/js/Pages/JobSeeker/EmployerProfile.tsx": {
-    "file": "assets/EmployerProfile-3HlXz3PW.js",
+    "file": "assets/EmployerProfile-Co-q_IyZ.js",
     "name": "EmployerProfile",
     "src": "resources/js/Pages/JobSeeker/EmployerProfile.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AppLayout-CklvSKDf.js",
-      "_ImageInitialsFallback-D93MX980.js"
+      "_AppLayout-Db8Jj83C.js",
+      "_ImageInitialsFallback-j6UnGP5Y.js"
     ]
   },
   "resources/js/Pages/JobSeeker/JobDetail.tsx": {
-    "file": "assets/JobDetail-3yjlNlGf.js",
+    "file": "assets/JobDetail-BKBmKupl.js",
     "name": "JobDetail",
     "src": "resources/js/Pages/JobSeeker/JobDetail.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AppLayout-CklvSKDf.js",
-      "_ImageInitialsFallback-D93MX980.js"
+      "_AppLayout-Db8Jj83C.js",
+      "_ImageInitialsFallback-j6UnGP5Y.js"
     ]
   },
   "resources/js/Pages/JobSeeker/JobHistory.tsx": {
-    "file": "assets/JobHistory-DaAzLZ6t.js",
+    "file": "assets/JobHistory-7sVSUdkQ.js",
     "name": "JobHistory",
     "src": "resources/js/Pages/JobSeeker/JobHistory.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AppLayout-CklvSKDf.js",
-      "_ImageInitialsFallback-D93MX980.js"
+      "_AppLayout-Db8Jj83C.js",
+      "_ImageInitialsFallback-j6UnGP5Y.js"
     ]
   },
   "resources/js/Pages/JobSeeker/Profile.tsx": {
-    "file": "assets/Profile-Cbt04quM.js",
+    "file": "assets/Profile-Cij_On3g.js",
     "name": "Profile",
     "src": "resources/js/Pages/JobSeeker/Profile.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AppLayout-CklvSKDf.js",
-      "_ImageInitialsFallback-D93MX980.js"
+      "_AppLayout-Db8Jj83C.js",
+      "_ImageInitialsFallback-j6UnGP5Y.js"
     ]
   },
   "resources/js/Pages/JobSeeker/ProfileEdit.tsx": {
-    "file": "assets/ProfileEdit-mx2hV81a.js",
+    "file": "assets/ProfileEdit-C7wwmn7S.js",
     "name": "ProfileEdit",
     "src": "resources/js/Pages/JobSeeker/ProfileEdit.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AppLayout-CklvSKDf.js",
-      "_InputError-CpOr3SPU.js",
-      "_ImageInitialsFallback-D93MX980.js"
+      "_AppLayout-Db8Jj83C.js",
+      "_InputError-2R7MNu6L.js",
+      "_ImageInitialsFallback-j6UnGP5Y.js"
     ]
   },
   "resources/js/Pages/JobSeeker/RecruiterTimeline.tsx": {
-    "file": "assets/RecruiterTimeline-C4VYSRdE.js",
+    "file": "assets/RecruiterTimeline-DSSWOV1V.js",
     "name": "RecruiterTimeline",
     "src": "resources/js/Pages/JobSeeker/RecruiterTimeline.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AppLayout-CklvSKDf.js",
-      "_ImageInitialsFallback-D93MX980.js"
+      "_AppLayout-Db8Jj83C.js",
+      "_ImageInitialsFallback-j6UnGP5Y.js"
     ]
   },
   "resources/js/Pages/JobSeeker/SavedJobs.tsx": {
-    "file": "assets/SavedJobs-D2WpjDpc.js",
+    "file": "assets/SavedJobs-BJVwCCl5.js",
     "name": "SavedJobs",
     "src": "resources/js/Pages/JobSeeker/SavedJobs.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AppLayout-CklvSKDf.js",
-      "_ImageInitialsFallback-D93MX980.js"
+      "_AppLayout-Db8Jj83C.js",
+      "_ImageInitialsFallback-j6UnGP5Y.js"
     ]
   },
   "resources/js/Pages/JobSeeker/Settings/BlockedUsers.tsx": {
-    "file": "assets/BlockedUsers-aQy-cGte.js",
+    "file": "assets/BlockedUsers-b30l1oeT.js",
     "name": "BlockedUsers",
     "src": "resources/js/Pages/JobSeeker/Settings/BlockedUsers.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AppLayout-CklvSKDf.js",
-      "_ImageInitialsFallback-D93MX980.js"
+      "_AppLayout-Db8Jj83C.js",
+      "_ImageInitialsFallback-j6UnGP5Y.js"
     ]
   },
   "resources/js/Pages/Messaging/BlockUserModal.tsx": {
-    "file": "assets/BlockUserModal-XrM4Zl3m.js",
+    "file": "assets/BlockUserModal-D-VDVFXm.js",
     "name": "BlockUserModal",
     "src": "resources/js/Pages/Messaging/BlockUserModal.tsx",
     "isDynamicEntry": true,
@@ -542,113 +542,113 @@
     ]
   },
   "resources/js/Pages/Messaging/Index.tsx": {
-    "file": "assets/Index-CjOxI17b.js",
+    "file": "assets/Index-gSubsow1.js",
     "name": "Index",
     "src": "resources/js/Pages/Messaging/Index.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AppLayout-CklvSKDf.js",
-      "_ImageInitialsFallback-D93MX980.js"
+      "_AppLayout-Db8Jj83C.js",
+      "_ImageInitialsFallback-j6UnGP5Y.js"
     ]
   },
   "resources/js/Pages/Messaging/Report.tsx": {
-    "file": "assets/Report-7yGIChOo.js",
+    "file": "assets/Report-DodEw6dX.js",
     "name": "Report",
     "src": "resources/js/Pages/Messaging/Report.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AppLayout-CklvSKDf.js",
-      "_ImageInitialsFallback-D93MX980.js"
+      "_AppLayout-Db8Jj83C.js",
+      "_ImageInitialsFallback-j6UnGP5Y.js"
     ]
   },
   "resources/js/Pages/Notifications/Index.tsx": {
-    "file": "assets/Index-B9lLjg17.js",
+    "file": "assets/Index-Bgovb371.js",
     "name": "Index",
     "src": "resources/js/Pages/Notifications/Index.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AppLayout-CklvSKDf.js",
-      "_ImageInitialsFallback-D93MX980.js"
+      "_AppLayout-Db8Jj83C.js",
+      "_ImageInitialsFallback-j6UnGP5Y.js"
     ]
   },
   "resources/js/Pages/Settings/Account.tsx": {
-    "file": "assets/Account-CFKXxM1N.js",
+    "file": "assets/Account-ClBC6hiS.js",
     "name": "Account",
     "src": "resources/js/Pages/Settings/Account.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AppLayout-CklvSKDf.js",
-      "_SettingsLayout-BLNWDpPB.js",
-      "_InputError-CpOr3SPU.js",
-      "_ImageInitialsFallback-D93MX980.js"
+      "_AppLayout-Db8Jj83C.js",
+      "_SettingsLayout-CJndUOuS.js",
+      "_InputError-2R7MNu6L.js",
+      "_ImageInitialsFallback-j6UnGP5Y.js"
     ]
   },
   "resources/js/Pages/Settings/BlockedUsers.tsx": {
-    "file": "assets/BlockedUsers-DLXWYVjs.js",
+    "file": "assets/BlockedUsers-CxRUFC76.js",
     "name": "BlockedUsers",
     "src": "resources/js/Pages/Settings/BlockedUsers.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AppLayout-CklvSKDf.js",
-      "_SettingsLayout-BLNWDpPB.js",
-      "_ImageInitialsFallback-D93MX980.js"
+      "_AppLayout-Db8Jj83C.js",
+      "_SettingsLayout-CJndUOuS.js",
+      "_ImageInitialsFallback-j6UnGP5Y.js"
     ]
   },
   "resources/js/Pages/Settings/Documents.tsx": {
-    "file": "assets/Documents-C-tFMRnH.js",
+    "file": "assets/Documents-CWrPSewG.js",
     "name": "Documents",
     "src": "resources/js/Pages/Settings/Documents.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AppLayout-CklvSKDf.js",
-      "_SettingsLayout-BLNWDpPB.js",
-      "_ImageInitialsFallback-D93MX980.js"
+      "_AppLayout-Db8Jj83C.js",
+      "_SettingsLayout-CJndUOuS.js",
+      "_ImageInitialsFallback-j6UnGP5Y.js"
     ]
   },
   "resources/js/Pages/Settings/JobPreferences.tsx": {
-    "file": "assets/JobPreferences-CSktuH3t.js",
+    "file": "assets/JobPreferences-DkyIxrsj.js",
     "name": "JobPreferences",
     "src": "resources/js/Pages/Settings/JobPreferences.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AppLayout-CklvSKDf.js",
-      "_SettingsLayout-BLNWDpPB.js",
-      "_ImageInitialsFallback-D93MX980.js"
+      "_AppLayout-Db8Jj83C.js",
+      "_SettingsLayout-CJndUOuS.js",
+      "_ImageInitialsFallback-j6UnGP5Y.js"
     ]
   },
   "resources/js/Pages/Settings/Notifications.tsx": {
-    "file": "assets/Notifications-DKr0K5ZV.js",
+    "file": "assets/Notifications-Bx0P-qeN.js",
     "name": "Notifications",
     "src": "resources/js/Pages/Settings/Notifications.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AppLayout-CklvSKDf.js",
-      "_SettingsLayout-BLNWDpPB.js",
-      "_ImageInitialsFallback-D93MX980.js"
+      "_AppLayout-Db8Jj83C.js",
+      "_SettingsLayout-CJndUOuS.js",
+      "_ImageInitialsFallback-j6UnGP5Y.js"
     ]
   },
   "resources/js/Pages/Settings/SecurityPrivacy.tsx": {
-    "file": "assets/SecurityPrivacy-DKR4MIgk.js",
+    "file": "assets/SecurityPrivacy-BzpHA8kQ.js",
     "name": "SecurityPrivacy",
     "src": "resources/js/Pages/Settings/SecurityPrivacy.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AppLayout-CklvSKDf.js",
-      "_SettingsLayout-BLNWDpPB.js",
-      "_ImageInitialsFallback-D93MX980.js"
+      "_AppLayout-Db8Jj83C.js",
+      "_SettingsLayout-CJndUOuS.js",
+      "_ImageInitialsFallback-j6UnGP5Y.js"
     ]
   },
   "resources/js/Pages/Welcome.tsx": {
-    "file": "assets/Welcome-u0Q2HuE_.js",
+    "file": "assets/Welcome-DzjHf9U7.js",
     "name": "Welcome",
     "src": "resources/js/Pages/Welcome.tsx",
     "isDynamicEntry": true,
@@ -657,7 +657,7 @@
     ]
   },
   "resources/js/app.tsx": {
-    "file": "assets/app-DCOGWb6j.js",
+    "file": "assets/app-DFERiu3d.js",
     "name": "app",
     "src": "resources/js/app.tsx",
     "isEntry": true,
@@ -719,7 +719,7 @@
       "resources/js/Pages/Welcome.tsx"
     ],
     "css": [
-      "assets/app-BunkD4gj.css"
+      "assets/app-CIpJXwK0.css"
     ]
   }
 }

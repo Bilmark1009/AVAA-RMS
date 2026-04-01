@@ -161,7 +161,7 @@ class JobListingController extends Controller
     /**
      * Store a new job listing.
      */
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request)
     {
         $request->validate([
             'title'               => 'required|string|max:255',
@@ -232,6 +232,19 @@ class JobListingController extends Controller
         User::where('role', 'admin')->each(
             fn($admin) => $admin->notify(new AdminNewJobPostedNotification($job, $employer))
         );
+
+        // Return JSON for Inertia/fetch requests or redirect for browser requests
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Job listing created successfully!',
+                'job'     => [
+                    'id'        => $job->id,
+                    'logo_path' => $this->resolveLogoUrl($job->logo_path),
+                    'logo_url'  => $this->resolveLogoUrl($job->logo_path),
+                ],
+            ], 201);
+        }
 
         return redirect()->route('employer.jobs.index')
             ->with('success', 'Job listing created successfully!');
@@ -374,7 +387,7 @@ class JobListingController extends Controller
     /**
      * Update an existing job listing.
      */
-    public function update(Request $request, JobListing $job): RedirectResponse
+    public function update(Request $request, JobListing $job)
     {
         $this->authorizeJob($request, $job);
         $wasDraft = $job->status === 'draft';
@@ -449,6 +462,19 @@ class JobListingController extends Controller
 
         if ($wasDraft && $job->status === 'active') {
             $this->notifyPendingCollaboratorsForPostedJob($job, $request->user());
+        }
+
+        // Return JSON for Inertia/fetch requests or redirect for browser requests
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Job listing updated successfully!',
+                'job'     => [
+                    'id'        => $job->id,
+                    'logo_path' => $this->resolveLogoUrl($job->logo_path),
+                    'logo_url'  => $this->resolveLogoUrl($job->logo_path),
+                ],
+            ]);
         }
 
         return redirect()->route('employer.jobs.show', $job->id)

@@ -553,9 +553,10 @@ export default function CreateJob({ user, profile, companyName, mode = 'create',
                 preserveScroll: true,
                 forceFormData:  true,
                 onSuccess: () => {
-                    if (!isEdit) {
-                        router.visit(route('employer.jobs.index'));
-                    }
+                    // Clear the temporary file and preview state
+                    setLogoFile(null);
+                    // Redirect to job details or list - the page will reload with fresh data from server
+                    router.visit(route('employer.jobs.show', targetJobId));
                 },
                 onError:   (errs: any) => handleServerErrors(errs),
                 onFinish: () => setSaving(false),
@@ -565,6 +566,9 @@ export default function CreateJob({ user, profile, companyName, mode = 'create',
                 preserveScroll: true,
                 forceFormData:  true,
                 onSuccess: () => {
+                    // Clear the temporary file and preview state
+                    setLogoFile(null);
+                    // Redirect to jobs list - the page will reload with fresh data from server
                     router.visit(route('employer.jobs.index'));
                 },
                 onError:   (errs: any) => handleServerErrors(errs),
