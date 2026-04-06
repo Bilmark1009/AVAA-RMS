@@ -425,7 +425,7 @@ export default function AdminUsers({ users, filters }: Props) {
         localStorage.setItem('adminUsersViewMode', viewMode);
     }, [viewMode]);
 
-    /* ── Close dropdown on outside click ── */
+    /* ── Close dropdown on outside click or scroll ── */
     useEffect(() => {
         if (!roleDropOpen) return;
 
@@ -435,8 +435,18 @@ export default function AdminUsers({ users, filters }: Props) {
             }
         }
 
+        function handleScroll() {
+            setRoleDropOpen(false);
+        }
+
         document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
+        // Use document + capture so we intercept scroll on ANY nested scrollable
+        // element (table overflow, sidebar, etc.) — scroll events don't bubble.
+        document.addEventListener('scroll', handleScroll, { capture: true, passive: true });
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('scroll', handleScroll, { capture: true } as any);
+        };
     }, [roleDropOpen]);
 
     /* ── Keep statuses synced while page is open ── */
