@@ -417,6 +417,8 @@ export default function AdminUsers({ users, filters }: Props) {
     const [detailTarget, setDetailTarget] = useState<User | null>(null);
     const [processingId, setProcessingId] = useState<number | null>(null);
     const roleDropRef = useRef<HTMLDivElement>(null);
+    const searchInitRef = useRef(false);
+    const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     /* ── Persist view mode to localStorage ── */
     useEffect(() => {
@@ -455,7 +457,34 @@ export default function AdminUsers({ users, filters }: Props) {
         }, { preserveState: true, replace: true });
     }, [search, role, status]);
 
-    const handleSearch = (e: React.FormEvent) => { e.preventDefault(); applyFilters({}); };
+    /* ── Keep filter state in sync with URL/query props ── */
+    useEffect(() => {
+        setSearch(filters.search ?? '');
+        setRole(filters.role ?? 'all');
+        setStatus(filters.status ?? 'all');
+    }, [filters.search, filters.role, filters.status]);
+
+    /* ── Live search with debounce and clear-to-reset ── */
+    useEffect(() => {
+        if (!searchInitRef.current) {
+            searchInitRef.current = true;
+            return;
+        }
+
+        if (searchDebounceRef.current) {
+            clearTimeout(searchDebounceRef.current);
+        }
+
+        searchDebounceRef.current = setTimeout(() => {
+            applyFilters({ search });
+        }, 250);
+
+        return () => {
+            if (searchDebounceRef.current) {
+                clearTimeout(searchDebounceRef.current);
+            }
+        };
+    }, [search, applyFilters]);
 
     const handleTab = (s: string) => { setStatus(s); applyFilters({ status: s }); };
     const handleRole = (r: string) => { setRole(r); setRoleDropOpen(false); applyFilters({ role: r }); };
@@ -518,16 +547,16 @@ export default function AdminUsers({ users, filters }: Props) {
 
                     <div className="flex items-center gap-2 flex-wrap sm:ml-auto">
                         {/* Search */}
-                        <form onSubmit={handleSearch} className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 h-10 flex-1 sm:flex-none sm:w-64 shadow-sm min-w-0">
+                        <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 h-10 flex-1 sm:flex-none sm:w-64 shadow-sm min-w-0 transition-colors focus-within:border-[#3d9e9e] focus-within:ring-2 focus-within:ring-[#3d9e9e]/15">
                             <span className="text-gray-400 flex-shrink-0"><IcoSearch /></span>
                             <input
                                 type="text"
                                 value={search}
                                 onChange={e => setSearch(e.target.value)}
                                 placeholder="Search user..."
-                                className="bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none border-0 w-full focus:outline-none ring-0 focus:ring-0"
+                                className="bg-transparent text-sm text-gray-700 placeholder-gray-400 border-0 w-full outline-none ring-0 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
                             />
-                        </form>
+                        </div>
 
                         {/* Role Dropdown */}
                         <div className="relative" ref={roleDropRef}>
