@@ -1,5 +1,5 @@
 import { PropsWithChildren, useEffect, useRef } from "react";
-import { usePage, router, Head } from "@inertiajs/react";
+import { usePage, router, Head, Link } from "@inertiajs/react";
 import type { PageProps } from "@/types";
 
 interface AuthLayoutProps extends PropsWithChildren {
@@ -134,22 +134,34 @@ export default function AuthLayout({
                     </div>
 
                     {/* Bottom Logo Section */}
-                    <div className="flex items-center gap-4">
+                    <Link href="/" className="inline-flex items-center gap-4 w-fit" aria-label="Go to AVAA landing page">
                         <img
                             src="/logos/AVAA_Logo.png"
                             alt="AVAA Logo"
-                            className="h-12 w-auto " // Force logo to be white
+                            className="h-12 w-auto"
                         />
                         <span className="text-3xl font-extrabold text-avaa-dark tracking-tighter uppercase">
                             AVAA
                         </span>
-                    </div>
+                    </Link>
                 </div>
             </div>
 
             {/* Right Form Panel */}
             <div className="flex-1 flex flex-col items-center justify-center px-8 lg:px-24">
                 <div className="w-full max-w-md">
+                    <div className="lg:hidden mb-8">
+                        <Link href="/" className="inline-flex items-center gap-3" aria-label="Go to AVAA landing page">
+                            <img
+                                src="/logos/AVAA_Logo.png"
+                                alt="AVAA Logo"
+                                className="h-10 w-auto"
+                            />
+                            <span className="text-2xl font-extrabold text-[#1e3a4f] tracking-tighter uppercase">
+                                AVAA
+                            </span>
+                        </Link>
+                    </div>
                     <div className="mb-10">
                         {title && (
                             <h2 className="text-3xl font-bold text-[#1e3a4f] mb-2">
