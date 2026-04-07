@@ -5,7 +5,8 @@ import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
 
 /* ── Types ── */
 interface JobSeekerProfile {
-    skills?: string | null;
+    /** Laravel casts `skills` as array; legacy rows may still be a JSON string. */
+    skills?: string | string[] | null;
     professional_title?: string | null;
     current_job_title?: string | null;
     open_to_work?: boolean | null;
@@ -118,8 +119,10 @@ const IcoClock = () => (
 const AVATAR_BG = ['bg-[#3d9e9e]', 'bg-slate-700', 'bg-emerald-600', 'bg-violet-600', 'bg-rose-500', 'bg-amber-600'];
 
 /* ── Skill tag parser ── */
-function parseSkills(raw?: string | null): string[] {
-    if (!raw) return [];
+function parseSkills(raw?: string | string[] | null): string[] {
+    if (raw == null || raw === '') return [];
+    if (Array.isArray(raw)) return raw.map(String).map(s => s.trim()).filter(Boolean);
+    if (typeof raw !== 'string') return [];
     try {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) return parsed.map(String);
