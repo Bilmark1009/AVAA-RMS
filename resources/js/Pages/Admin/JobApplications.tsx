@@ -452,7 +452,7 @@ export default function AdminJobApplications({ job, applications }: Props) {
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
                     <div className="min-w-0 w-full sm:w-auto sm:flex-1 sm:min-w-0">
                         <div
-                            className="overflow-x-auto overflow-y-hidden overscroll-x-contain [touch-action:pan-x] [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+                            className="overflow-x-auto overflow-y-hidden overscroll-x-contain [touch-action:pan-x] [-webkit-overflow-scrolling:touch]"
                             role="region"
                             aria-label="Filter applicants by status"
                         >
