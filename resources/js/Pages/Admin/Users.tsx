@@ -537,60 +537,24 @@ export default function AdminUsers({ users, filters }: Props) {
                 activeNav="Users"
             >
                 {/* ── Filter Bar ── */}
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
+                <div className="flex flex-col gap-3 mb-5">
 
-                    {/* Status Tabs */}
-                    <div className="flex items-center bg-white border border-gray-200 rounded-xl p-1 gap-1 self-start sm:self-auto">
-                        {(['all', 'active', 'inactive'] as const).map(tab => (
-                            <button
-                                key={tab}
-                                onClick={() => handleTab(tab)}
-                                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all
-                                    ${status === tab
-                                        ? 'bg-avaa-dark text-white shadow-sm'
-                                        : 'text-gray-500 hover:text-avaa-dark hover:bg-gray-50'}`}
-                            >
-                                {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                            </button>
-                        ))}
-                    </div>
-
-                    <div className="flex items-center gap-2 flex-wrap sm:ml-auto">
-                        {/* Search */}
-                        <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 h-10 flex-1 sm:flex-none sm:w-64 shadow-sm min-w-0 transition-colors focus-within:border-[#3d9e9e] focus-within:ring-2 focus-within:ring-[#3d9e9e]/15">
-                            <span className="text-gray-400 flex-shrink-0"><IcoSearch /></span>
-                            <input
-                                type="text"
-                                value={search}
-                                onChange={e => setSearch(e.target.value)}
-                                placeholder="Search user..."
-                                className="bg-transparent text-sm text-gray-700 placeholder-gray-400 border-0 w-full outline-none ring-0 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
-                            />
-                        </div>
-
-                        {/* Role Dropdown */}
-                        <div className="relative" ref={roleDropRef}>
-                            <button
-                                onClick={() => setRoleDropOpen(o => !o)}
-                                className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 h-10 text-sm font-semibold text-gray-700 hover:border-[#3d9e9e] hover:text-[#3d9e9e] transition-colors whitespace-nowrap"
-                            >
-                                {ROLE_LABELS[role] ?? 'Filter Role'}
-                                <IcoChevDown />
-                            </button>
-                            {roleDropOpen && (
-                                <div className="absolute right-0 left-auto top-full mt-1.5 w-48 max-w-[calc(100vw-2rem)] bg-white border border-gray-200 rounded-xl shadow-lg shadow-black/5 z-20 overflow-hidden">
-                                    {Object.entries(ROLE_LABELS).map(([k, v]) => (
-                                        <button
-                                            key={k}
-                                            onClick={() => handleRole(k)}
-                                            className={`w-full text-left px-4 py-3 text-sm font-semibold transition-colors
-                                                ${role === k ? 'bg-[#e8f4f4] text-[#3d9e9e]' : 'text-gray-700 hover:bg-gray-50'}`}
-                                        >
-                                            {v}
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
+                    {/* Top row: status tabs + view toggle */}
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                        {/* Status Tabs */}
+                        <div className="flex items-center bg-white border border-gray-200 rounded-xl p-1 gap-1">
+                            {(['all', 'active', 'inactive'] as const).map(tab => (
+                                <button
+                                    key={tab}
+                                    onClick={() => handleTab(tab)}
+                                    className={`px-3 sm:px-4 py-1.5 rounded-lg text-xs font-bold transition-all
+                                        ${status === tab
+                                            ? 'bg-avaa-dark text-white shadow-sm'
+                                            : 'text-gray-500 hover:text-avaa-dark hover:bg-gray-50'}`}
+                                >
+                                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                                </button>
+                            ))}
                         </div>
 
                         {/* View toggle */}
@@ -607,6 +571,47 @@ export default function AdminUsers({ users, filters }: Props) {
                             >
                                 <IcoList />
                             </button>
+                        </div>
+                    </div>
+
+                    {/* Bottom row: search + role filter */}
+                    <div className="flex items-center gap-2">
+                        {/* Search */}
+                        <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 h-10 flex-1 min-w-0 shadow-sm transition-colors focus-within:border-[#3d9e9e] focus-within:ring-2 focus-within:ring-[#3d9e9e]/15">
+                            <span className="text-gray-400 flex-shrink-0"><IcoSearch /></span>
+                            <input
+                                type="text"
+                                value={search}
+                                onChange={e => setSearch(e.target.value)}
+                                placeholder="Search user..."
+                                className="bg-transparent text-sm text-gray-700 placeholder-gray-400 border-0 w-full outline-none ring-0 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
+                            />
+                        </div>
+
+                        {/* Role Dropdown */}
+                        <div className="relative flex-shrink-0" ref={roleDropRef}>
+                            <button
+                                onClick={() => setRoleDropOpen(o => !o)}
+                                className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 sm:px-4 h-10 text-xs sm:text-sm font-semibold text-gray-700 hover:border-[#3d9e9e] hover:text-[#3d9e9e] transition-colors whitespace-nowrap"
+                            >
+                                <span className="hidden xs:inline">{ROLE_LABELS[role] ?? 'Filter Role'}</span>
+                                <span className="xs:hidden">{role === 'all' ? 'All' : role === 'job_seeker' ? 'Seekers' : 'Employers'}</span>
+                                <IcoChevDown />
+                            </button>
+                            {roleDropOpen && (
+                                <div className="absolute right-0 left-auto top-full mt-1.5 w-44 sm:w-48 max-w-[calc(100vw-2rem)] bg-white border border-gray-200 rounded-xl shadow-lg shadow-black/5 z-20 overflow-hidden">
+                                    {Object.entries(ROLE_LABELS).map(([k, v]) => (
+                                        <button
+                                            key={k}
+                                            onClick={() => handleRole(k)}
+                                            className={`w-full text-left px-4 py-3 text-sm font-semibold transition-colors
+                                                ${role === k ? 'bg-[#e8f4f4] text-[#3d9e9e]' : 'text-gray-700 hover:bg-gray-50'}`}
+                                        >
+                                            {v}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -627,21 +632,21 @@ export default function AdminUsers({ users, filters }: Props) {
 
                         /* ── LIST VIEW (TABLE) ── */
                         <div className="overflow-x-auto">
-                            <table className="w-full text-sm min-w-[700px] table-fixed">
+                            <table className="w-full text-sm min-w-[520px] table-fixed">
                                 <colgroup>
-                                    <col className="w-[38%]" />
-                                    <col className="w-[24%]" />
-                                    <col className="w-[12%]" />
-                                    <col className="w-[16%]" />
-                                    <col className="w-[10%]" />
+                                    <col className="w-[40%]" />
+                                    <col className="w-[22%]" />
+                                    <col className="w-[14%]" />
+                                    <col className="w-[16%] hidden md:table-column" />
+                                    <col className="w-[10%] md:w-[8%]" />
                                 </colgroup>
                                 <thead>
                                     <tr className="border-b border-gray-100">
-                                        {['User', 'Skills / Company', 'Status', 'Joined Date', ''].map(h => (
-                                            <th key={h} className="text-left px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wide whitespace-nowrap">
-                                                {h}
-                                            </th>
-                                        ))}
+                                        <th className="text-left px-4 sm:px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wide whitespace-nowrap">User</th>
+                                        <th className="text-left px-4 sm:px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wide whitespace-nowrap">Skills / Company</th>
+                                        <th className="text-left px-4 sm:px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wide whitespace-nowrap">Status</th>
+                                        <th className="text-left px-4 sm:px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wide whitespace-nowrap hidden md:table-cell">Joined</th>
+                                        <th className="px-4 sm:px-6 py-4"></th>
                                     </tr>
                                 </thead>
 
@@ -662,14 +667,14 @@ export default function AdminUsers({ users, filters }: Props) {
                                             <tr key={user.id} className={`transition-colors ${isDeleted ? 'opacity-60 bg-gray-50/60' : 'hover:bg-gray-50/50'}`}>
 
                                                 {/* User */}
-                                                <td className="px-6 py-4 min-w-0">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="relative">
+                                                <td className="px-4 sm:px-6 py-4 min-w-0">
+                                                    <div className="flex items-center gap-2 sm:gap-3">
+                                                        <div className="relative flex-shrink-0">
                                                             <ImageInitialsFallback
                                                                 src={user.avatar}
                                                                 alt={initials}
                                                                 initials={initials}
-                                                                className={`w-9 h-9 rounded-full flex-shrink-0 overflow-hidden ${profileFrameRingClass(frame, !!user.currently_working)} ${user.avatar ? 'bg-white' : AVATAR_BG[i % AVATAR_BG.length]}`}
+                                                                className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex-shrink-0 overflow-hidden ${profileFrameRingClass(frame, !!user.currently_working)} ${user.avatar ? 'bg-white' : AVATAR_BG[i % AVATAR_BG.length]}`}
                                                                 textClassName="text-white text-xs font-bold flex items-center justify-center"
                                                             />
                                                             <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-10">
@@ -678,35 +683,35 @@ export default function AdminUsers({ users, filters }: Props) {
                                                         </div>
 
                                                         <div className="min-w-0 flex-1">
-                                                            <p className="font-semibold text-gray-800 leading-tight truncate">
+                                                            <p className="font-semibold text-gray-800 leading-tight truncate text-xs sm:text-sm">
                                                                 {user.first_name} {user.last_name}
                                                                 {isDeleted && (
-                                                                    <span className="ml-2 text-[10px] font-bold text-red-400 bg-red-50 px-1.5 py-0.5 rounded-full">DELETED</span>
+                                                                    <span className="ml-1.5 text-[9px] font-bold text-red-400 bg-red-50 px-1.5 py-0.5 rounded-full">DEL</span>
                                                                 )}
                                                             </p>
-                                                            <p className="text-xs text-gray-400 truncate mt-0.5 max-w-full">{user.email}</p>
+                                                            <p className="text-xs text-gray-400 truncate mt-0.5">{user.email}</p>
                                                         </div>
                                                     </div>
                                                 </td>
 
                                                 {/* Skills / Company */}
-                                                <td className="px-6 py-4 min-w-0">
+                                                <td className="px-4 sm:px-6 py-4 min-w-0">
                                                     {user.role === 'job_seeker' ? (
                                                         professionalTitle ? (
-                                                            <span className="inline-block px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 text-xs font-medium truncate max-w-full align-top">{professionalTitle}</span>
+                                                            <span className="inline-block px-2 py-1 rounded-lg bg-gray-100 text-gray-600 text-xs font-medium truncate max-w-full align-top">{professionalTitle}</span>
                                                         ) : (
                                                             <span className="text-gray-300 text-xs">—</span>
                                                         )
                                                     ) : company ? (
-                                                        <span className="inline-block px-2.5 py-1 rounded-lg bg-[#e8f4f4] text-[#3d9e9e] text-xs font-medium truncate max-w-full align-top">{company}</span>
+                                                        <span className="inline-block px-2 py-1 rounded-lg bg-[#e8f4f4] text-[#3d9e9e] text-xs font-medium truncate max-w-full align-top">{company}</span>
                                                     ) : (
                                                         <span className="text-gray-300 text-xs">—</span>
                                                     )}
                                                 </td>
 
                                                 {/* Status */}
-                                                <td className="px-6 py-4">
-                                                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold
+                                                <td className="px-4 sm:px-6 py-4">
+                                                    <span className={`inline-flex items-center gap-1 px-2 sm:px-3 py-1 rounded-full text-xs font-semibold
                                                         ${isActive === 'banned'
                                                             ? 'bg-red-50 text-red-700 border border-red-100'
                                                             : isActive === 'suspended'
@@ -714,34 +719,36 @@ export default function AdminUsers({ users, filters }: Props) {
                                                             : isActive === 'active'
                                                             ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
                                                             : 'bg-gray-100 text-gray-500 border border-gray-200'}`}>
-                                                        <span className={`w-1.5 h-1.5 rounded-full ${
+                                                        <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
                                                             isActive === 'banned' ? 'bg-red-500'
                                                             : isActive === 'suspended' ? 'bg-orange-500'
                                                             : isActive === 'active' ? 'bg-emerald-500'
                                                             : 'bg-gray-400'
                                                         }`} />
-                                                        {isActive === 'banned' ? 'Banned'
-                                                            : isActive === 'suspended' ? 'Suspended'
-                                                            : isActive === 'active' ? 'Active'
-                                                            : 'Inactive'}
+                                                        <span className="hidden sm:inline">
+                                                            {isActive === 'banned' ? 'Banned'
+                                                                : isActive === 'suspended' ? 'Suspended'
+                                                                : isActive === 'active' ? 'Active'
+                                                                : 'Inactive'}
+                                                        </span>
                                                     </span>
                                                 </td>
 
-                                                {/* Joined */}
-                                                <td className="px-6 py-4">
-                                                    <span className="flex items-center gap-1.5 text-gray-500 text-sm">
+                                                {/* Joined — hidden on small tablets */}
+                                                <td className="px-4 sm:px-6 py-4 hidden md:table-cell">
+                                                    <span className="flex items-center gap-1.5 text-gray-500 text-xs sm:text-sm">
                                                         <IcoCalendar />
                                                         {new Date(user.created_at).toISOString().slice(0, 10)}
                                                     </span>
                                                 </td>
 
                                                 {/* Actions */}
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center gap-1.5 justify-end">
+                                                <td className="px-4 sm:px-6 py-4">
+                                                    <div className="flex items-center gap-1 sm:gap-1.5 justify-end">
                                                         <button
                                                             onClick={() => setDetailTarget(user)}
                                                             title="View user"
-                                                            className="p-2 rounded-lg text-gray-400 hover:text-[#3d9e9e] hover:bg-[#e8f4f4] transition-colors"
+                                                            className="p-1.5 sm:p-2 rounded-lg text-gray-400 hover:text-[#3d9e9e] hover:bg-[#e8f4f4] transition-colors"
                                                         >
                                                             <IcoEye />
                                                         </button>
@@ -751,7 +758,7 @@ export default function AdminUsers({ users, filters }: Props) {
                                                                 onClick={() => doRestore(user)}
                                                                 disabled={isBusy}
                                                                 title="Restore user"
-                                                                className="p-2 rounded-lg text-emerald-500 hover:bg-emerald-50 transition-colors disabled:opacity-40"
+                                                                className="p-1.5 sm:p-2 rounded-lg text-emerald-500 hover:bg-emerald-50 transition-colors disabled:opacity-40"
                                                             >
                                                                 <IcoRestore />
                                                             </button>
@@ -760,7 +767,7 @@ export default function AdminUsers({ users, filters }: Props) {
                                                                 onClick={() => doReactivate(user)}
                                                                 disabled={isBusy}
                                                                 title="Reactivate banned account"
-                                                                className="p-2 rounded-lg text-emerald-500 hover:bg-emerald-50 transition-colors disabled:opacity-40"
+                                                                className="p-1.5 sm:p-2 rounded-lg text-emerald-500 hover:bg-emerald-50 transition-colors disabled:opacity-40"
                                                             >
                                                                 <IcoRestore />
                                                             </button>
@@ -770,7 +777,7 @@ export default function AdminUsers({ users, filters }: Props) {
                                                                     onClick={() => confirmDelete(user)}
                                                                     disabled={isBusy}
                                                                     title="Deactivate user"
-                                                                    className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40"
+                                                                    className="p-1.5 sm:p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40"
                                                                 >
                                                                     <IcoTrash />
                                                                 </button>
@@ -789,7 +796,7 @@ export default function AdminUsers({ users, filters }: Props) {
                     ) : (
 
                         /* ── GRID VIEW ── */
-                        <div className="p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+                        <div className="p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
                             {users.data.map((user, i) => {
                                 const initials = `${(user.first_name ?? '').charAt(0)}${(user.last_name ?? '').charAt(0)}`.toUpperCase();
                                 const frame = getProfileFrame(getJobSeekerProfile(user)?.profile_frame);
@@ -896,19 +903,19 @@ export default function AdminUsers({ users, filters }: Props) {
 
                     {/* ── Pagination ── */}
                     {users.last_page > 1 && (
-                        <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
-                            <p className="text-xs text-gray-400">
+                        <div className="px-4 sm:px-6 py-4 border-t border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                            <p className="text-xs text-gray-400 whitespace-nowrap">
                                 Showing {(users.current_page - 1) * users.per_page + 1}–{Math.min(users.current_page * users.per_page, users.total)} of {users.total} users
                             </p>
 
-                            <div className="flex items-center gap-1">
+                            <div className="flex flex-wrap items-center gap-1">
                                 {users.links.map((link, i) => (
                                     <button
                                         key={i}
                                         disabled={!link.url}
                                         onClick={() => link.url && router.get(link.url, {}, { preserveState: true })}
                                         dangerouslySetInnerHTML={{ __html: link.label }}
-                                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors
+                                        className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors
                                             ${link.active
                                                 ? 'bg-[#3d9e9e] text-white'
                                                 : link.url

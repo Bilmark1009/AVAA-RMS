@@ -180,72 +180,97 @@ export default function AdminVerifications({ auth, pendingEmployers }: Props) {
                                         ${isOpen ? 'border-avaa-primary/40 shadow-sm' : 'border-gray-200 hover:border-avaa-primary/25'}`}>
 
                                     {/* Card header — always visible */}
-                                    <div className="px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
+                                    <div className="px-5 py-4 flex flex-col gap-3">
 
-                                        {/* Top row: avatar + name + meta chips */}
-                                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                                        {/* Row 1: avatar + name + action buttons */}
+                                        <div className="flex items-center gap-3">
                                             {/* Avatar */}
                                             <div className={`w-11 h-11 rounded-xl ${avatarBg} flex items-center justify-center text-white font-bold text-sm flex-shrink-0`}>
                                                 {initials}
                                             </div>
 
-                                            {/* Name + email */}
-                                            <div className="flex-1 min-w-0">
+                                            {/* Name + email — flex-1 + min-w-0 ensures truncate works */}
+                                            <div className="flex-1 min-w-0 overflow-hidden">
                                                 <p className="font-semibold text-avaa-dark text-sm truncate">
                                                     {emp.profile?.company_name ?? emp.name}
                                                 </p>
-                                                <div className="flex items-center gap-1 text-xs text-avaa-muted mt-0.5">
+                                                <div className="flex items-center gap-1 text-xs text-avaa-muted mt-0.5 min-w-0 overflow-hidden">
                                                     <IcoMail /><span className="truncate">{emp.email}</span>
                                                 </div>
                                             </div>
 
-                                            {/* Meta chips — hidden on mobile */}
-                                            <div className="hidden sm:flex items-center gap-2 flex-wrap">
-                                                {emp.profile?.industry && (
-                                                    <span className="px-2.5 py-1 rounded-lg bg-avaa-primary-light text-avaa-teal text-xs font-medium">
-                                                        {emp.profile.industry}
-                                                    </span>
-                                                )}
-                                                {emp.profile?.company_size && (
-                                                    <span className="px-2.5 py-1 rounded-lg bg-gray-100 text-avaa-muted text-xs font-medium">
-                                                        {emp.profile.company_size}
-                                                    </span>
-                                                )}
-                                                <span className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gray-100 text-avaa-muted text-xs font-medium">
-                                                    <IcoCalendar />
-                                                    {new Date(emp.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                                                </span>
+                                            {/* Action buttons — icon-only on sm/md, full text on lg+ */}
+                                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                                                {/* Verify — icon-only on sm..md, full label on lg+ */}
+                                                <button
+                                                    onClick={() => handleVerify(emp.id)}
+                                                    disabled={isProcessing}
+                                                    title="Verify"
+                                                    className="hidden sm:flex items-center gap-1.5 p-2 lg:px-4 lg:py-2 rounded-xl text-xs font-semibold
+                                                               text-white bg-avaa-primary hover:bg-avaa-primary-hover
+                                                               disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                                                    <IcoCheck />
+                                                    <span className="hidden lg:inline">{isProcessing ? 'Processing…' : 'Verify'}</span>
+                                                </button>
+                                                {/* Reject — icon-only on sm..md, full label on lg+ */}
+                                                <button
+                                                    onClick={() => handleReject(emp.id)}
+                                                    disabled={isProcessing}
+                                                    title="Reject"
+                                                    className="hidden sm:flex items-center gap-1.5 p-2 lg:px-4 lg:py-2 rounded-xl text-xs font-semibold
+                                                               text-red-600 border border-red-200 hover:bg-red-50
+                                                               disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                                                    <IcoX />
+                                                    <span className="hidden lg:inline">Reject</span>
+                                                </button>
+                                                {/* Expand toggle */}
+                                                <button
+                                                    onClick={() => setExpanded(isOpen ? null : emp.id)}
+                                                    className={`p-2 rounded-xl border border-gray-200 text-avaa-muted
+                                                               hover:bg-avaa-primary-light hover:text-avaa-teal transition-all
+                                                               ${isOpen ? 'rotate-180 bg-avaa-primary-light text-avaa-teal' : ''}`}>
+                                                    <IcoChevDown />
+                                                </button>
                                             </div>
                                         </div>
 
-                                        {/* Action buttons — always on their own row on mobile */}
-                                        <div className="flex items-center gap-2 flex-shrink-0">
-                                            <button
-                                                onClick={() => handleVerify(emp.id)}
-                                                disabled={isProcessing}
-                                                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold
-                                                           text-white bg-avaa-primary hover:bg-avaa-primary-hover
-                                                           disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-                                                <IcoCheck />
-                                                {isProcessing ? 'Processing…' : 'Verify'}
-                                            </button>
-                                            <button
-                                                onClick={() => handleReject(emp.id)}
-                                                disabled={isProcessing}
-                                                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold
-                                                           text-red-600 border border-red-200 hover:bg-red-50
-                                                           disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-                                                <IcoX />
-                                                Reject
-                                            </button>
-                                            {/* Expand toggle */}
-                                            <button
-                                                onClick={() => setExpanded(isOpen ? null : emp.id)}
-                                                className={`p-2 rounded-xl border border-gray-200 text-avaa-muted
-                                                           hover:bg-avaa-primary-light hover:text-avaa-teal transition-all
-                                                           ${isOpen ? 'rotate-180 bg-avaa-primary-light text-avaa-teal' : ''}`}>
-                                                <IcoChevDown />
-                                            </button>
+                                        {/* Row 2: meta chips + mobile action buttons */}
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            {emp.profile?.industry && (
+                                                <span className="px-2.5 py-1 rounded-lg bg-avaa-primary-light text-avaa-teal text-xs font-medium">
+                                                    {emp.profile.industry}
+                                                </span>
+                                            )}
+                                            {emp.profile?.company_size && (
+                                                <span className="px-2.5 py-1 rounded-lg bg-gray-100 text-avaa-muted text-xs font-medium">
+                                                    {emp.profile.company_size}
+                                                </span>
+                                            )}
+                                            <span className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gray-100 text-avaa-muted text-xs font-medium">
+                                                <IcoCalendar />
+                                                {new Date(emp.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                            </span>
+                                            {/* Mobile-only action buttons (visible below sm) */}
+                                            <div className="flex sm:hidden items-center gap-2 ml-auto">
+                                                <button
+                                                    onClick={() => handleVerify(emp.id)}
+                                                    disabled={isProcessing}
+                                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold
+                                                               text-white bg-avaa-primary hover:bg-avaa-primary-hover
+                                                               disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                                                    <IcoCheck />
+                                                    {isProcessing ? '…' : 'Verify'}
+                                                </button>
+                                                <button
+                                                    onClick={() => handleReject(emp.id)}
+                                                    disabled={isProcessing}
+                                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold
+                                                               text-red-600 border border-red-200 hover:bg-red-50
+                                                               disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                                                    <IcoX />
+                                                    Reject
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
 
