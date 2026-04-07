@@ -1,9 +1,11 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
 
 /* ── Types ── */
 interface Trend { month: string; count: number }
+interface WeeklyTrend { week: string; count: number }
+interface YearlyTrend { year: string; count: number }
 interface RecentJob {
     id: number; title: string; location: string;
     status: string; created_at: string; employer: string;
@@ -32,6 +34,8 @@ interface Props {
     jobCount: number;
     applicationCount: number;
     applicationTrends: Trend[];
+    weeklyApplications: WeeklyTrend[];
+    yearlyApplications: YearlyTrend[];
     recentJobs: RecentJob[];
     recentUsers: RecentUser[];
     recentJobSeekers: RecentJobSeeker[];
@@ -129,28 +133,103 @@ function StatCard({ label, value, sub, trend, trendUp, icon }: {
 }
 
 /* ── Bar Chart ── */
-function TrendsChart({ trends }: { trends: Trend[] }) {
-    const max = Math.max(...trends.map(t => t.count), 1);
+type Period = 'weekly' | 'monthly' | 'yearly';
+
+function TrendsChart({ trends, weeklyTrends, yearlyTrends }: { trends: Trend[]; weeklyTrends: WeeklyTrend[]; yearlyTrends: YearlyTrend[] }) {
+    const [period, setPeriod] = useState<Period>('monthly');
+
+    const dataByPeriod: Record<Period, { label: string; items: { label: string; count: number }[] }> = {
+        weekly: {
+            label: 'Weekly application volume',
+            items: weeklyTrends.map(t => ({ label: t.week, count: t.count })),
+        },
+        monthly: {
+            label: 'Monthly application volume',
+            items: trends.map(t => ({ label: t.month, count: t.count })),
+        },
+        yearly: {
+            label: 'Yearly application volume',
+            items: yearlyTrends.map(t => ({ label: t.year, count: t.count })),
+        },
+    };
+
+    const fallbackByPeriod: Record<Period, { label: string; items: { label: string; count: number }[] }> = {
+        weekly: {
+            label: 'Weekly application volume',
+            items: [
+                { label: 'Wk 1', count: 0 },
+                { label: 'Wk 2', count: 0 },
+                { label: 'Wk 3', count: 0 },
+                { label: 'Wk 4', count: 0 },
+                { label: 'Wk 5', count: 0 },
+                { label: 'Wk 6', count: 0 },
+                { label: 'Wk 7', count: 0 },
+                { label: 'Wk 8', count: 0 },
+            ],
+        },
+        monthly: {
+            label: 'Monthly application volume',
+            items: [
+                { label: 'Sep', count: 0 },
+                { label: 'Oct', count: 0 },
+                { label: 'Nov', count: 0 },
+                { label: 'Dec', count: 0 },
+                { label: 'Jan', count: 0 },
+                { label: 'Feb', count: 0 },
+            ],
+        },
+        yearly: {
+            label: 'Yearly application volume',
+            items: [
+                { label: '2021', count: 0 },
+                { label: '2022', count: 0 },
+                { label: '2023', count: 0 },
+                { label: '2024', count: 0 },
+                { label: '2025', count: 0 },
+                { label: '2026', count: 0 },
+            ],
+        },
+    };
+
+    const current = dataByPeriod[period].items.length > 0 ? dataByPeriod[period] : fallbackByPeriod[period];
+    const max = Math.max(...current.items.map(t => t.count), 1);
+    const periodOptions: { key: Period; label: string }[] = [
+        { key: 'weekly', label: 'Weekly' },
+        { key: 'monthly', label: 'Monthly' },
+        { key: 'yearly', label: 'Yearly' },
+    ];
 
     return (
         <div className="bg-white rounded-2xl border border-gray-200 p-6">
             <div className="flex items-start justify-between mb-6">
                 <div>
                     <p className="font-bold text-gray-900 text-base">Application Trends</p>
-                    <p className="text-xs text-gray-400 mt-0.5">Monthly application volume</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{current.label}</p>
                 </div>
-                <span className="text-xs font-semibold text-[#3d9e9e] bg-[#e8f4f4] px-3 py-1.5 rounded-lg">
-                    Last 6 Months
-                </span>
+                <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 overflow-x-auto">
+                    {periodOptions.map(({ key, label }) => (
+                        <button
+                            key={key}
+                            onClick={() => setPeriod(key)}
+                            className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                                period === key
+                                    ? 'bg-white text-gray-900 shadow-sm border border-gray-200'
+                                    : 'text-gray-500 hover:text-gray-700'
+                            }`}
+                        >
+                            {label}
+                        </button>
+                    ))}
+                </div>
             </div>
 
             {/* Chart */}
             <div className="flex items-end gap-3 h-48">
-                {trends.map((t, i) => {
+                {current.items.map((t, i) => {
                     const pct = max === 0 ? 0 : (t.count / max) * 100;
-                    const isLast = i === trends.length - 1;
+                    const isLast = i === current.items.length - 1;
                     return (
-                        <div key={t.month} className="flex-1 flex flex-col items-center gap-2 group">
+                        <div key={`${t.label}-${i}`} className="flex-1 flex flex-col items-center gap-2 group">
                             <span className="text-xs font-semibold text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">
                                 {t.count}
                             </span>
@@ -163,7 +242,7 @@ function TrendsChart({ trends }: { trends: Trend[] }) {
                                     style={{ height: `${Math.max(pct, 4)}%` }}
                                 />
                             </div>
-                            <p className="text-xs text-gray-400 font-medium">{t.month}</p>
+                            <p className="text-xs text-gray-400 font-medium">{t.label}</p>
                         </div>
                     );
                 })}
@@ -333,7 +412,18 @@ function RecentUsersPanel({ users }: { users: RecentUser[] }) {
 
 /* ── Main Page ── */
 export default function AdminDashboard({
-    auth, stats, jobCount, applicationCount, applicationTrends, recentJobs, recentUsers, recentJobSeekers, pendingCount = 0, pendingCountTrend = 0
+    auth,
+    stats,
+    jobCount,
+    applicationCount,
+    applicationTrends,
+    weeklyApplications,
+    yearlyApplications,
+    recentJobs,
+    recentUsers,
+    recentJobSeekers,
+    pendingCount = 0,
+    pendingCountTrend = 0,
 }: Props) {
     const user = auth.user;
     const trendDirection = pendingCountTrend >= 0;
@@ -342,7 +432,19 @@ export default function AdminDashboard({
     useEffect(() => {
         const timer = window.setInterval(() => {
             router.reload({
-                only: ['stats', 'jobCount', 'applicationCount', 'applicationTrends', 'recentJobs', 'recentUsers', 'recentJobSeekers', 'pendingCount', 'pendingCountTrend'],
+                only: [
+                    'stats',
+                    'jobCount',
+                    'applicationCount',
+                    'applicationTrends',
+                    'weeklyApplications',
+                    'yearlyApplications',
+                    'recentJobs',
+                    'recentUsers',
+                    'recentJobSeekers',
+                    'pendingCount',
+                    'pendingCountTrend',
+                ],
             });
         }, 20000);
 
@@ -395,7 +497,7 @@ export default function AdminDashboard({
 
                 {/* ── ROW 2: Application Trends Chart ── */}
                 <div className="mb-6">
-                    <TrendsChart trends={applicationTrends} />
+                    <TrendsChart trends={applicationTrends} weeklyTrends={weeklyApplications} yearlyTrends={yearlyApplications} />
                 </div>
 
                 {/* ── ROW 3: Recent Jobs | Recent Users ── */}

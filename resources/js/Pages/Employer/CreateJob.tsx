@@ -64,6 +64,7 @@ interface Props {
 interface JobFormData {
     title: string; company: string; location: string;
     salary_min: string; salary_max: string; salary_currency: string;
+    salary_type: string;
     skills_required: string[]; description: string; application_limit: string;
     status: 'active' | 'inactive' | 'draft';
     employment_type: string; experience_level: string;
@@ -83,6 +84,12 @@ const EMPLOYMENT_TYPES = ['Full-time', 'Part-time', 'Contract', 'Freelance', 'In
 const WORK_ARRANGEMENTS = ['On-site', 'Remote', 'Hybrid'];
 const EXPERIENCE_LEVELS = ['Entry Level', 'Mid Level', 'Senior Level', 'Lead', 'Manager', 'Executive'];
 const CURRENCIES = ['USD', 'PHP', 'EUR', 'GBP', 'SGD', 'AUD'];
+const SALARY_TYPES = [
+    { value: 'weekly',   label: 'Weekly' },
+    { value: 'monthly',  label: 'Monthly' },
+    { value: 'yearly',   label: 'Yearly' },
+    { value: 'one-time', label: 'One-time / Full Payment' },
+];
 const STATUS_OPTIONS = ['active', 'inactive', 'draft'] as const;
 const ALLOWED_IMAGE_TYPES = new Set([
     'image/jpeg',
@@ -129,8 +136,8 @@ function buildForm(job: JobListing | undefined, companyName: string): JobFormDat
     if (!job) {
         return {
             title: '', company: companyName ?? '', location: '', salary_min: '', salary_max: '',
-            salary_currency: 'USD', skills_required: [], description: '', responsibilities: [],
-            qualifications: [], requirements: [], screener_questions: [],
+            salary_currency: 'USD', salary_type: '', skills_required: [], description: '',
+            responsibilities: [], qualifications: [], requirements: [], screener_questions: [],
             application_limit: '', status: 'active', employment_type: '',
             experience_level: '', industry: '', is_remote: false, deadline: '', work_arrangement: '',
         };
@@ -147,6 +154,7 @@ function buildForm(job: JobListing | undefined, companyName: string): JobFormDat
         salary_min:         job.salary_min  != null ? String(job.salary_min)  : '',
         salary_max:         job.salary_max  != null ? String(job.salary_max)  : '',
         salary_currency:    job.salary_currency   ?? 'USD',
+        salary_type:        (job as any).salary_type ?? '',
         skills_required:    job.skills_required   ?? [],
         application_limit:  job.application_limit != null ? String(job.application_limit) : '',
         status:             job.status            ?? 'active',
@@ -525,7 +533,7 @@ export default function CreateJob({ user, profile, companyName, mode = 'create',
         (
             [
                 'title', 'company', 'location', 'description',
-                'employment_type', 'salary_currency', 'experience_level',
+                'employment_type', 'salary_currency', 'salary_type', 'experience_level',
                 'industry', 'status', 'work_arrangement',
             ] as const
         ).forEach(k => data.append(k, form[k] as string));
@@ -553,9 +561,10 @@ export default function CreateJob({ user, profile, companyName, mode = 'create',
                 preserveScroll: true,
                 forceFormData:  true,
                 onSuccess: () => {
-                    if (!isEdit) {
-                        router.visit(route('employer.jobs.index'));
-                    }
+                    // Clear the temporary file and preview state
+                    setLogoFile(null);
+                    // Redirect to job details or list - the page will reload with fresh data from server
+                    router.visit(route('employer.jobs.show', targetJobId));
                 },
                 onError:   (errs: any) => handleServerErrors(errs),
                 onFinish: () => setSaving(false),
@@ -565,6 +574,9 @@ export default function CreateJob({ user, profile, companyName, mode = 'create',
                 preserveScroll: true,
                 forceFormData:  true,
                 onSuccess: () => {
+                    // Clear the temporary file and preview state
+                    setLogoFile(null);
+                    // Redirect to jobs list - the page will reload with fresh data from server
                     router.visit(route('employer.jobs.index'));
                 },
                 onError:   (errs: any) => handleServerErrors(errs),
@@ -700,6 +712,15 @@ export default function CreateJob({ user, profile, companyName, mode = 'create',
                                             </div>
                                         </div>
                                         <FieldError message={getError('salary_min') ?? getError('salary_max')} />
+                                    </div>
+
+                                    <div>
+                                        <label className={lbl}>Remuneration Type</label>
+                                        <select value={form.salary_type} onChange={e => set('salary_type', e.target.value)} className={inp}>
+                                            <option value="">Select payment frequency</option>
+                                            {SALARY_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                                        </select>
+                                        <FieldError message={getError('salary_type')} />
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         <div>

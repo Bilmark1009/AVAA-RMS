@@ -20,7 +20,7 @@ class AdminJobController extends Controller
     public function index(Request $request): Response
     {
         $search = $request->input('search', '');
-        $type = $request->input('type', 'all');   // all | full-time | part-time | contract | remote
+        $type = $request->input('type', 'all');   // all | full-time | part-time | contract | freelance | internship | remote
 
         $jobs = JobListing::with('employer:id,first_name,last_name,employerProfile')
             ->with('employer.employerProfile:user_id,company_name,logo_path')
@@ -34,6 +34,8 @@ class AdminJobController extends Controller
             ->when($type === 'full-time', fn($q) => $q->whereRaw("LOWER(REPLACE(REPLACE(employment_type, '-', ' '), '_', ' ')) = ?", ['full time']))
             ->when($type === 'part-time', fn($q) => $q->whereRaw("LOWER(REPLACE(REPLACE(employment_type, '-', ' '), '_', ' ')) = ?", ['part time']))
             ->when($type === 'contract', fn($q) => $q->whereRaw("LOWER(REPLACE(REPLACE(employment_type, '-', ' '), '_', ' ')) = ?", ['contract']))
+            ->when($type === 'freelance', fn($q) => $q->whereRaw("LOWER(REPLACE(REPLACE(employment_type, '-', ' '), '_', ' ')) = ?", ['freelance']))
+            ->when($type === 'internship', fn($q) => $q->whereRaw("LOWER(REPLACE(REPLACE(employment_type, '-', ' '), '_', ' ')) = ?", ['internship']))
             ->when($type === 'remote', fn($q) => $q->where(function ($inner) {
                 $inner->where('is_remote', true)
                     ->orWhereRaw("LOWER(REPLACE(REPLACE(employment_type, '-', ' '), '_', ' ')) = ?", ['remote']);

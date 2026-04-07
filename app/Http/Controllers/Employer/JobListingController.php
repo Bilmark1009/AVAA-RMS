@@ -66,6 +66,7 @@ class JobListingController extends Controller
                 'salary_min'         => $job->salary_min,
                 'salary_max'         => $job->salary_max,
                 'salary_currency'    => $job->salary_currency,
+                'salary_type'        => $job->salary_type,
                 'skills_required'    => $job->skills_required ?? [],
                 'experience_level'   => $job->experience_level,
                 'is_remote'          => $job->is_remote,
@@ -161,7 +162,7 @@ class JobListingController extends Controller
     /**
      * Store a new job listing.
      */
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request)
     {
         $request->validate([
             'title'               => 'required|string|max:255',
@@ -183,6 +184,7 @@ class JobListingController extends Controller
             'salary_min'          => 'nullable|numeric|min:0',
             'salary_max'          => 'nullable|numeric|min:0|gte:salary_min',
             'salary_currency'     => 'nullable|string|size:3',
+            'salary_type'         => 'nullable|string|in:weekly,monthly,yearly,one-time',
             'skills_required'     => 'nullable|array',
             'skills_required.*'   => 'string|max:100',
             'experience_level'    => 'nullable|string',
@@ -217,6 +219,7 @@ class JobListingController extends Controller
             'salary_min'         => $request->salary_min,
             'salary_max'         => $request->salary_max,
             'salary_currency'    => $request->salary_currency ?? 'USD',
+            'salary_type'        => $request->input('salary_type'),
             'skills_required'    => $request->skills_required ?? [],
             'experience_level'   => $request->experience_level,
             'industry'           => $request->industry,
@@ -232,6 +235,19 @@ class JobListingController extends Controller
         User::where('role', 'admin')->each(
             fn($admin) => $admin->notify(new AdminNewJobPostedNotification($job, $employer))
         );
+
+        // Return JSON for Inertia/fetch requests or redirect for browser requests
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Job listing created successfully!',
+                'job'     => [
+                    'id'        => $job->id,
+                    'logo_path' => $this->resolveLogoUrl($job->logo_path),
+                    'logo_url'  => $this->resolveLogoUrl($job->logo_path),
+                ],
+            ], 201);
+        }
 
         return redirect()->route('employer.jobs.index')
             ->with('success', 'Job listing created successfully!');
@@ -296,6 +312,7 @@ class JobListingController extends Controller
                 'salary_min'         => $job->salary_min,
                 'salary_max'         => $job->salary_max,
                 'salary_currency'    => $job->salary_currency ?? 'USD',
+                'salary_type'        => $job->salary_type,
                 'skills_required'    => $job->skills_required ?? [],
                 'experience_level'   => $job->experience_level,
                 'is_remote'          => (bool) $job->is_remote,
@@ -357,6 +374,7 @@ class JobListingController extends Controller
                 'salary_min'         => $job->salary_min,
                 'salary_max'         => $job->salary_max,
                 'salary_currency'    => $job->salary_currency ?? 'USD',
+                'salary_type'        => $job->salary_type,
                 'skills_required'    => $job->skills_required ?? [],
                 'experience_level'   => $job->experience_level,
                 'is_remote'          => (bool) $job->is_remote,
@@ -374,7 +392,7 @@ class JobListingController extends Controller
     /**
      * Update an existing job listing.
      */
-    public function update(Request $request, JobListing $job): RedirectResponse
+    public function update(Request $request, JobListing $job)
     {
         $this->authorizeJob($request, $job);
         $wasDraft = $job->status === 'draft';
@@ -399,6 +417,7 @@ class JobListingController extends Controller
             'salary_min'          => 'nullable|numeric|min:0',
             'salary_max'          => 'nullable|numeric|min:0|gte:salary_min',
             'salary_currency'     => 'nullable|string|size:3',
+            'salary_type'         => 'nullable|string|in:weekly,monthly,yearly,one-time',
             'skills_required'     => 'nullable|array',
             'skills_required.*'   => 'string|max:100',
             'experience_level'    => 'nullable|string',
@@ -437,6 +456,7 @@ class JobListingController extends Controller
             'salary_min'         => $request->salary_min,
             'salary_max'         => $request->salary_max,
             'salary_currency'    => $request->salary_currency ?? 'USD',
+            'salary_type'        => $request->input('salary_type'),
             'skills_required'    => $request->skills_required ?? [],
             'experience_level'   => $request->experience_level,
             'industry'           => $request->industry,
@@ -449,6 +469,19 @@ class JobListingController extends Controller
 
         if ($wasDraft && $job->status === 'active') {
             $this->notifyPendingCollaboratorsForPostedJob($job, $request->user());
+        }
+
+        // Return JSON for Inertia/fetch requests or redirect for browser requests
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Job listing updated successfully!',
+                'job'     => [
+                    'id'        => $job->id,
+                    'logo_path' => $this->resolveLogoUrl($job->logo_path),
+                    'logo_url'  => $this->resolveLogoUrl($job->logo_path),
+                ],
+            ]);
         }
 
         return redirect()->route('employer.jobs.show', $job->id)

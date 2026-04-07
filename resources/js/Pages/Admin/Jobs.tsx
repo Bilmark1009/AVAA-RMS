@@ -199,6 +199,8 @@ export default function AdminJobs({ jobs, filters }: Props) {
         { key: 'full-time', label: 'Full Time' },
         { key: 'part-time', label: 'Part Time' },
         { key: 'contract', label: 'Contract' },
+        { key: 'freelance', label: 'Freelance' },
+        { key: 'internship', label: 'Internship' },
         { key: 'remote', label: 'Remote' },
     ];
 

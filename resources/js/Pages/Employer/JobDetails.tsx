@@ -17,6 +17,7 @@ interface JobListing {
     salary_min?: number | null;
     salary_max?: number | null;
     salary_currency?: string;
+    salary_type?: string | null;
     skills_required?: string[];
     experience_level?: string;
     is_remote?: boolean;
@@ -402,6 +403,12 @@ export default function JobDetails({ user, profile, job, isVerified }: Props) {
                                     {job.salary_max ? `k–${Number(job.salary_max).toLocaleString()}k` : '+'}
                                 </span>
                             )}
+                            {job.salary_type && (
+                                <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-purple-50 text-purple-600 border border-purple-100">
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                                    {job.salary_type === 'one-time' ? 'One-time / Full Payment' : job.salary_type.charAt(0).toUpperCase() + job.salary_type.slice(1)}
+                                </span>
+                            )}
                             {job.work_arrangement && (
                                 <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100">
                                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
@@ -485,14 +492,22 @@ export default function JobDetails({ user, profile, job, isVerified }: Props) {
                             icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="2" y="3" width="20" height="14" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></svg>}
                             title="Work Arrangement"
                         >
-                            <div className="flex items-start gap-3">
-                                <span className="px-3 py-1.5 bg-blue-50 text-blue-600 text-xs font-semibold rounded-full border border-blue-100 flex-shrink-0">{job.work_arrangement}</span>
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-3">
+                                    <span className="text-xs font-semibold text-gray-500 w-24 flex-shrink-0">Arrangement</span>
+                                    <span className="px-3 py-1 bg-blue-50 text-blue-600 text-xs font-semibold rounded-full border border-blue-100">
+                                        {job.work_arrangement}
+                                    </span>
+                                </div>
                                 {job.location && (
-                                    <p className="text-sm text-gray-500">
-                                        {job.work_arrangement === 'Hybrid' && `Combination of remote and on-site work at ${job.location}.`}
-                                        {job.work_arrangement === 'Remote' && 'Fully remote position — work from anywhere.'}
-                                        {job.work_arrangement === 'On-site' && `On-site at ${job.location}.`}
-                                    </p>
+                                    <div className="flex items-start gap-3">
+                                        <span className="text-xs font-semibold text-gray-500 w-24 flex-shrink-0 pt-0.5">Details</span>
+                                        <p className="text-sm text-gray-600 leading-relaxed">
+                                            {job.work_arrangement === 'Hybrid' && `Combination of remote and on-site work at ${job.location}.`}
+                                            {job.work_arrangement === 'Remote' && 'Fully remote position — work from anywhere.'}
+                                            {job.work_arrangement === 'On-site' && `On-site at ${job.location}.`}
+                                        </p>
+                                    </div>
                                 )}
                             </div>
                         </SectionCard>

@@ -28,6 +28,29 @@ class DashboardController extends Controller
             ];
         }
 
+        // ── Weekly application trends (last 8 weeks) ──
+        $weeklyApplications = [];
+        for ($i = 7; $i >= 0; $i--) {
+            $startDate = Carbon::now()->subWeeks($i)->startOfWeek();
+            $endDate = Carbon::now()->subWeeks($i)->endOfWeek();
+
+            $weeklyApplications[] = [
+                'week' => 'Wk ' . (8 - $i),
+                'count' => JobApplication::whereBetween('created_at', [$startDate, $endDate])->count(),
+            ];
+        }
+
+        // ── Yearly application trends (last 6 years) ──
+        $yearlyApplications = [];
+        for ($i = 5; $i >= 0; $i--) {
+            $year = Carbon::now()->subYears($i)->year;
+
+            $yearlyApplications[] = [
+                'year' => (string) $year,
+                'count' => JobApplication::whereYear('created_at', $year)->count(),
+            ];
+        }
+
         // ── Recent job listings (last 8) ──
         $recentJobs = JobListing::with('employer:id,first_name,last_name')
             ->latest()
@@ -125,6 +148,8 @@ class DashboardController extends Controller
                 ->whereYear('created_at', now()->year)
                 ->count(),
             'applicationTrends' => $trends,
+            'weeklyApplications' => $weeklyApplications,
+            'yearlyApplications' => $yearlyApplications,
             'recentJobs' => $recentJobs,
             'recentUsers' => $recentUsers,
             'recentJobSeekers' => $recentJobSeekers,
