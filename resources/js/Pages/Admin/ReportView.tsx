@@ -362,21 +362,30 @@ export default function ReportView({ reports = [], filters, focusReportId = null
                     ))}
                 </div>
 
-                {/* ── Status Tabs ── */}
-                <div className="flex items-center bg-white border border-gray-100 rounded-xl p-1 w-fit mb-8 shadow-sm">
-                    {['pending', 'approved', 'decline', 'appeals'].map((s) => (
-                        <button
-                            key={s}
-                            onClick={() => handleStatusChange(s)}
-                            className={`px-6 py-2 rounded-lg text-sm font-semibold transition-all capitalize ${
-                                status === s
-                                    ? 'bg-[#76a09a] text-white shadow-sm'
-                                    : 'text-gray-400 hover:text-gray-600'
-                            }`}
-                        >
-                            {s === 'appeals' ? 'Appeals' : s}
-                        </button>
-                    ))}
+                {/* ── Status Tabs: mobile = horizontal scroll + compact pills; md+ = original content-width strip ── */}
+                <div className="w-full min-w-0 mb-8">
+                    <div
+                        className="min-w-0 w-full max-w-full overflow-x-auto overflow-y-hidden overscroll-x-contain [touch-action:pan-x] [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden md:w-max md:max-w-none md:overflow-visible"
+                        role="region"
+                        aria-label="Filter reports by status"
+                    >
+                        <div className="inline-flex flex-nowrap items-center gap-0.5 rounded-xl border border-gray-100 bg-white p-1 shadow-sm w-max">
+                            {['pending', 'approved', 'decline', 'appeals'].map((s) => (
+                                <button
+                                    key={s}
+                                    type="button"
+                                    onClick={() => handleStatusChange(s)}
+                                    className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all capitalize whitespace-nowrap md:px-6 md:py-2 md:text-sm ${
+                                        status === s
+                                            ? 'bg-[#76a09a] text-white shadow-sm'
+                                            : 'text-gray-400 hover:text-gray-600'
+                                    }`}
+                                >
+                                    {s === 'appeals' ? 'Appeals' : s}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
                 </div>
 
                 {/* ── Report Cards ── */}

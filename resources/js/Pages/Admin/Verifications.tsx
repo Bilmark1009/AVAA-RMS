@@ -180,42 +180,45 @@ export default function AdminVerifications({ auth, pendingEmployers }: Props) {
                                         ${isOpen ? 'border-avaa-primary/40 shadow-sm' : 'border-gray-200 hover:border-avaa-primary/25'}`}>
 
                                     {/* Card header — always visible */}
-                                    <div className="px-5 py-4 flex items-center gap-4 flex-wrap">
+                                    <div className="px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
 
-                                        {/* Avatar */}
-                                        <div className={`w-11 h-11 rounded-xl ${avatarBg} flex items-center justify-center text-white font-bold text-sm flex-shrink-0`}>
-                                            {initials}
-                                        </div>
+                                        {/* Top row: avatar + name + meta chips */}
+                                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                                            {/* Avatar */}
+                                            <div className={`w-11 h-11 rounded-xl ${avatarBg} flex items-center justify-center text-white font-bold text-sm flex-shrink-0`}>
+                                                {initials}
+                                            </div>
 
-                                        {/* Name + email */}
-                                        <div className="flex-1 min-w-0">
-                                            <p className="font-semibold text-avaa-dark text-sm truncate">
-                                                {emp.profile?.company_name ?? emp.name}
-                                            </p>
-                                            <div className="flex items-center gap-1 text-xs text-avaa-muted mt-0.5">
-                                                <IcoMail /><span className="truncate">{emp.email}</span>
+                                            {/* Name + email */}
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-semibold text-avaa-dark text-sm truncate">
+                                                    {emp.profile?.company_name ?? emp.name}
+                                                </p>
+                                                <div className="flex items-center gap-1 text-xs text-avaa-muted mt-0.5">
+                                                    <IcoMail /><span className="truncate">{emp.email}</span>
+                                                </div>
+                                            </div>
+
+                                            {/* Meta chips — hidden on mobile */}
+                                            <div className="hidden sm:flex items-center gap-2 flex-wrap">
+                                                {emp.profile?.industry && (
+                                                    <span className="px-2.5 py-1 rounded-lg bg-avaa-primary-light text-avaa-teal text-xs font-medium">
+                                                        {emp.profile.industry}
+                                                    </span>
+                                                )}
+                                                {emp.profile?.company_size && (
+                                                    <span className="px-2.5 py-1 rounded-lg bg-gray-100 text-avaa-muted text-xs font-medium">
+                                                        {emp.profile.company_size}
+                                                    </span>
+                                                )}
+                                                <span className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gray-100 text-avaa-muted text-xs font-medium">
+                                                    <IcoCalendar />
+                                                    {new Date(emp.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                </span>
                                             </div>
                                         </div>
 
-                                        {/* Meta chips */}
-                                        <div className="hidden sm:flex items-center gap-2 flex-wrap">
-                                            {emp.profile?.industry && (
-                                                <span className="px-2.5 py-1 rounded-lg bg-avaa-primary-light text-avaa-teal text-xs font-medium">
-                                                    {emp.profile.industry}
-                                                </span>
-                                            )}
-                                            {emp.profile?.company_size && (
-                                                <span className="px-2.5 py-1 rounded-lg bg-gray-100 text-avaa-muted text-xs font-medium">
-                                                    {emp.profile.company_size}
-                                                </span>
-                                            )}
-                                            <span className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gray-100 text-avaa-muted text-xs font-medium">
-                                                <IcoCalendar />
-                                                {new Date(emp.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                                            </span>
-                                        </div>
-
-                                        {/* Action buttons */}
+                                        {/* Action buttons — always on their own row on mobile */}
                                         <div className="flex items-center gap-2 flex-shrink-0">
                                             <button
                                                 onClick={() => handleVerify(emp.id)}
@@ -256,7 +259,7 @@ export default function AdminVerifications({ auth, pendingEmployers }: Props) {
                                                     <p className="text-xs font-semibold text-avaa-muted uppercase tracking-wide mb-2 flex items-center gap-1.5">
                                                         <IcoBuilding /> About the Company
                                                     </p>
-                                                    <p className="text-sm text-avaa-text leading-relaxed">{emp.profile.company_description}</p>
+                                                    <p className="text-sm text-avaa-text leading-relaxed break-words" style={{ overflowWrap: 'anywhere' }}>{emp.profile.company_description}</p>
                                                 </div>
                                             )}
 
@@ -268,7 +271,7 @@ export default function AdminVerifications({ auth, pendingEmployers }: Props) {
                                                     <div className="space-y-2.5">
                                                         <div>
                                                             <p className="text-[10px] font-semibold text-avaa-muted uppercase tracking-wide">Contact Person</p>
-                                                            <p className="text-sm text-avaa-dark font-medium">{emp.name}</p>
+                                                            <p className="text-sm text-avaa-dark font-medium break-words" style={{ overflowWrap: 'anywhere' }}>{emp.name}</p>
                                                         </div>
                                                         <div>
                                                             <p className="text-[10px] font-semibold text-avaa-muted uppercase tracking-wide flex items-center gap-1">

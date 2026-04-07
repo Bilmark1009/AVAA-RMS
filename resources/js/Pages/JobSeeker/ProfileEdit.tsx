@@ -203,9 +203,11 @@ export default function ProfileEdit({ user, profile }: Props) {
 
     const certificationLabel = (value: string) => value.split('/').pop() || value;
     const certificationLink = (value: string) =>
-        value.startsWith('/storage/') || value.startsWith('http://') || value.startsWith('https://')
+        value.startsWith('http://') || value.startsWith('https://')
             ? value
-            : null;
+            : (value.startsWith('/storage/') || value.startsWith('storage/')
+                ? `/documents/view?path=${encodeURIComponent(value)}`
+                : null);
 
     return (
         <AppLayout pageTitle="Edit Profile" pageSubtitle="Update your professional information" activeNav="Profile">

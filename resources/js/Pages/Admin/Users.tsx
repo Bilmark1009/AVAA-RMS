@@ -6,6 +6,9 @@ import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
 /* ── Types ── */
 interface JobSeekerProfile {
     skills?: string | null;
+    professional_title?: string | null;
+    current_job_title?: string | null;
+    open_to_work?: boolean | null;
     profile_frame?: 'default' | 'open_to_work' | 'not_open_to_work' | null;
 }
 interface EmployerProfile { company_name?: string | null }
@@ -21,9 +24,12 @@ interface User {
     deleted_at: string | null;
     avatar?: string | null;
     jobSeekerProfile?: JobSeekerProfile | null;
+    job_seeker_profile?: JobSeekerProfile | null;
     employerProfile?: EmployerProfile | null;
+    employer_profile?: EmployerProfile | null;
     job_applications_count?: number;
     profile_company_name?: string | null; // Direct join fallback
+    currently_working?: boolean;
 }
 
 interface Paginator {
@@ -133,20 +139,35 @@ function getProfileFrame(frame?: string | null) {
     return frame === 'open_to_work' || frame === 'not_open_to_work' ? frame : 'default';
 }
 
-function profileFrameRingClass(frame?: string | null) {
+function getJobSeekerProfile(user: User): JobSeekerProfile | null {
+    return user.jobSeekerProfile ?? user.job_seeker_profile ?? null;
+}
+
+function getEmployerProfile(user: User): EmployerProfile | null {
+    return user.employerProfile ?? user.employer_profile ?? null;
+}
+
+function profileFrameRingClass(frame?: string | null, currentlyWorking = false) {
+    if (currentlyWorking) return 'ring-2 ring-blue-400';
     if (frame === 'open_to_work') return 'ring-2 ring-emerald-400';
     if (frame === 'not_open_to_work') return 'ring-2 ring-red-400';
     return '';
 }
 
-function profileFrameLabel(frame?: string | null) {
-    if (frame === 'open_to_work') return { text: 'Available', cls: 'bg-emerald-500 text-white', icon: null };
-    if (frame === 'not_open_to_work') return { text: 'Unavailable', cls: 'bg-red-500 text-white', icon: null };
+function profileFrameLabel(user: User) {
+    const jobSeekerProfile = getJobSeekerProfile(user);
+    if (user.currently_working) return { text: 'Working', cls: 'bg-blue-500 text-white', icon: null };
+    if (jobSeekerProfile?.profile_frame === 'open_to_work') {
+        return { text: 'Open to Work', cls: 'bg-emerald-500 text-white', icon: null };
+    }
+    if (jobSeekerProfile?.profile_frame === 'not_open_to_work') {
+        return { text: 'Not Open to Work', cls: 'bg-red-500 text-white', icon: null };
+    }
     return null;
 }
 
-function ProfileFrameBadge({ frame, size = 'sm' }: { frame?: string | null; size?: 'xs' | 'sm' }) {
-    const badge = profileFrameLabel(frame);
+function ProfileFrameBadge({ user, size = 'sm' }: { user: User; size?: 'xs' | 'sm' }) {
+    const badge = profileFrameLabel(user);
     if (!badge) return null;
     const px = size === 'xs' ? 'px-2 py-0.5 text-[8px]' : 'px-2.5 py-0.5 text-[10px]';
     return (
@@ -205,93 +226,91 @@ function DeleteModal({ user, onConfirm, onCancel }: {
 }
 
 function UserDetailsModal({ user, onClose }: { user: User; onClose: () => void }) {
+    const jobSeekerProfile = getJobSeekerProfile(user);
+    const employerProfile = getEmployerProfile(user);
     const initials = `${(user.first_name ?? '').charAt(0)}${(user.last_name ?? '').charAt(0)}`.toUpperCase();
-    const skills = parseSkills(user.jobSeekerProfile?.skills);
-    const frame = getProfileFrame(user.jobSeekerProfile?.profile_frame);
+    const skills = parseSkills(jobSeekerProfile?.skills);
+    const frame = getProfileFrame(jobSeekerProfile?.profile_frame);
+    const activity = profileFrameLabel(user);
     const isActive = effectiveStatus(user) === 'active';
     const roleLabel = user.role === 'job_seeker' ? 'Job Seeker' : user.role === 'employer' ? 'Employer' : user.role;
     const appCount = user.job_applications_count ?? 0;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
             <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-            <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[85vh] overflow-y-auto p-10">
-                
+            <div className="relative bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto p-5 sm:p-10">
+
                 {/* Close Button */}
                 <button
                     onClick={onClose}
-                    className="absolute top-6 right-6 text-gray-400 hover:text-gray-600 text-2xl w-8 h-8 flex items-center justify-center"
+                    className="absolute top-4 right-4 sm:top-6 sm:right-6 text-gray-400 hover:text-gray-600 text-2xl w-8 h-8 flex items-center justify-center z-10"
                 >
                     ×
                 </button>
 
                 {/* Profile Header */}
-                <div className="flex justify-between items-start mb-8 pb-8 border-b border-gray-200">
-                    <div className="flex gap-6">
-                        <div className="relative">
-                            <ImageInitialsFallback
-                                src={user.avatar}
-                                alt={initials}
-                                initials={initials}
-                                className={`w-20 h-20 rounded-full flex-shrink-0 overflow-hidden ${profileFrameRingClass(frame)} ${user.avatar ? 'bg-white border border-gray-200' : 'bg-[#3d9e9e]'}`}
-                                textClassName="text-white text-lg font-bold flex items-center justify-center"
-                            />
-                            <span className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 z-20">
-                                {user.role === 'job_seeker' && <ProfileFrameBadge frame={frame} size="xs" />}
+                <div className="flex items-start gap-4 mb-6 pb-6 border-b border-gray-200 pr-8">
+                    <div className="relative flex-shrink-0">
+                        <ImageInitialsFallback
+                            src={user.avatar}
+                            alt={initials}
+                            initials={initials}
+                            className={`w-14 h-14 sm:w-20 sm:h-20 rounded-full overflow-hidden ${profileFrameRingClass(frame, !!user.currently_working)} ${user.avatar ? 'bg-white border border-gray-200' : 'bg-[#3d9e9e]'}`}
+                            textClassName="text-white text-base sm:text-lg font-bold flex items-center justify-center"
+                        />
+                        <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-20">
+                            {user.role === 'job_seeker' && <ProfileFrameBadge user={user} size="xs" />}
+                        </span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
+                            <h2 className="text-lg sm:text-2xl font-semibold text-gray-900 break-words">{user.first_name} {user.last_name}</h2>
+                            <span className={`text-xs sm:text-sm font-semibold px-2.5 py-1 rounded-full flex-shrink-0 ${isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-700'}`}>
+                                {isActive ? 'Active' : 'Inactive'}
                             </span>
                         </div>
-                        <div className="min-w-0">
-                            <div className="flex items-center gap-3 mb-2">
-                                <h2 className="text-2xl font-semibold text-gray-900">{user.first_name} {user.last_name}</h2>
-                                <span className={`text-sm font-semibold px-3 py-1 rounded-full ${isActive ? 'bg-gray-200 text-gray-700' : 'bg-gray-200 text-gray-700'}`}>
-                                    {isActive ? 'Active' : 'Inactive'}
-                                </span>
-                            </div>
-                            <p className="text-gray-600 text-sm leading-relaxed max-w-2xl">
-                                {user.role === 'job_seeker' 
-                                    ? `Job Seeker${profileFrameLabel(frame) ? ` · ${profileFrameLabel(frame)!.text}` : ''}` 
-                                    : `Employer${user.employerProfile?.company_name ? ` • ${user.employerProfile.company_name}` : ''}`}
-                            </p>
-                        </div>
+                        <p className="text-gray-500 text-xs sm:text-sm leading-relaxed">
+                            {user.role === 'job_seeker'
+                                ? `Job Seeker${activity ? ` · ${activity.text}` : ''}`
+                                : `Employer${employerProfile?.company_name ? ` • ${employerProfile.company_name}` : ''}`}
+                        </p>
                     </div>
                 </div>
 
-                {/* Content Grid */}
-                <div className="grid grid-cols-3 gap-12">
-                    
-                    {/* Left Column: Personal Information */}
-                    <div className="col-span-2">
-                        <div className="flex items-center gap-4 mb-8">
-                            <div className="w-9 h-9 bg-[#e8f4f4] rounded-lg flex items-center justify-center text-[#3d9e9e]">
+                {/* Content — stacks on mobile, side-by-side on sm+ */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-12">
+
+                    {/* Main info */}
+                    <div className="sm:col-span-2">
+                        <div className="flex items-center gap-3 mb-5">
+                            <div className="w-8 h-8 sm:w-9 sm:h-9 bg-[#e8f4f4] rounded-lg flex items-center justify-center text-[#3d9e9e] flex-shrink-0">
                                 <IcoUser />
                             </div>
                             <div>
-                                <h3 className="text-lg font-semibold text-gray-900">{user.role === 'job_seeker' ? 'Profile Details' : 'Company Information'}</h3>
-                                <p className="text-sm text-gray-500">
+                                <h3 className="text-base sm:text-lg font-semibold text-gray-900">{user.role === 'job_seeker' ? 'Profile Details' : 'Company Information'}</h3>
+                                <p className="text-xs sm:text-sm text-gray-500">
                                     {user.role === 'job_seeker' ? 'Skills and professional background' : 'Business and application details'}
                                 </p>
                             </div>
                         </div>
 
-                        <div className="space-y-6">
+                        <div className="space-y-5">
                             <div>
                                 <label className="text-xs text-gray-500 font-semibold uppercase tracking-wide">User ID</label>
-                                <p className="text-gray-900 font-medium mt-1">#{user.id}</p>
+                                <p className="text-gray-900 font-medium mt-1 text-sm sm:text-base">#{user.id}</p>
                             </div>
-
                             <div>
                                 <label className="text-xs text-gray-500 font-semibold uppercase tracking-wide">Email</label>
-                                <p className="text-gray-900 font-medium mt-1">{user.email}</p>
+                                <p className="text-gray-900 font-medium mt-1 text-sm sm:text-base break-all">{user.email}</p>
                             </div>
-
                             <div>
                                 <label className="text-xs text-gray-500 font-semibold uppercase tracking-wide">Role</label>
-                                <p className="text-gray-900 font-medium mt-1">{roleLabel}</p>
+                                <p className="text-gray-900 font-medium mt-1 text-sm sm:text-base">{roleLabel}</p>
                             </div>
-
                             <div>
                                 <label className="text-xs text-gray-500 font-semibold uppercase tracking-wide">Joined Date</label>
-                                <p className="text-gray-900 font-medium mt-1">{new Date(user.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                                <p className="text-gray-900 font-medium mt-1 text-sm sm:text-base">{new Date(user.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
                             </div>
 
                             {user.role === 'job_seeker' ? (
@@ -300,7 +319,7 @@ function UserDetailsModal({ user, onClose }: { user: User; onClose: () => void }
                                     {skills.length > 0 ? (
                                         <div className="flex flex-wrap gap-2 mt-2">
                                             {skills.map(skill => (
-                                                <span key={skill} className="px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-sm font-medium">
+                                                <span key={skill} className="px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-xs sm:text-sm font-medium">
                                                     {skill}
                                                 </span>
                                             ))}
@@ -313,25 +332,25 @@ function UserDetailsModal({ user, onClose }: { user: User; onClose: () => void }
                                 <>
                                     <div>
                                         <label className="text-xs text-gray-500 font-semibold uppercase tracking-wide">Company Name</label>
-                                        <p className="text-gray-900 font-medium mt-1">
-                                            {user.employerProfile?.company_name || user.profile_company_name || 'Not specified'}
+                                        <p className="text-gray-900 font-medium mt-1 text-sm sm:text-base">
+                                            {employerProfile?.company_name || user.profile_company_name || 'Not specified'}
                                         </p>
                                     </div>
                                     <div>
                                         <label className="text-xs text-gray-500 font-semibold uppercase tracking-wide">Total Applications</label>
-                                        <p className="text-gray-900 font-medium mt-1">{appCount} application{appCount !== 1 ? 's' : ''}</p>
+                                        <p className="text-gray-900 font-medium mt-1 text-sm sm:text-base">{appCount} application{appCount !== 1 ? 's' : ''}</p>
                                     </div>
                                 </>
                             )}
                         </div>
                     </div>
 
-                    {/* Right Column: Activity Timeline */}
-                    <div className="col-span-1">
-                        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-6">Account Status</h4>
-                        
+                    {/* Account Status — divider on mobile */}
+                    <div className="sm:col-span-1 border-t sm:border-t-0 pt-5 sm:pt-0 border-gray-100">
+                        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-4 sm:mb-6">Account Status</h4>
+
                         <div className="space-y-4">
-                            <div className="flex gap-4">
+                            <div className="flex gap-3 sm:gap-4">
                                 <div className="w-8 h-8 rounded-full border border-[#3d9e9e] text-[#3d9e9e] flex items-center justify-center flex-shrink-0 bg-[#e8f4f4]">
                                     <IcoCalendar />
                                 </div>
@@ -342,7 +361,7 @@ function UserDetailsModal({ user, onClose }: { user: User; onClose: () => void }
                             </div>
 
                             {user.deleted_at && (
-                                <div className="flex gap-4">
+                                <div className="flex gap-3 sm:gap-4">
                                     <div className="w-8 h-8 rounded-full border border-red-400 text-red-500 flex items-center justify-center flex-shrink-0 bg-red-50">
                                         <IcoClock />
                                     </div>
@@ -353,7 +372,7 @@ function UserDetailsModal({ user, onClose }: { user: User; onClose: () => void }
                                 </div>
                             )}
 
-                            <div className="flex gap-4">
+                            <div className="flex gap-3 sm:gap-4">
                                 <div className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center flex-shrink-0 bg-white">
                                     <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-gray-400'}`}></span>
                                 </div>
@@ -369,10 +388,10 @@ function UserDetailsModal({ user, onClose }: { user: User; onClose: () => void }
                 </div>
 
                 {/* Footer */}
-                <div className="flex justify-end gap-3 mt-10 pt-8 border-t border-gray-200">
+                <div className="flex justify-end gap-3 mt-6 sm:mt-10 pt-5 sm:pt-8 border-t border-gray-200">
                     <button
                         onClick={onClose}
-                        className="px-6 py-2.5 rounded-lg border border-gray-300 text-gray-700 font-semibold text-sm hover:bg-gray-50 transition-colors"
+                        className="px-5 sm:px-6 py-2.5 rounded-lg border border-gray-300 text-gray-700 font-semibold text-sm hover:bg-gray-50 transition-colors"
                     >
                         Close
                     </button>
@@ -417,6 +436,15 @@ export default function AdminUsers({ users, filters }: Props) {
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [roleDropOpen]);
+
+    /* ── Keep statuses synced while page is open ── */
+    useEffect(() => {
+        const timer = window.setInterval(() => {
+            router.reload({ only: ['users'] });
+        }, 20000);
+
+        return () => window.clearInterval(timer);
+    }, []);
 
     /* ── Filter navigation ── */
     const applyFilters = useCallback((overrides: Partial<{ search: string; role: string; status: string }>) => {
@@ -470,10 +498,10 @@ export default function AdminUsers({ users, filters }: Props) {
                 activeNav="Users"
             >
                 {/* ── Filter Bar ── */}
-                <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
 
                     {/* Status Tabs */}
-                    <div className="flex items-center bg-white border border-gray-200 rounded-xl p-1 gap-1">
+                    <div className="flex items-center bg-white border border-gray-200 rounded-xl p-1 gap-1 self-start sm:self-auto">
                         {(['all', 'active', 'inactive'] as const).map(tab => (
                             <button
                                 key={tab}
@@ -488,9 +516,9 @@ export default function AdminUsers({ users, filters }: Props) {
                         ))}
                     </div>
 
-                    <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-2 flex-wrap sm:ml-auto">
                         {/* Search */}
-                        <form onSubmit={handleSearch} className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 h-10 w-64 shadow-sm">
+                        <form onSubmit={handleSearch} className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 h-10 flex-1 sm:flex-none sm:w-64 shadow-sm min-w-0">
                             <span className="text-gray-400 flex-shrink-0"><IcoSearch /></span>
                             <input
                                 type="text"
@@ -505,18 +533,18 @@ export default function AdminUsers({ users, filters }: Props) {
                         <div className="relative" ref={roleDropRef}>
                             <button
                                 onClick={() => setRoleDropOpen(o => !o)}
-                                className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 h-10 text-sm font-semibold text-gray-700 hover:border-[#3d9e9e] hover:text-[#3d9e9e] transition-colors"
+                                className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 h-10 text-sm font-semibold text-gray-700 hover:border-[#3d9e9e] hover:text-[#3d9e9e] transition-colors whitespace-nowrap"
                             >
                                 {ROLE_LABELS[role] ?? 'Filter Role'}
                                 <IcoChevDown />
                             </button>
                             {roleDropOpen && (
-                                <div className="absolute right-0 top-full mt-1.5 w-44 bg-white border border-gray-200 rounded-xl shadow-lg shadow-black/5 z-20 overflow-hidden">
+                                <div className="absolute right-0 left-auto top-full mt-1.5 w-48 max-w-[calc(100vw-2rem)] bg-white border border-gray-200 rounded-xl shadow-lg shadow-black/5 z-20 overflow-hidden">
                                     {Object.entries(ROLE_LABELS).map(([k, v]) => (
                                         <button
                                             key={k}
                                             onClick={() => handleRole(k)}
-                                            className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors
+                                            className={`w-full text-left px-4 py-3 text-sm font-semibold transition-colors
                                                 ${role === k ? 'bg-[#e8f4f4] text-[#3d9e9e]' : 'text-gray-700 hover:bg-gray-50'}`}
                                         >
                                             {v}
@@ -560,7 +588,14 @@ export default function AdminUsers({ users, filters }: Props) {
 
                         /* ── LIST VIEW (TABLE) ── */
                         <div className="overflow-x-auto">
-                            <table className="w-full text-sm min-w-[700px]">
+                            <table className="w-full text-sm min-w-[700px] table-fixed">
+                                <colgroup>
+                                    <col className="w-[38%]" />
+                                    <col className="w-[24%]" />
+                                    <col className="w-[12%]" />
+                                    <col className="w-[16%]" />
+                                    <col className="w-[10%]" />
+                                </colgroup>
                                 <thead>
                                     <tr className="border-b border-gray-100">
                                         {['User', 'Skills / Company', 'Status', 'Joined Date', ''].map(h => (
@@ -573,10 +608,13 @@ export default function AdminUsers({ users, filters }: Props) {
 
                                 <tbody className="divide-y divide-gray-50">
                                     {users.data.map((user, i) => {
+                                        const jobSeekerProfile = getJobSeekerProfile(user);
+                                        const employerProfile = getEmployerProfile(user);
                                         const initials = `${(user.first_name ?? '').charAt(0)}${(user.last_name ?? '').charAt(0)}`.toUpperCase();
-                                        const skills = parseSkills(user.jobSeekerProfile?.skills);
-                                        const frame = getProfileFrame(user.jobSeekerProfile?.profile_frame);
-                                        const company = user.employerProfile?.company_name || user.profile_company_name;
+                                        const professionalTitle = jobSeekerProfile?.professional_title?.trim()
+                                            || jobSeekerProfile?.current_job_title?.trim();
+                                        const frame = getProfileFrame(jobSeekerProfile?.profile_frame);
+                                        const company = employerProfile?.company_name || user.profile_company_name;
                                         const isActive = effectiveStatus(user);
                                         const isDeleted = !!user.deleted_at;
                                         const isBusy = processingId === user.id;
@@ -585,46 +623,43 @@ export default function AdminUsers({ users, filters }: Props) {
                                             <tr key={user.id} className={`transition-colors ${isDeleted ? 'opacity-60 bg-gray-50/60' : 'hover:bg-gray-50/50'}`}>
 
                                                 {/* User */}
-                                                <td className="px-6 py-4">
+                                                <td className="px-6 py-4 min-w-0">
                                                     <div className="flex items-center gap-3">
                                                         <div className="relative">
                                                             <ImageInitialsFallback
                                                                 src={user.avatar}
                                                                 alt={initials}
                                                                 initials={initials}
-                                                                className={`w-9 h-9 rounded-full flex-shrink-0 overflow-hidden ${profileFrameRingClass(frame)} ${user.avatar ? 'bg-white' : AVATAR_BG[i % AVATAR_BG.length]}`}
+                                                                className={`w-9 h-9 rounded-full flex-shrink-0 overflow-hidden ${profileFrameRingClass(frame, !!user.currently_working)} ${user.avatar ? 'bg-white' : AVATAR_BG[i % AVATAR_BG.length]}`}
                                                                 textClassName="text-white text-xs font-bold flex items-center justify-center"
                                                             />
                                                             <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-10">
-                                                                {user.role === 'job_seeker' && <ProfileFrameBadge frame={frame} size="xs" />}
+                                                                {user.role === 'job_seeker' && <ProfileFrameBadge user={user} size="xs" />}
                                                             </span>
                                                         </div>
 
-                                                        <div className="min-w-0">
+                                                        <div className="min-w-0 flex-1">
                                                             <p className="font-semibold text-gray-800 leading-tight truncate">
                                                                 {user.first_name} {user.last_name}
                                                                 {isDeleted && (
                                                                     <span className="ml-2 text-[10px] font-bold text-red-400 bg-red-50 px-1.5 py-0.5 rounded-full">DELETED</span>
                                                                 )}
                                                             </p>
-                                                            <p className="text-xs text-gray-400 truncate mt-0.5">{user.email}</p>
+                                                            <p className="text-xs text-gray-400 truncate mt-0.5 max-w-full">{user.email}</p>
                                                         </div>
                                                     </div>
                                                 </td>
 
                                                 {/* Skills / Company */}
-                                                <td className="px-6 py-4">
-                                                    {user.role === 'job_seeker' && skills.length > 0 ? (
-                                                        <div className="flex flex-wrap gap-1">
-                                                            {skills.slice(0, 3).map(s => (
-                                                                <span key={s} className="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 text-xs font-medium">{s}</span>
-                                                            ))}
-                                                            {skills.length > 3 && (
-                                                                <span className="px-2 py-1 rounded-lg bg-gray-100 text-gray-400 text-xs font-medium">+{skills.length - 3}</span>
-                                                            )}
-                                                        </div>
+                                                <td className="px-6 py-4 min-w-0">
+                                                    {user.role === 'job_seeker' ? (
+                                                        professionalTitle ? (
+                                                            <span className="inline-block px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 text-xs font-medium truncate max-w-full align-top">{professionalTitle}</span>
+                                                        ) : (
+                                                            <span className="text-gray-300 text-xs">—</span>
+                                                        )
                                                     ) : company ? (
-                                                        <span className="px-2.5 py-1 rounded-lg bg-[#e8f4f4] text-[#3d9e9e] text-xs font-medium">{company}</span>
+                                                        <span className="inline-block px-2.5 py-1 rounded-lg bg-[#e8f4f4] text-[#3d9e9e] text-xs font-medium truncate max-w-full align-top">{company}</span>
                                                     ) : (
                                                         <span className="text-gray-300 text-xs">—</span>
                                                     )}
@@ -718,7 +753,7 @@ export default function AdminUsers({ users, filters }: Props) {
                         <div className="p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
                             {users.data.map((user, i) => {
                                 const initials = `${(user.first_name ?? '').charAt(0)}${(user.last_name ?? '').charAt(0)}`.toUpperCase();
-                                const frame = getProfileFrame(user.jobSeekerProfile?.profile_frame);
+                                const frame = getProfileFrame(getJobSeekerProfile(user)?.profile_frame);
                                 const isActive = effectiveStatus(user);
                                 const isDeleted = !!user.deleted_at;
                                 const isBusy = processingId === user.id;
@@ -733,11 +768,11 @@ export default function AdminUsers({ users, filters }: Props) {
                                                     src={user.avatar}
                                                     alt={initials}
                                                     initials={initials}
-                                                    className={`w-10 h-10 rounded-full overflow-hidden ${profileFrameRingClass(frame)} ${user.avatar ? 'bg-white' : AVATAR_BG[i % AVATAR_BG.length]}`}
+                                                    className={`w-10 h-10 rounded-full overflow-hidden ${profileFrameRingClass(frame, !!user.currently_working)} ${user.avatar ? 'bg-white' : AVATAR_BG[i % AVATAR_BG.length]}`}
                                                     textClassName="text-white text-sm font-bold flex items-center justify-center"
                                                 />
                                                 <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-10">
-                                                    {user.role === 'job_seeker' && <ProfileFrameBadge frame={frame} size="xs" />}
+                                                    {user.role === 'job_seeker' && <ProfileFrameBadge user={user} size="xs" />}
                                                 </span>
                                             </div>
 

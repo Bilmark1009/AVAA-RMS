@@ -1,4 +1,4 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
 import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
@@ -18,6 +18,7 @@ interface WorkExp {
 
 interface Profile {
     profile_frame?: 'default' | 'open_to_work' | 'not_open_to_work' | null;
+    open_to_work?: boolean | null;
     professional_title?: string;
     current_job_title?: string;
     current_company?: string;
@@ -41,6 +42,8 @@ interface AppUser {
     phone?: string | null;
     avatar?: string | null;
     profile_frame?: 'default' | 'open_to_work' | 'not_open_to_work' | null;
+    open_to_work?: boolean | null;
+    currently_working?: boolean;
     profile?: Profile | null;
     work_experiences?: WorkExp[];
 }
@@ -73,12 +76,14 @@ function getInitials(first: string, last: string) { return `${first[0] ?? ''}${l
 function getProfileFrame(frame?: string | null) {
     return frame === 'open_to_work' || frame === 'not_open_to_work' ? frame : 'default';
 }
-function profileFrameRingClass(frame?: string | null) {
+function profileFrameRingClass(frame?: string | null, currentlyWorking = false) {
+    if (currentlyWorking) return 'ring-2 ring-blue-400';
     if (frame === 'open_to_work') return 'ring-2 ring-emerald-400';
     if (frame === 'not_open_to_work') return 'ring-2 ring-red-400';
     return '';
 }
-function profileFrameLabel(frame?: string | null) {
+function profileFrameLabel(frame?: string | null, currentlyWorking?: boolean) {
+    if (currentlyWorking) return 'Currently Working';
     if (frame === 'open_to_work') return 'Open to Work';
     if (frame === 'not_open_to_work') return 'Not Open to Work';
     return null;
@@ -160,9 +165,11 @@ function ApplicantProfile({ app, onClose }: { app: Application; onClose: () => v
     const certs = p?.certifications ?? [];
     const certificationLabel = (value: string) => value.split('/').pop() || value;
     const certificationLink = (value: string) =>
-        value.startsWith('/storage/') || value.startsWith('http://') || value.startsWith('https://')
+        value.startsWith('http://') || value.startsWith('https://')
             ? value
-            : null;
+            : (value.startsWith('/storage/') || value.startsWith('storage/')
+                ? `/documents/view?path=${encodeURIComponent(value)}`
+                : null);
     const resumePath = app.resume_path ?? p?.resume_path ?? ad?.existing_resume;
     const resumeViewUrl = resumePath ? route('applications.resume', { application: app.id }) : null;
     const resumeDownloadUrl = resumePath ? `${route('applications.resume', { application: app.id })}?download=1` : null;
@@ -170,6 +177,7 @@ function ApplicantProfile({ app, onClose }: { app: Application; onClose: () => v
     const coverLetter = app.cover_letter;
     const cfg = STATUS_CFG[app.status] ?? STATUS_CFG.pending;
     const frame = getProfileFrame(u.profile_frame ?? p?.profile_frame);
+    const activityLabel = profileFrameLabel(frame, !!u.currently_working);
 
     // ESC to close
     useEffect(() => {
@@ -200,7 +208,7 @@ function ApplicantProfile({ app, onClose }: { app: Application; onClose: () => v
                         src={u.avatar}
                         alt={fullName}
                         initials={getInitials(u.first_name, u.last_name)}
-                        className={`w-24 h-24 rounded-2xl ring-4 ring-white shadow-lg overflow-hidden ${profileFrameRingClass(frame)} ${u.avatar ? 'bg-white' : avatarColor(u.id)}`}
+                        className={`w-24 h-24 rounded-2xl ring-4 ring-white shadow-lg overflow-hidden ${profileFrameRingClass(frame, !!u.currently_working)} ${u.avatar ? 'bg-white' : avatarColor(u.id)}`}
                         textClassName="text-white text-3xl font-bold flex items-center justify-center"
                     />
                     <div className="pb-1 flex-1 min-w-0">
@@ -208,7 +216,7 @@ function ApplicantProfile({ app, onClose }: { app: Application; onClose: () => v
                             <div>
                                 <h2 className="text-xl font-bold text-gray-900 leading-tight">{fullName}</h2>
                                 <p className="text-sm text-gray-500 mt-0.5">{title}</p>
-                                {profileFrameLabel(frame) && <p className="text-xs text-gray-500 mt-1">{profileFrameLabel(frame)}</p>}
+                                {activityLabel && <p className="text-xs text-gray-500 mt-1">{activityLabel}</p>}
                             </div>
                             <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${cfg.bg} ${cfg.text} flex-shrink-0 mt-1`}>
                                 <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
@@ -385,6 +393,14 @@ export default function AdminJobApplications({ job, applications }: Props) {
     const [search, setSearch] = useState('');
     const [viewApp, setViewApp] = useState<Application | null>(null);
 
+    useEffect(() => {
+        const timer = window.setInterval(() => {
+            router.reload({ only: ['applications'] });
+        }, 20000);
+
+        return () => window.clearInterval(timer);
+    }, []);
+
     const filtered = applications.filter(a => {
         const matchF = filter === 'all' || a.status === filter;
         const name = `${a.user.first_name} ${a.user.last_name}`.toLowerCase();
@@ -432,28 +448,36 @@ export default function AdminJobApplications({ job, applications }: Props) {
                     ))}
                 </div>
 
-                {/* Filter toolbar */}
-                <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-                    <div className="inline-flex items-center bg-white border border-gray-200 rounded-xl p-1 gap-0.5">
-                        {(['all', 'pending', 'approved', 'rejected'] as const).map(tab => (
-                            <button key={tab} onClick={() => setFilter(tab)}
-                                className={`px-4 py-1.5 rounded-lg text-xs font-bold capitalize transition-all
-                                    ${filter === tab ? 'bg-avaa-dark text-white shadow-sm' : 'text-gray-500 hover:text-avaa-dark hover:bg-gray-50'}`}>
-                                {tab}
-                                <span className={`ml-1 text-xs px-1.5 py-0.5 rounded-full font-bold
-                                    ${filter === tab ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'}`}>
-                                    {counts[tab]}
-                                </span>
-                            </button>
-                        ))}
+                {/* Filter toolbar — horizontal scroll on narrow viewports for status pills */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                    <div className="min-w-0 w-full sm:w-auto sm:flex-1 sm:min-w-0">
+                        <div
+                            className="overflow-x-auto overflow-y-hidden overscroll-x-contain [touch-action:pan-x] [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+                            role="region"
+                            aria-label="Filter applicants by status"
+                        >
+                            <div className="inline-flex flex-nowrap items-center bg-white border border-gray-200 rounded-xl p-1 gap-0.5 w-max max-w-none">
+                                {(['all', 'pending', 'approved', 'rejected'] as const).map(tab => (
+                                    <button key={tab} type="button" onClick={() => setFilter(tab)}
+                                        className={`shrink-0 px-4 py-1.5 rounded-lg text-xs font-bold capitalize transition-all
+                                            ${filter === tab ? 'bg-avaa-dark text-white shadow-sm' : 'text-gray-500 hover:text-avaa-dark hover:bg-gray-50'}`}>
+                                        {tab}
+                                        <span className={`ml-1 text-xs px-1.5 py-0.5 rounded-full font-bold
+                                            ${filter === tab ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'}`}>
+                                            {counts[tab]}
+                                        </span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 h-10 w-64 shadow-sm">
+                    <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 h-10 w-full sm:w-64 shadow-sm shrink-0 transition-[border-color,box-shadow] focus-within:border-avaa-teal focus-within:ring-2 focus-within:ring-avaa-primary/25">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="text-gray-400 flex-shrink-0">
                             <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
                         </svg>
                         <input value={search} onChange={e => setSearch(e.target.value)}
                             placeholder="Search applicants..."
-                            className="text-sm bg-transparent text-gray-700 placeholder-gray-400 focus:outline-none w-full" />
+                            className="text-sm bg-transparent text-gray-700 placeholder-gray-400 w-full min-w-0 rounded-none border-0 shadow-none outline-none ring-0 focus:outline-none focus:ring-0 focus:border-0 focus:shadow-none" />
                     </div>
                 </div>
 
@@ -481,6 +505,7 @@ export default function AdminJobApplications({ job, applications }: Props) {
                                 const fullName = `${app.user.first_name} ${app.user.last_name}`;
                                 const initials = getInitials(app.user.first_name, app.user.last_name);
                                 const frame = getProfileFrame(app.user.profile_frame ?? app.user.profile?.profile_frame);
+                                const activityLabel = profileFrameLabel(frame, !!app.user.currently_working);
                                 const subTitle = app.user.profile?.professional_title
                                     ?? app.user.profile?.current_job_title
                                     ?? app.application_data?.current_job_title
@@ -495,13 +520,13 @@ export default function AdminJobApplications({ job, applications }: Props) {
                                             src={app.user.avatar}
                                             alt={fullName}
                                             initials={initials}
-                                            className={`w-11 h-11 rounded-full flex-shrink-0 overflow-hidden ${profileFrameRingClass(frame)} ${app.user.avatar ? 'bg-white' : avatarColor(app.user.id)}`}
+                                            className={`w-11 h-11 rounded-full flex-shrink-0 overflow-hidden ${profileFrameRingClass(frame, !!app.user.currently_working)} ${app.user.avatar ? 'bg-white' : avatarColor(app.user.id)}`}
                                             textClassName="text-white text-sm font-bold flex items-center justify-center"
                                         />
                                         {/* Name + sub */}
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm font-bold text-gray-800 leading-tight">{fullName}</p>
-                                            {profileFrameLabel(frame) && <p className="text-xs text-gray-500 mt-0.5 truncate">{profileFrameLabel(frame)}</p>}
+                                            {activityLabel && <p className="text-xs text-gray-500 mt-0.5 truncate">{activityLabel}</p>}
                                             <p className="text-xs text-gray-400 mt-0.5 truncate">
                                                 {subTitle ? `${subTitle} ` : ''}{app.user.email}
                                                 {' · '}Applied {app.created_at}

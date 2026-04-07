@@ -42,6 +42,9 @@ class JobListingController extends Controller
                 ->latest('created_at')
                 ->first();
 
+            $logoUrl = $this->resolveLogoUrl($job->logo_path)
+                ?? $this->resolveLogoUrl($job->employer?->employerProfile?->logo_path);
+
             return [
                 'id'                 => $job->id,
                 'title'              => $job->title,
@@ -57,7 +60,8 @@ class JobListingController extends Controller
                 'screener_questions' => $this->splitList($job->screener_questions),
                 'project_timeline'   => $job->project_timeline,
                 'onboarding_process' => $job->onboarding_process,
-                'logo_path'          => $this->resolveLogoUrl($job->logo_path),
+                'logo_path'          => $logoUrl,
+                'logo_url'           => $logoUrl,
                 'employment_type'    => $job->employment_type,
                 'salary_min'         => $job->salary_min,
                 'salary_max'         => $job->salary_max,
@@ -81,6 +85,7 @@ class JobListingController extends Controller
 
         // Jobs owned by this employer
         $ownedJobs = JobListing::where('employer_id', $user->id)
+            ->with(['employer.employerProfile'])
             ->withCount('applications')
             ->orderByDesc('created_at')
             ->get()
@@ -92,6 +97,7 @@ class JobListingController extends Controller
             ->pluck('job_listing_id');
 
         $collaboratedJobs = JobListing::whereIn('id', $collaboratedJobIds)
+            ->with(['employer.employerProfile'])
             ->withCount('applications')
             ->orderByDesc('created_at')
             ->get()
@@ -241,6 +247,8 @@ class JobListingController extends Controller
         $user    = $request->user()->load('employerProfile');
         $profile = $user->employerProfile;
         $isOwner = $job->employer_id === $user->id;
+        $logoUrl = $this->resolveLogoUrl($job->logo_path)
+            ?? $this->resolveLogoUrl($profile?->logo_path);
 
         // Build hiring team from collaborators
         $hiringTeam = $job->collaborators()
@@ -295,7 +303,8 @@ class JobListingController extends Controller
                 'industry'           => $job->industry,
                 'application_limit'  => $job->application_limit,
                 'work_arrangement'   => $job->work_arrangement,
-                'logo_path'          => $this->resolveLogoUrl($job->logo_path),
+                'logo_path'          => $logoUrl,
+                'logo_url'           => $logoUrl,
                 'views_count'        => $job->views_count ?? 0,
                 'clicks_count'       => $job->clicks_count ?? 0,
                 'hiring_team'        => $hiringTeam->values()->toArray(),
@@ -552,7 +561,7 @@ class JobListingController extends Controller
 
         $applications = $job->applications()
             ->where('status', '!=', 'draft')
-            ->with('user.jobSeekerProfile')
+            ->with(['user.jobSeekerProfile', 'user.documents'])
             ->orderByDesc('created_at')
             ->get()
             ->map(fn($app) => [
@@ -572,6 +581,7 @@ class JobListingController extends Controller
                     'profile_frame' => $app->user->jobSeekerProfile?->profile_frame ?? 'default',
                     'profile'    => $app->user->jobSeekerProfile ? [
                         'profile_frame'      => $app->user->jobSeekerProfile->profile_frame ?? 'default',
+                        'about'              => $app->user->jobSeekerProfile->about,
                         'professional_title' => $app->user->jobSeekerProfile->professional_title,
                         'current_job_title'  => $app->user->jobSeekerProfile->current_job_title,
                         'current_company'    => $app->user->jobSeekerProfile->current_company,
@@ -579,7 +589,19 @@ class JobListingController extends Controller
                         'state'              => $app->user->jobSeekerProfile->state,
                         'country'            => $app->user->jobSeekerProfile->country,
                         'skills'             => $app->user->jobSeekerProfile->skills,
+                        'certifications'     => $app->user->jobSeekerProfile->certifications,
                         'resume_path'        => $app->user->jobSeekerProfile->resume_path,
+                        'documents'          => $app->user->documents
+                            ->sortByDesc('created_at')
+                            ->values()
+                            ->map(fn($doc) => [
+                                'id'            => $doc->id,
+                                'file_name'     => $doc->file_name,
+                                'document_type' => $doc->document_type,
+                                'file_path'     => $doc->file_path,
+                                'view_url'      => route('documents.view', ['path' => $doc->file_path]),
+                            ])
+                            ->all(),
                     ] : null,
                 ],
             ]);

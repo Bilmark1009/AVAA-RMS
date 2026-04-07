@@ -23,6 +23,7 @@ interface ApplicationUser {
     profile_frame?: 'default' | 'open_to_work' | 'not_open_to_work' | null;
     profile?: {
         profile_frame?: 'default' | 'open_to_work' | 'not_open_to_work' | null;
+        about?: string;
         professional_title?: string;
         current_job_title?: string;
         current_company?: string;
@@ -30,6 +31,13 @@ interface ApplicationUser {
         state?: string;
         country?: string;
         skills?: string[];
+        certifications?: string[];
+        documents?: Array<{
+            id: number;
+            file_name: string;
+            document_type?: string;
+            view_url?: string;
+        }>;
         resume_path?: string;
     } | null;
 }
@@ -461,9 +469,18 @@ function ApplicantModal({ app, jobId, onClose, onReject, onApprove }: {
 
     const u = app.user;
     const ad = app.application_data;
-    const fullName = (ad?.full_name) ?? `${u.first_name} ${u.last_name}`;
+    const fullName = `${u.first_name} ${u.last_name}`;
     const initials = getInitials(u.first_name, u.last_name);
     const frame = getProfileFrame(u.profile_frame ?? u.profile?.profile_frame);
+    const certifications = u.profile?.certifications ?? [];
+    const documents = u.profile?.documents ?? [];
+    const certificationLabel = (value: string) => value.split('/').pop() || value;
+    const certificationLink = (value: string) =>
+        value.startsWith('http://') || value.startsWith('https://')
+            ? value
+            : (value.startsWith('/storage/') || value.startsWith('storage/')
+                ? `/documents/view?path=${encodeURIComponent(value)}`
+                : null);
     const resumePath = (app.resume_path) ?? (u.profile?.resume_path) ?? (ad?.existing_resume);
     const resumeName = resumePath ? resumePath.split('/').pop() : null;
     const resumeViewUrl = resumePath ? route('applications.resume', { application: app.id }) : null;
@@ -528,9 +545,9 @@ function ApplicantModal({ app, jobId, onClose, onReject, onApprove }: {
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
                             <div><p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Full Name</p><p className="text-sm font-semibold text-avaa-dark mt-0.5 truncate">{fullName}</p></div>
-                            <div><p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Email</p><p className="text-sm font-semibold text-avaa-dark mt-0.5 break-all">{(ad?.email) ?? u.email}</p></div>
-                            <div><p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Phone Number</p><p className="text-sm font-semibold text-avaa-dark mt-0.5">{(ad?.phone) ?? (u.phone) ?? '—'}</p></div>
-                            <div><p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Location</p><p className="text-sm font-semibold text-avaa-dark mt-0.5">{((ad?.location) ?? [u.profile?.city, u.profile?.state, u.profile?.country].filter(Boolean).join(', ')) || '—'}</p></div>
+                            <div><p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Email</p><p className="text-sm font-semibold text-avaa-dark mt-0.5 break-all">{u.email}</p></div>
+                            <div><p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Phone Number</p><p className="text-sm font-semibold text-avaa-dark mt-0.5">{u.phone ?? ad?.phone ?? '—'}</p></div>
+                            <div><p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Location</p><p className="text-sm font-semibold text-avaa-dark mt-0.5">{([u.profile?.city, u.profile?.state, u.profile?.country].filter(Boolean).join(', ')) || ad?.location || '—'}</p></div>
                         </div>
                     </div>
 
@@ -541,16 +558,60 @@ function ApplicantModal({ app, jobId, onClose, onReject, onApprove }: {
                             <h4 className="text-sm font-bold text-avaa-dark">Professional Experience</h4>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
-                            <div><p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Current Job Title</p><p className="text-sm font-semibold text-avaa-dark mt-0.5">{(ad?.current_job_title) ?? (u.profile?.current_job_title) ?? '—'}</p></div>
-                            <div><p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Company</p><p className="text-sm font-semibold text-avaa-dark mt-0.5">{(ad?.current_company) ?? (u.profile?.current_company) ?? '—'}</p></div>
+                            <div><p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Current Job Title</p><p className="text-sm font-semibold text-avaa-dark mt-0.5">{(u.profile?.current_job_title) ?? (ad?.current_job_title) ?? '—'}</p></div>
+                            <div><p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Company</p><p className="text-sm font-semibold text-avaa-dark mt-0.5">{(u.profile?.current_company) ?? (ad?.current_company) ?? '—'}</p></div>
                         </div>
 
-                        {((ad?.skills?.length) ?? (u.profile?.skills?.length) ?? 0) > 0 && (
+                        {((u.profile?.skills?.length) ?? (ad?.skills?.length) ?? 0) > 0 && (
                             <div className="mt-5">
                                 <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-2">Skills & Expertise</p>
                                 <div className="flex flex-wrap gap-2">
-                                    {((ad?.skills) ?? (u.profile?.skills) ?? []).map((s: string) => (
+                                    {((u.profile?.skills) ?? (ad?.skills) ?? []).map((s: string) => (
                                         <span key={s} className="px-3 py-1 bg-avaa-primary-light text-avaa-teal text-xs font-semibold rounded-full border border-avaa-primary/20">{s}</span>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {certifications.length > 0 && (
+                            <div className="mt-5">
+                                <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-2">Certifications</p>
+                                <div className="flex flex-wrap gap-2">
+                                    {certifications.map((cert) => (
+                                        certificationLink(cert) ? (
+                                            <a
+                                                key={cert}
+                                                href={certificationLink(cert) ?? '#'}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="px-3 py-1 bg-amber-50 text-amber-700 text-xs font-semibold rounded-full border border-amber-100 hover:underline"
+                                            >
+                                                {certificationLabel(cert)}
+                                            </a>
+                                        ) : (
+                                            <span key={cert} className="px-3 py-1 bg-amber-50 text-amber-700 text-xs font-semibold rounded-full border border-amber-100">
+                                                {certificationLabel(cert)}
+                                            </span>
+                                        )
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {documents.length > 0 && (
+                            <div className="mt-5">
+                                <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-2">Documents</p>
+                                <div className="space-y-2">
+                                    {documents.map((doc) => (
+                                        <div key={doc.id} className="flex items-center justify-between gap-3 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
+                                            <div className="min-w-0">
+                                                <p className="text-xs font-medium text-avaa-dark truncate">{doc.file_name}</p>
+                                                <p className="text-[10px] text-gray-500 mt-0.5">{doc.document_type ?? 'Document'}</p>
+                                            </div>
+                                            {doc.view_url && (
+                                                <a href={doc.view_url} target="_blank" rel="noreferrer" className="text-xs font-semibold text-avaa-teal hover:underline flex-shrink-0">View</a>
+                                            )}
+                                        </div>
                                     ))}
                                 </div>
                             </div>
@@ -667,6 +728,22 @@ export default function JobApplications({ job, applications, employerAddress }: 
     const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'withdrawn'>('all');
     const [search, setSearch] = useState('');
 
+    useEffect(() => {
+        const refreshApplications = () => {
+            router.reload({
+                only: ['applications'],
+            });
+        };
+
+        const timer = window.setInterval(refreshApplications, 30000);
+        window.addEventListener('focus', refreshApplications);
+
+        return () => {
+            window.clearInterval(timer);
+            window.removeEventListener('focus', refreshApplications);
+        };
+    }, []);
+
     const filtered = applications.filter(a => {
         const matchFilter = filter === 'all' || a.status === filter;
         const name = `${a.user.first_name} ${a.user.last_name}`.toLowerCase();
@@ -739,25 +816,33 @@ export default function JobApplications({ job, applications, employerAddress }: 
                 </div>
             </div>
 
-            {/* Toolbar */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-                <div className="inline-flex items-center bg-white border border-gray-200 rounded-xl p-1 gap-0.5 shadow-sm flex-wrap">
-                    {(['all', 'pending', 'approved', 'rejected', 'withdrawn'] as const).map(tab => (
-                        <button key={tab} onClick={() => setFilter(tab)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all ${
-                                filter === tab
-                                    ? tab === 'withdrawn' ? 'bg-slate-500 text-white shadow-sm' : 'bg-avaa-dark text-white shadow-sm'
-                                    : 'text-gray-500 hover:text-avaa-dark hover:bg-gray-50'
-                            }`}>
-                            {tab}
-                            <span className={`ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${filter === tab ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'}`}>{counts[tab]}</span>
-                        </button>
-                    ))}
+            {/* Toolbar — status filters scroll horizontally on touch / narrow layouts */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+                <div className="min-w-0 w-full sm:flex-1 sm:min-w-0">
+                    <div
+                        className="overflow-x-auto overflow-y-hidden overscroll-x-contain [touch-action:pan-x] [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+                        role="region"
+                        aria-label="Filter applicants by status"
+                    >
+                        <div className="inline-flex flex-nowrap items-center bg-white border border-gray-200 rounded-xl p-1 gap-0.5 shadow-sm w-max max-w-none">
+                            {(['all', 'pending', 'approved', 'rejected', 'withdrawn'] as const).map(tab => (
+                                <button key={tab} type="button" onClick={() => setFilter(tab)}
+                                    className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all ${
+                                        filter === tab
+                                            ? tab === 'withdrawn' ? 'bg-slate-500 text-white shadow-sm' : 'bg-avaa-dark text-white shadow-sm'
+                                            : 'text-gray-500 hover:text-avaa-dark hover:bg-gray-50'
+                                    }`}>
+                                    {tab}
+                                    <span className={`ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${filter === tab ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'}`}>{counts[tab]}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
                 </div>
-                {/* Search input is now fully responsive on mobile */}
-                <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 h-10 w-full sm:w-64 shadow-sm shrink-0">
+                <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 h-10 w-full sm:w-64 shadow-sm shrink-0 transition-[border-color,box-shadow] focus-within:border-avaa-teal focus-within:ring-2 focus-within:ring-avaa-primary/25">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="text-gray-400 flex-shrink-0"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-                    <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search applicants..." className="text-sm bg-transparent text-gray-900 placeholder-gray-400 font-medium focus:outline-none focus:ring-0 border-0 w-full" />
+                    <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search applicants..."
+                        className="text-sm bg-transparent text-gray-900 placeholder-gray-400 font-medium w-full min-w-0 rounded-none border-0 shadow-none outline-none ring-0 focus:outline-none focus:ring-0 focus:border-0 focus:shadow-none" />
                 </div>
             </div>
 

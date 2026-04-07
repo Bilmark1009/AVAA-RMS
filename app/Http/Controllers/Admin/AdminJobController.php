@@ -25,6 +25,7 @@ class AdminJobController extends Controller
         $jobs = JobListing::with('employer:id,first_name,last_name,employerProfile')
             ->with('employer.employerProfile:user_id,company_name,logo_path')
             ->withCount('applications')
+            ->where('status', '!=', 'draft')
             ->when($search, fn($q) => $q->where(function ($inner) use ($search) {
                 $inner->where('title', 'like', "%{$search}%")
                     ->orWhere('location', 'like', "%{$search}%")
@@ -128,7 +129,7 @@ class AdminJobController extends Controller
             ->where('status', '!=', 'draft')
             ->with([
                 'user:id,first_name,last_name,email,phone,avatar',
-                'user.jobSeekerProfile:user_id,professional_title,current_job_title,current_company,city,state,country,skills,certifications,about,resume_path,linkedin_url,portfolio_url,highest_education,profile_frame',
+                'user.jobSeekerProfile:user_id,professional_title,current_job_title,current_company,city,state,country,skills,certifications,about,resume_path,linkedin_url,portfolio_url,highest_education,profile_frame,open_to_work',
                 'user.workExperiences',
             ])
             ->orderByDesc('created_at')
@@ -148,8 +149,11 @@ class AdminJobController extends Controller
                     'phone' => $app->user->phone,
                     'avatar' => $app->user->avatar,
                     'profile_frame' => $app->user->jobSeekerProfile?->profile_frame ?? 'default',
+                    'open_to_work' => $app->user->jobSeekerProfile?->open_to_work,
+                    'currently_working' => $app->user->workExperiences->contains(fn($exp) => (bool) $exp->is_current),
                     'profile' => $app->user->jobSeekerProfile ? [
                         'profile_frame' => $app->user->jobSeekerProfile->profile_frame ?? 'default',
+                        'open_to_work' => $app->user->jobSeekerProfile->open_to_work,
                         'professional_title' => $app->user->jobSeekerProfile->professional_title,
                         'current_job_title' => $app->user->jobSeekerProfile->current_job_title,
                         'current_company' => $app->user->jobSeekerProfile->current_company,

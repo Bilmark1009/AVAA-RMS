@@ -76,11 +76,41 @@ class DashboardController extends Controller
             ];
         }
         // ── Recent posted jobs (latest 6) ────────────────────────────────
+        $profileLogoUrl = $this->resolveLogoUrl($user->employerProfile?->logo_path);
+
         $recentJobs = JobListing::where('employer_id', $user->id)
             ->withCount('applications')
             ->latest()
             ->take(6)
-            ->get();
+            ->get()
+            ->map(fn (JobListing $job) => [
+                'id'                 => $job->id,
+                'title'              => $job->title,
+                'location'           => $job->location,
+                'status'             => $job->status,
+                'applications_count' => $job->applications_count,
+                'created_at'         => $job->created_at->toISOString(),
+                'logo_url'           => $this->resolveLogoUrl($job->logo_path) ?? $profileLogoUrl,
+            ]);
+
+        // For suspended users, also show suspended jobs
+        $suspendedJobs = [];
+        if ($user->status === 'suspended') {
+            $suspendedJobs = JobListing::where('employer_id', $user->id)
+                ->where('status', 'suspended')
+                ->withCount('applications')
+                ->latest()
+                ->get()
+                ->map(fn (JobListing $job) => [
+                    'id'                 => $job->id,
+                    'title'              => $job->title,
+                    'location'           => $job->location,
+                    'status'             => $job->status,
+                    'applications_count' => $job->applications_count,
+                    'created_at'         => $job->created_at->toISOString(),
+                    'logo_url'           => $this->resolveLogoUrl($job->logo_path) ?? $profileLogoUrl,
+                ]);
+        }
 
         // For suspended users, also show suspended jobs
         $suspendedJobs = [];
@@ -115,5 +145,22 @@ class DashboardController extends Controller
             'suspendedJobs' => $suspendedJobs,
             'isSuspended' => $user->status === 'suspended',
         ]);
+    }
+
+    private function resolveLogoUrl(?string $path): ?string
+    {
+        if (!is_string($path) || trim($path) === '') {
+            return null;
+        }
+
+        $trimmed = trim($path);
+
+        if (str_starts_with($trimmed, 'http://') || str_starts_with($trimmed, 'https://')) {
+            return $trimmed;
+        }
+
+        $relative = ltrim(str_replace('/storage/', '', $trimmed), '/');
+
+        return asset('storage/' . $relative);
     }
 }

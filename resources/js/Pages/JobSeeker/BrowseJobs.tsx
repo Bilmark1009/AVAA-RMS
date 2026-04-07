@@ -2,7 +2,7 @@ import { Head, router } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import JobSeekerOnboarding from '@/Components/Modals/JobSeekerOnboarding';
 import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 
 /* ── Types ── */
 interface JobListing {
@@ -229,7 +229,7 @@ export default function BrowseJobs({ jobs, savedJobIds, filters, availableSkills
     const [dateFilter, setDateFilter] = useState(filters.date_posted ?? 'all');
     const [selectedSkills, setSelectedSkills] = useState<string[]>(filters.skills ?? []);
     const [selectedCompanies, setSelectedCompanies] = useState<string[]>(filters.companies ?? []);
-    const [saved, setSaved] = useState<Set<number>>(new Set(savedJobIds));
+    const saved = useMemo(() => new Set(savedJobIds), [savedJobIds]);
     const [drawerOpen, setDrawerOpen] = useState(false);
     const isFirstRender = useRef(true);
     const isFirstRenderSearch = useRef(true);
@@ -256,13 +256,19 @@ export default function BrowseJobs({ jobs, savedJobIds, filters, availableSkills
     }, [selectedSkills, selectedCompanies, dateFilter]);
 
     const toggleSave = (jobId: number) => {
-        setSaved(prev => {
-            const next = new Set(prev);
-            if (next.has(jobId)) { next.delete(jobId); router.delete(route('job-seeker.jobs.unsave', jobId), { preserveScroll: true }); }
-            else { next.add(jobId); router.post(route('job-seeker.jobs.save', jobId), {}, { preserveScroll: true }); }
-            return next;
+    // Check status using the Memoized Set
+    const isCurrentlySaved = saved.has(jobId);
+
+    if (isCurrentlySaved) {
+        router.delete(route('job-seeker.jobs.unsave', jobId), {
+            preserveScroll: true,
         });
-    };
+    } else {
+        router.post(route('job-seeker.jobs.save', jobId), {}, {
+            preserveScroll: true,
+        });
+    }
+};
 
     const handleApply = (jobId: number) => router.visit(route('job-seeker.jobs.apply', jobId));
     const handleView = (jobId: number) => router.visit(route('job-seeker.jobs.show', jobId));
@@ -350,13 +356,13 @@ export default function BrowseJobs({ jobs, savedJobIds, filters, availableSkills
                         {/* Company */}
                         {availableCompanies.length > 0 && (
                             <DrawerFilterSection title="Company">
-                                <div className="space-y-3">
+                                <div className="space-y-2 max-h-64 overflow-y-auto pr-1 border border-gray-100 rounded-lg p-2">
                                     {availableCompanies.map(c => (
-                                        <label key={c} className="flex items-center gap-3 cursor-pointer group">
+                                        <label key={c} className="w-full flex items-center gap-2 cursor-pointer group">
                                             <input type="checkbox" checked={selectedCompanies.includes(c)}
                                                 onChange={() => setSelectedCompanies(prev => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c])}
                                                 className="w-4 h-4 rounded border-gray-300 accent-avaa-primary cursor-pointer" />
-                                            <span className="text-sm text-gray-600 group-hover:text-avaa-dark transition-colors">{c}</span>
+                                            <span className="text-sm text-gray-600 group-hover:text-avaa-dark transition-colors truncate">{c}</span>
                                         </label>
                                     ))}
                                 </div>
@@ -472,13 +478,13 @@ export default function BrowseJobs({ jobs, savedJobIds, filters, availableSkills
                         {availableCompanies.length > 0 && (
                             <div>
                                 <p className="text-sm font-bold text-avaa-dark mb-3">Company</p>
-                                <div className="space-y-3">
+                                <div className="space-y-2 max-h-64 overflow-y-auto pr-1 border border-gray-100 rounded-lg p-2">
                                     {availableCompanies.map(c => (
-                                        <label key={c} className="flex items-center gap-3 cursor-pointer group">
+                                        <label key={c} className="w-full flex items-center gap-2 cursor-pointer group">
                                             <input type="checkbox" checked={selectedCompanies.includes(c)}
                                                 onChange={() => setSelectedCompanies(prev => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c])}
                                                 className="w-4 h-4 rounded border-gray-300 accent-avaa-primary cursor-pointer" />
-                                            <span className="text-sm text-gray-600 group-hover:text-avaa-dark transition-colors">{c}</span>
+                                            <span className="text-sm text-gray-600 group-hover:text-avaa-dark transition-colors truncate">{c}</span>
                                         </label>
                                     ))}
                                 </div>
