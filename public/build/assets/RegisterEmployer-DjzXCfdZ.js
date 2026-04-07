@@ -1,5 +1,0 @@
-<<<<<<<< HEAD:public/build/assets/RegisterEmployer-DjzXCfdZ.js
-import{j as e,H as t}from"./app-Bt1GGImX.js";import{R as r}from"./RegisterForm-x1oMaLTL.js";import"./InputError-GJrtpqeZ.js";import"./AuthLayout-CejmJHe7.js";function m(){return e.jsxs(e.Fragment,{children:[e.jsx(t,{title:"Register as Employer"}),e.jsx(r,{role:"employer",storeRoute:route("register.employer.store"),backRoute:route("register"),title:"Create Employer Account",subtitle:"Start hiring the best talent today"})]})}export{m as default};
-========
-import{j as e,H as t}from"./app-DFERiu3d.js";import{R as r}from"./RegisterForm-DyFnFkHu.js";import"./InputError-2R7MNu6L.js";import"./AuthLayout-DWOA87TG.js";function m(){return e.jsxs(e.Fragment,{children:[e.jsx(t,{title:"Register as Employer"}),e.jsx(r,{role:"employer",storeRoute:route("register.employer.store"),backRoute:route("register"),title:"Create Employer Account",subtitle:"Start hiring the best talent today"})]})}export{m as default};
->>>>>>>> origin/development:public/build/assets/RegisterEmployer-CbH7VM89.js

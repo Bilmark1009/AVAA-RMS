@@ -47,6 +47,14 @@ jobs:
         # Remove development files
         rm -rf deploy/node_modules deploy/.git deploy/tests deploy/.github deploy/storage/logs/*
         
+        # Create production .env if it doesn't exist
+        if [ ! -f deploy/.env ]; then
+          cp .env.example deploy/.env
+          echo "APP_ENV=production" >> deploy/.env
+          echo "APP_DEBUG=false" >> deploy/.env
+          echo "APP_URL=https://autopilotvirtual.com/avaa" >> deploy/.env
+        fi
+        
     - name: Deploy via SSH
       uses: appleboy/scp-action@v0.1.7
       with:
@@ -68,6 +76,20 @@ jobs:
         key: ${{ secrets.SSH_KEY }}
         script: |
           cd /home/u850020960/domains/autopilotvirtual.com/public_html/avaa
+          
+          # Generate application key if missing
+          if ! grep -q "APP_KEY=" .env || grep -q "APP_KEY=$" .env; then
+            php artisan key:generate --force
+          fi
+          
+          # Create database file if using SQLite
+          if grep -q "DB_CONNECTION=sqlite" .env && [ ! -f "database/database.sqlite" ]; then
+            touch database/database.sqlite
+            chmod 664 database/database.sqlite
+          fi
+          
+          # Run migrations
+          php artisan migrate --force
           
           # Clear Laravel caches
           php artisan route:clear

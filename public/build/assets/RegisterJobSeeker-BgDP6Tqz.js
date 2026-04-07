@@ -1,5 +1,0 @@
-<<<<<<<< HEAD:public/build/assets/RegisterJobSeeker-BEwCw8QV.js
-import{j as e,H as t}from"./app-Bt1GGImX.js";import{R as r}from"./RegisterForm-x1oMaLTL.js";import"./InputError-GJrtpqeZ.js";import"./AuthLayout-CejmJHe7.js";function a(){return e.jsxs(e.Fragment,{children:[e.jsx(t,{title:"Register as Job Seeker"}),e.jsx(r,{role:"job_seeker",storeRoute:route("register.job-seeker.store"),backRoute:route("register"),title:"Create Job Seeker Account",subtitle:"Find your next great opportunity"})]})}export{a as default};
-========
-import{j as e,H as t}from"./app-DFERiu3d.js";import{R as r}from"./RegisterForm-DyFnFkHu.js";import"./InputError-2R7MNu6L.js";import"./AuthLayout-DWOA87TG.js";function a(){return e.jsxs(e.Fragment,{children:[e.jsx(t,{title:"Register as Job Seeker"}),e.jsx(r,{role:"job_seeker",storeRoute:route("register.job-seeker.store"),backRoute:route("register"),title:"Create Job Seeker Account",subtitle:"Find your next great opportunity"})]})}export{a as default};
->>>>>>>> origin/development:public/build/assets/RegisterJobSeeker-BgDP6Tqz.js
