@@ -12,8 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->text('suspension_reason')->nullable();
-            $table->timestamp('suspended_until')->nullable();
+            if (!Schema::hasColumn('users', 'suspension_reason')) {
+                $table->text('suspension_reason')->nullable();
+            }
+            if (!Schema::hasColumn('users', 'suspended_until')) {
+                $table->timestamp('suspended_until')->nullable();
+            }
         });
     }
 
@@ -23,7 +27,12 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn(['suspension_reason', 'suspended_until']);
+            $drop = [];
+            if (Schema::hasColumn('users', 'suspension_reason')) $drop[] = 'suspension_reason';
+            if (Schema::hasColumn('users', 'suspended_until')) $drop[] = 'suspended_until';
+            if (!empty($drop)) {
+                $table->dropColumn($drop);
+            }
         });
     }
 };

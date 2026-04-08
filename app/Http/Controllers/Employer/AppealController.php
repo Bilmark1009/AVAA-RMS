@@ -50,8 +50,8 @@ class AppealController extends Controller
             return redirect()->back()->with('error', 'Unauthorized access to this job posting.');
         }
 
-        // Verify the job is suspended (report status is 'resolved')
-        if ($report->status !== 'resolved') {
+        // Verify the job is suspended (job status + report status)
+        if ($job->status !== 'suspended' || $report->status !== 'resolved') {
             return redirect()->back()->with('error', 'This job posting is not suspended.');
         }
 
