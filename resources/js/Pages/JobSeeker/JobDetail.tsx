@@ -1,7 +1,7 @@
-import { Head, Link, router } from '@inertiajs/react';
-import AppLayout from '@/Layouts/AppLayout';
-import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
-import { useState, useEffect } from 'react';
+import { Head, Link, router } from "@inertiajs/react";
+import AppLayout from "@/Layouts/AppLayout";
+import ImageInitialsFallback from "@/Components/ImageInitialsFallback";
+import { useState, useEffect } from "react";
 /* ── Types ── */
 interface JobListing {
     id: number;
@@ -179,7 +179,9 @@ function RecruiterProfileModal({
 
     // Redirect to Recruiter Timeline
     const handleViewTimeline = () => {
-        router.visit(route('job-seeker.recruiter.timeline', { user: member.id }))
+        router.visit(
+            route("job-seeker.recruiter.timeline", { user: member.id }),
+        );
     };
 
     return (
@@ -263,7 +265,7 @@ function RecruiterProfileModal({
                     </div>
 
                     {/* Name & company — Clickable Timeline Trigger */}
-                    <button 
+                    <button
                         onClick={handleViewTimeline}
                         className="text-left block group focus:outline-none"
                     >
@@ -273,7 +275,7 @@ function RecruiterProfileModal({
                         {member.company && (
                             <p className="text-sm text-avaa-teal font-medium mt-0.5 group-hover:underline">
                                 {member.company}
-                                {member.industry ? ` · ${member.industry}` : ''}
+                                {member.industry ? ` · ${member.industry}` : ""}
                             </p>
                         )}
                     </button>
@@ -501,57 +503,81 @@ function ReportJobModal({
     job: JobListing;
     onClose: () => void;
 }) {
-    const [reason, setReason] = useState('');
-    const [description, setDescription] = useState('');
+    const [reason, setReason] = useState("");
+    const [description, setDescription] = useState("");
     const [loading, setLoading] = useState(false);
-    const [successMessage, setSuccessMessage] = useState('');
+    const [successMessage, setSuccessMessage] = useState("");
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!reason.trim()) return;
 
         setLoading(true);
-        router.post(route('job-seeker.jobs.report', job.id), {
-            reason,
-            description,
-        }, {
-            onSuccess: () => {
-                setSuccessMessage('Thank you! We have received your report.');
-                setTimeout(() => {
+        router.post(
+            route("job-seeker.jobs.report", job.id),
+            {
+                reason,
+                description,
+            },
+            {
+                onSuccess: () => {
+                    setSuccessMessage(
+                        "Thank you! We have received your report.",
+                    );
+                    setTimeout(() => {
+                        setLoading(false);
+                        onClose();
+                    }, 1500);
+                },
+                onError: (errors) => {
+                    console.error("Error reporting job:", errors);
                     setLoading(false);
-                    onClose();
-                }, 1500);
+                },
             },
-            onError: (errors) => {
-                console.error('Error reporting job:', errors);
-                setLoading(false);
-            },
-        });
+        );
     };
 
     useEffect(() => {
-        const handler = (e: KeyboardEvent) => { if (e.key === 'Escape' && !loading) onClose(); };
-        document.addEventListener('keydown', handler);
-        return () => document.removeEventListener('keydown', handler);
+        const handler = (e: KeyboardEvent) => {
+            if (e.key === "Escape" && !loading) onClose();
+        };
+        document.addEventListener("keydown", handler);
+        return () => document.removeEventListener("keydown", handler);
     }, [onClose, loading]);
 
     return (
         <div
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            style={{ backgroundColor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)' }}
-            onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+            style={{
+                backgroundColor: "rgba(0,0,0,0.45)",
+                backdropFilter: "blur(4px)",
+            }}
+            onClick={(e) => {
+                if (e.target === e.currentTarget) onClose();
+            }}
         >
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
                 {/* Header */}
                 <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
-                    <h2 className="text-lg font-bold text-avaa-dark">Report This Job</h2>
+                    <h2 className="text-lg font-bold text-avaa-dark">
+                        Report This Job
+                    </h2>
                     <button
                         onClick={onClose}
                         disabled={loading}
                         className="w-7 h-7 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-500 transition-colors disabled:opacity-50"
                     >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                        <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                        >
+                            <line x1="18" y1="6" x2="6" y2="18" />
+                            <line x1="6" y1="6" x2="18" y2="18" />
                         </svg>
                     </button>
                 </div>
@@ -577,9 +603,15 @@ function ReportJobModal({
                         >
                             <option value="">Select a reason...</option>
                             <option value="spam">Spam or Scam</option>
-                            <option value="inappropriate_behavior">Inappropriate Behavior</option>
-                            <option value="suspicious_job">Suspicious Job</option>
-                            <option value="identity_theft">Identity Theft</option>
+                            <option value="inappropriate_behavior">
+                                Inappropriate Behavior
+                            </option>
+                            <option value="suspicious_job">
+                                Suspicious Job
+                            </option>
+                            <option value="identity_theft">
+                                Identity Theft
+                            </option>
                             <option value="other">Other</option>
                         </select>
                     </div>
@@ -612,7 +644,7 @@ function ReportJobModal({
                             disabled={!reason.trim() || loading}
                             className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 disabled:opacity-60 disabled:cursor-not-allowed rounded-xl transition-colors"
                         >
-                            {loading ? 'Reporting...' : 'Submit Report'}
+                            {loading ? "Reporting..." : "Submit Report"}
                         </button>
                     </div>
                 </form>
@@ -630,8 +662,11 @@ export default function JobDetail({
     source = "browse",
 }: Props) {
     const [saved, setSaved] = useState(initialSaved);
-    const [applied, setApplied] = useState(initialApplied || job.has_applied || false);
-    const [selectedRecruiter, setSelectedRecruiter] = useState<HiringTeamMember | null>(null);
+    const [applied, setApplied] = useState(
+        initialApplied || job.has_applied || false,
+    );
+    const [selectedRecruiter, setSelectedRecruiter] =
+        useState<HiringTeamMember | null>(null);
     const [showReportModal, setShowReportModal] = useState(false);
 
     const salary = formatSalary(
@@ -655,7 +690,7 @@ export default function JobDetail({
 
     const handleShareJob = async () => {
         // Generate a clean shareable URL using the named route
-        const jobUrl = route('shared.job.show', { job: job.id });
+        const jobUrl = route("shared.job.show", { job: job.id });
         const fullUrl = new URL(jobUrl, window.location.origin).toString();
         try {
             await navigator.clipboard.writeText(fullUrl);
@@ -663,13 +698,13 @@ export default function JobDetail({
             setTimeout(() => setLinkCopied(false), 3000);
         } catch {
             // Fallback for older browsers
-            const textArea = document.createElement('textarea');
+            const textArea = document.createElement("textarea");
             textArea.value = fullUrl;
-            textArea.style.position = 'fixed';
-            textArea.style.opacity = '0';
+            textArea.style.position = "fixed";
+            textArea.style.opacity = "0";
             document.body.appendChild(textArea);
             textArea.select();
-            document.execCommand('copy');
+            document.execCommand("copy");
             document.body.removeChild(textArea);
             setLinkCopied(true);
             setTimeout(() => setLinkCopied(false), 3000);
@@ -751,23 +786,35 @@ export default function JobDetail({
                 {/* ══ Main content ══ */}
                 <div className="flex-1 min-w-0">
                     <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-                        {/* ── Header ── */}
                         <div className="p-5 sm:p-8 border-b border-gray-100">
-                            <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-5">
-                                <ImageInitialsFallback
-                                    src={job.logo_url}
-                                    alt={`${job.company} logo`}
-                                    initials={getInitials(job.company)}
-                                    className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full border border-gray-200 flex-shrink-0 overflow-hidden self-start ${job.logo_url ? "bg-white" : avatarColor(job.id)}`}
-                                    textClassName="text-white text-xl font-bold flex items-center justify-center"
-                                />
-                                <div className="flex-1 min-w-0">
+                            {/* Header Grid: 2 columns on mobile (Auto, 1fr) */}
+                            <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 sm:gap-x-6">
+                                {/* 1. Logo (Row 1, Col 1) */}
+                                <div className="row-span-1">
+                                    <ImageInitialsFallback
+                                        src={job.logo_url}
+                                        alt={`${job.company} logo`}
+                                        initials={getInitials(job.company)}
+                                        className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full border border-gray-200 overflow-hidden flex-shrink-0 ${
+                                            job.logo_url
+                                                ? "bg-white"
+                                                : avatarColor(job.id)
+                                        }`}
+                                        textClassName="text-white text-xl font-bold flex items-center justify-center"
+                                    />
+                                </div>
+
+                                {/* 2. Title (Row 1, Col 2) */}
+                                <div className="flex items-center">
                                     <h1 className="text-xl sm:text-2xl font-extrabold text-avaa-dark leading-tight">
                                         {job.title}
                                     </h1>
+                                </div>
 
-                                    {/* Meta row */}
-                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mt-2 text-sm text-gray-500">
+                                {/* 3. Details (Row 2, spans both columns on mobile, sits in col 2 on desktop) */}
+                                <div className="col-span-2 sm:col-span-1 sm:col-start-2">
+                                    {/* Meta Row */}
+                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-gray-500">
                                         <span className="font-semibold text-gray-700">
                                             {job.company}
                                         </span>
@@ -798,6 +845,7 @@ export default function JobDetail({
                                                 stroke="currentColor"
                                                 strokeWidth="2"
                                                 strokeLinecap="round"
+                                                strokeLinejoin="round"
                                             >
                                                 <circle
                                                     cx="12"
@@ -810,71 +858,35 @@ export default function JobDetail({
                                         </span>
                                     </div>
 
-                                    {/* Badges */}
-                                    <div className="flex flex-wrap gap-2 mt-3">
+                                    {/* Badges Row */}
+                                    <div className="flex flex-wrap items-center gap-2 mt-4">
                                         {job.employment_type && (
-                                            <span className="inline-flex items-center px-3 py-1 bg-gray-100 text-gray-600 text-xs sm:text-sm font-semibold rounded-full whitespace-nowrap">
+                                            <span className="inline-flex items-center px-3 py-1 bg-gray-100 text-gray-600 text-xs sm:text-sm font-semibold rounded-full">
                                                 {job.employment_type}
                                             </span>
                                         )}
                                         {salary && (
-                                            <span className="inline-flex items-center px-3 py-1 bg-avaa-primary-light text-avaa-teal text-xs sm:text-sm font-semibold rounded-full whitespace-nowrap">
+                                            <span className="inline-flex items-center px-3 py-1 bg-avaa-primary-light text-avaa-teal text-xs sm:text-sm font-semibold rounded-full">
                                                 {salary}
                                             </span>
                                         )}
                                         {job.experience_level && (
-                                            <span className="inline-flex items-center px-3 py-1 bg-blue-50 text-blue-600 text-xs sm:text-sm font-semibold rounded-full border border-blue-100 whitespace-nowrap">
+                                            <span className="inline-flex items-center px-3 py-1 bg-blue-50 text-blue-600 text-xs sm:text-sm font-semibold rounded-full border border-blue-100">
                                                 {job.experience_level}
                                             </span>
                                         )}
                                         {job.work_arrangement && (
-                                            <span className="inline-flex items-center px-3 py-1 bg-purple-50 text-purple-600 text-xs sm:text-sm font-semibold rounded-full border border-purple-100 whitespace-nowrap">
+                                            <span className="inline-flex items-center px-3 py-1 bg-purple-50 text-purple-600 text-xs sm:text-sm font-semibold rounded-full border border-purple-100">
                                                 {job.work_arrangement}
                                             </span>
                                         )}
                                         {job.industry && (
-                                            <span className="inline-flex items-center px-3 py-1 bg-amber-50 text-amber-600 text-xs sm:text-sm font-semibold rounded-full border border-amber-100 whitespace-nowrap">
+                                            <span className="inline-flex items-center px-3 py-1 bg-amber-50 text-amber-600 text-xs sm:text-sm font-semibold rounded-full border border-amber-100">
                                                 {job.industry}
                                             </span>
                                         )}
                                         {job.deadline && (
-                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-50 text-red-500 text-xs sm:text-sm font-semibold rounded-full border border-red-100 whitespace-nowrap">
-                                                <svg
-                                                    width="12"
-                                                    height="12"
-                                                    viewBox="0 0 24 24"
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    strokeWidth="2"
-                                                    strokeLinecap="round"
-                                                    className="flex-shrink-0"
-                                                >
-                                                    <rect
-                                                        x="3"
-                                                        y="4"
-                                                        width="18"
-                                                        height="18"
-                                                        rx="2"
-                                                    />
-                                                    <line
-                                                        x1="16"
-                                                        y1="2"
-                                                        x2="16"
-                                                        y2="6"
-                                                    />
-                                                    <line
-                                                        x1="8"
-                                                        y1="2"
-                                                        x2="8"
-                                                        y2="6"
-                                                    />
-                                                    <line
-                                                        x1="3"
-                                                        y1="10"
-                                                        x2="21"
-                                                        y2="10"
-                                                    />
-                                                </svg>
+                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-50 text-red-500 text-xs sm:text-sm font-semibold rounded-full border border-red-100">
                                                 Closes {job.deadline}
                                             </span>
                                         )}
@@ -882,32 +894,30 @@ export default function JobDetail({
                                 </div>
                             </div>
 
-                            {/* CTA buttons */}
-                            <div className="flex flex-wrap items-center gap-3 mt-6">
+                            {/* CTA Buttons */}
+                            <div className="flex flex-col sm:flex-row items-center gap-3 mt-8">
                                 <button
                                     onClick={handleApply}
                                     disabled={applied}
-                                    className="flex-1 min-w-[140px] h-11 bg-avaa-primary hover:bg-avaa-primary-hover disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors text-[15px]"
+                                    className="w-full sm:flex-1 h-12 bg-avaa-primary hover:bg-avaa-primary-hover disabled:opacity-60 text-white font-bold rounded-xl transition-colors"
                                 >
                                     {applied ? "Applied ✓" : "Apply Now"}
                                 </button>
                                 <button
                                     onClick={toggleSave}
-                                    className={`inline-flex items-center justify-center gap-2 px-5 h-11 rounded-xl border font-semibold text-sm transition-all whitespace-nowrap ${
+                                    className={`w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 h-12 rounded-xl border font-semibold transition-all ${
                                         saved
-                                            ? "border-avaa-primary/30 bg-avaa-primary-light text-avaa-teal"
-                                            : "border-gray-200 text-gray-600 hover:border-avaa-primary/30 hover:text-avaa-teal hover:bg-avaa-primary-light"
+                                            ? "bg-avaa-primary-light text-avaa-teal border-avaa-primary/20"
+                                            : "border-gray-200 text-gray-600"
                                     }`}
                                 >
                                     <svg
-                                        width="16"
-                                        height="16"
+                                        width="18"
+                                        height="18"
                                         viewBox="0 0 24 24"
                                         fill={saved ? "currentColor" : "none"}
                                         stroke="currentColor"
                                         strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
                                     >
                                         <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
                                     </svg>
@@ -1040,16 +1050,6 @@ export default function JobDetail({
                         </div>
                         {/* end body */}
 
-
-
-
-
-
-
-
-
-
-
                         {/* ── Footer ── */}
                         <div className="px-8 py-5 border-t border-gray-100 flex items-center justify-between text-sm text-gray-400">
                             <button
@@ -1064,10 +1064,31 @@ export default function JobDetail({
                                     className="hover:text-avaa-teal transition-colors"
                                     title="Copy job link to share"
                                 >
-                                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
-                                        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
-                                        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                                    <svg
+                                        width="17"
+                                        height="17"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                    >
+                                        <circle cx="18" cy="5" r="3" />
+                                        <circle cx="6" cy="12" r="3" />
+                                        <circle cx="18" cy="19" r="3" />
+                                        <line
+                                            x1="8.59"
+                                            y1="13.51"
+                                            x2="15.42"
+                                            y2="17.49"
+                                        />
+                                        <line
+                                            x1="15.41"
+                                            y1="6.51"
+                                            x2="8.59"
+                                            y2="10.49"
+                                        />
                                     </svg>
                                 </button>
                                 <button
@@ -1075,7 +1096,16 @@ export default function JobDetail({
                                     className="hover:text-red-400 transition-colors"
                                     title="Flag this job"
                                 >
-                                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <svg
+                                        width="17"
+                                        height="17"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                    >
                                         <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
                                         <line x1="4" y1="22" x2="4" y2="15" />
                                     </svg>
@@ -1281,9 +1311,14 @@ export default function JobDetail({
                         <div className="bg-white border border-gray-200 rounded-2xl p-6">
                             {/* Header */}
                             <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-base font-bold text-avaa-dark">Contact Us</h3>
+                                <h3 className="text-base font-bold text-avaa-dark">
+                                    Contact Us
+                                </h3>
                                 <span className="text-[11px] font-semibold text-avaa-teal bg-avaa-primary-light px-2 py-0.5 rounded-full border border-avaa-primary/20">
-                                    {hiringTeam.length} {hiringTeam.length === 1 ? 'recruiter' : 'recruiters'}
+                                    {hiringTeam.length}{" "}
+                                    {hiringTeam.length === 1
+                                        ? "recruiter"
+                                        : "recruiters"}
                                 </span>
                             </div>
 
@@ -1291,7 +1326,9 @@ export default function JobDetail({
                                 {hiringTeam.map((member, idx) => (
                                     <button
                                         key={member.id}
-                                        onClick={() => setSelectedRecruiter(member)}
+                                        onClick={() =>
+                                            setSelectedRecruiter(member)
+                                        }
                                         className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-avaa-primary-light group transition-colors text-left"
                                     >
                                         <ImageInitialsFallback
@@ -1328,11 +1365,24 @@ export default function JobDetail({
 
                             {/* Hint footer */}
                             <div className="mt-4 pt-4 border-t border-gray-100 flex items-start gap-2">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-avaa-teal flex-shrink-0 mt-0.5">
-                                    <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+                                <svg
+                                    width="13"
+                                    height="13"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    className="text-avaa-teal flex-shrink-0 mt-0.5"
+                                >
+                                    <circle cx="12" cy="12" r="10" />
+                                    <line x1="12" y1="8" x2="12" y2="12" />
+                                    <line x1="12" y1="16" x2="12.01" y2="16" />
                                 </svg>
                                 <p className="text-[11px] text-gray-400 leading-relaxed">
-                                    Click any recruiter to view their profile and send a message.
+                                    Click any recruiter to view their profile
+                                    and send a message.
                                 </p>
                             </div>
                         </div>

@@ -162,31 +162,32 @@ class JobApplicationController extends Controller
     }
 
         private function resolveImageUrl(?string $path): ?string
-        {
-            if (!is_string($path) || trim($path) === '') {
-                return null;
-            }
+{
+    if (!is_string($path) || trim($path) === '') {
+        return null;
+    }
 
-            $trimmed = trim($path);
+    $trimmed = trim($path);
 
-            if (str_starts_with($trimmed, 'http://') || str_starts_with($trimmed, 'https://')) {
-                return $trimmed;
-            }
+    // 1. If it's already a full URL, return it
+    if (str_starts_with($trimmed, 'http://') || str_starts_with($trimmed, 'https://')) {
+        return $trimmed;
+    }
 
-            if (str_starts_with($trimmed, '/storage/') || str_starts_with($trimmed, '/logos/')) {
-                return $trimmed;
-            }
+    // 2. If it already has the /storage/ prefix, make it a full asset URL
+    if (str_starts_with($trimmed, '/storage/')) {
+        return asset($trimmed);
+    }
 
-            if (str_starts_with($trimmed, 'storage/') || str_starts_with($trimmed, 'logos/')) {
-                return '/'.$trimmed;
-            }
+    // 3. If it starts with storage/ (no leading slash), fix it and return asset
+    if (str_starts_with($trimmed, 'storage/')) {
+        return asset('/' . $trimmed);
+    }
 
-            if (Storage::disk('public')->exists($trimmed)) {
-                return Storage::url($trimmed);
-            }
-
-            return '/'.ltrim($trimmed, '/');
-        }
+    // 4. Default: Assume it's a raw path inside the 'public' disk (e.g., "logos/image.jpg")
+    // This uses Laravel's built-in logic to generate the correct URL
+    return asset('storage/' . ltrim($trimmed, '/'));
+}
     /**
      * Job Seeker: Withdraw a submitted application.
      */
