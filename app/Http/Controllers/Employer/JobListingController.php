@@ -125,6 +125,8 @@ class JobListingController extends Controller
      */
     public function create(Request $request): Response
     {
+        $this->ensureEmployerNotBanned($request);
+
         $user        = $request->user()->load('employerProfile');
         $companyName = $user->employerProfile?->company_name ?? "{$user->first_name} {$user->last_name}";
 
@@ -140,6 +142,8 @@ class JobListingController extends Controller
      */
     public function createDraft(Request $request): JsonResponse
     {
+        $this->ensureEmployerNotBanned($request);
+
         $user = $request->user()->load('employerProfile');
 
         $job = JobListing::create($this->persistableJobAttributes([
@@ -164,6 +168,8 @@ class JobListingController extends Controller
      */
     public function store(Request $request)
     {
+        $this->ensureEmployerNotBanned($request);
+
         $request->validate([
             'title'               => 'required|string|max:255',
             'company'             => 'nullable|string|max:255',
@@ -335,6 +341,7 @@ class JobListingController extends Controller
     public function edit(Request $request, JobListing $job): Response
     {
         $this->authorizeJob($request, $job);
+        $this->ensureJobNotSuspendedForEdit($job);
 
         $user        = $request->user()->load('employerProfile');
         $companyName = $user->employerProfile?->company_name ?? "{$user->first_name} {$user->last_name}";
@@ -395,6 +402,9 @@ class JobListingController extends Controller
     public function update(Request $request, JobListing $job)
     {
         $this->authorizeJob($request, $job);
+        $this->ensureEmployerNotBanned($request);
+        $this->ensureJobNotSuspendedForEdit($job);
+
         $wasDraft = $job->status === 'draft';
 
         $request->validate([
@@ -494,6 +504,9 @@ class JobListingController extends Controller
     public function updateStatus(Request $request, JobListing $job): RedirectResponse
     {
         $this->authorizeJob($request, $job);
+        $this->ensureEmployerNotBanned($request);
+        $this->ensureJobNotSuspendedForEdit($job);
+
         $wasDraft = $job->status === 'draft';
 
         $request->validate(['status' => 'required|in:active,inactive,draft']);
@@ -512,6 +525,8 @@ class JobListingController extends Controller
     public function destroy(Request $request, JobListing $job): RedirectResponse
     {
         $this->authorizeJob($request, $job);
+        $this->ensureEmployerNotBanned($request);
+        $this->ensureJobNotSuspendedForEdit($job);
 
         if (is_string($job->logo_path) && str_starts_with($job->logo_path, '/storage/')) {
             Storage::disk('public')->delete(str_replace('/storage/', '', $job->logo_path));
@@ -545,6 +560,8 @@ class JobListingController extends Controller
     public function duplicate(Request $request, JobListing $job): RedirectResponse
     {
         $this->authorizeJob($request, $job);
+        $this->ensureEmployerNotBanned($request);
+        $this->ensureJobNotSuspendedForEdit($job);
 
         $clone             = $job->replicate();
         $clone->title      = $job->title . ' (Copy)';
@@ -563,6 +580,8 @@ class JobListingController extends Controller
     public function repost(Request $request, JobListing $job): RedirectResponse
     {
         $this->authorizeJob($request, $job);
+        $this->ensureEmployerNotBanned($request);
+        $this->ensureJobNotSuspendedForEdit($job);
 
         $job->update([
             'status'     => 'active',
@@ -762,6 +781,16 @@ class JobListingController extends Controller
             403,
             'Unauthorized.'
         );
+    }
+
+    private function ensureEmployerNotBanned(Request $request): void
+    {
+        abort_if($request->user()?->status === 'banned', 403, 'Account is banned.');
+    }
+
+    private function ensureJobNotSuspendedForEdit(JobListing $job): void
+    {
+        abort_if($job->status === 'suspended', 423, 'Job posting is suspended.');
     }
 
     /**

@@ -201,9 +201,6 @@ class AdminReportController extends Controller
             'action_note' => $request->action_note,
         ]);
 
-        // Auto-ban check: if employer has 5+ distinct jobs with approved reports
-        $this->checkAndAutoBanEmployer($report);
-
         return redirect()->back()->with('success', 'Report approved and marked as resolved.');
     }
 
@@ -238,28 +235,37 @@ class AdminReportController extends Controller
             'action_note' => 'nullable|string|max:500',
         ]);
 
-        // Get the reported user (for message reports) or job owner (for job reports)
-        $user = null;
         $job = $report->jobListing;
-        
+
+        // Job report: suspend ONLY the job posting (do NOT suspend the employer account)
         if ($job) {
-            // This is a job report - suspend the employer
-            $user = $job->employer;
-            if (!$user) {
+            $employer = $job->employer;
+            if (!$employer) {
                 return redirect()->back()->with('error', 'Employer not found.');
             }
-            
-            // Deactivate the specific reported job
+
             $job->update([
-                'status' => 'inactive',
+                'status' => 'suspended',
                 'updated_at' => now(),
             ]);
-        } else {
-            // This is a message report - suspend the reported user
-            $user = $report->reportedUser;
-            if (!$user) {
-                return redirect()->back()->with('error', 'Reported user not found.');
-            }
+
+            $report->update([
+                'status' => 'resolved',
+                'action_taken' => 'Job Suspended',
+                'action_by' => $request->user()->id,
+                'action_at' => now(),
+                'action_note' => $request->action_note,
+            ]);
+
+            $employer->notify(new EmployerJobSuspendedNotification($job, $report));
+
+            return redirect()->back()->with('success', 'Job posting suspended successfully. Employer account remains active.');
+        }
+
+        // Message report: suspend the reported user (existing behavior)
+        $user = $report->reportedUser;
+        if (!$user) {
+            return redirect()->back()->with('error', 'Reported user not found.');
         }
 
         // Extract duration from action_note (e.g., "Suspended for 7 Days")
@@ -335,16 +341,7 @@ class AdminReportController extends Controller
             }
         }
 
-        // Send in-app notification with deep link to the appeal modal.
-        if ($job) {
-            $user->notify(new EmployerJobSuspendedNotification($job, $report));
-        }
-
-        $message = $job 
-            ? 'Job posting suspended and user account suspended successfully. Notification sent to employer.'
-            : 'User account suspended successfully. Notification sent to user.';
-
-        return redirect()->back()->with('success', $message);
+        return redirect()->back()->with('success', 'User account suspended successfully. Notification sent to user.');
     }
 
     /**
@@ -445,23 +442,13 @@ class AdminReportController extends Controller
                 'status' => 'active',
                 'updated_at' => now(),
             ]);
+        }
 
-            // Dismiss ALL resolved reports for this employer's jobs — resets report count to zero
-            $employerId = $jobListing->employer_id;
-            if ($employerId) {
-                Report::whereHas('jobListing', fn($q) => $q->where('employer_id', $employerId))
-                    ->where('status', 'resolved')
-                    ->update(['status' => 'dismissed']);
-            }
-
-            // If the employer was auto-banned, lift the ban since report count is now reset
-            if ($employer && $employer->status === 'banned') {
+        // If employer was auto-banned due to confirmed strikes, unban if now below threshold.
+        if ($employer && $employer->status === 'banned') {
+            $confirmedStrikes = $this->confirmedEmployerStrikeCount($employer->id);
+            if ($confirmedStrikes < 5) {
                 $employer->update(['status' => 'active']);
-            }
-
-            // Lift suspension if employer was suspended
-            if ($employer && $employer->isSuspended()) {
-                $employer->liftSuspension();
             }
         }
 
@@ -521,6 +508,12 @@ class AdminReportController extends Controller
             'appeal_decision_note' => $request->input('decision_note', 'Appeal declined - original action remains in effect.'),
         ]);
 
+        // Auto-ban rule: if employer has 5 confirmed violations (approved report + appeal rejected),
+        // automatically ban the employer account.
+        if ($employer) {
+            $this->checkAndAutoBanEmployer($report);
+        }
+
         // Send notification email to employer
         try {
             if ($employer) {
@@ -562,16 +555,14 @@ class AdminReportController extends Controller
             return false;
         }
 
-        // Count distinct job listings that have resolved reports for this employer
-        $distinctResolvedJobCount = Report::whereHas('jobListing', fn($q) => $q->where('employer_id', $employerId))
-            ->where('status', 'resolved')
-            ->distinct('job_listing_id')
-            ->count('job_listing_id');
+        // Count distinct job listings that have CONFIRMED strikes:
+        // report is resolved AND appeal was rejected (admin upheld the suspension)
+        $distinctConfirmedStrikeCount = $this->confirmedEmployerStrikeCount($employerId);
 
-        if ($distinctResolvedJobCount >= 5) {
+        if ($distinctConfirmedStrikeCount >= 5) {
             $employer->update(['status' => 'banned']);
 
-            // Deactivate all remaining active jobs
+            // Hide all remaining active jobs
             JobListing::where('employer_id', $employerId)
                 ->where('status', 'active')
                 ->update(['status' => 'inactive']);
@@ -592,6 +583,18 @@ class AdminReportController extends Controller
         }
 
         return false;
+    }
+
+    /**
+     * Count the employer's confirmed job-post strikes.
+     */
+    private function confirmedEmployerStrikeCount(int $employerId): int
+    {
+        return Report::whereHas('jobListing', fn($q) => $q->where('employer_id', $employerId))
+            ->where('status', 'resolved')
+            ->where('appeal_status', 'rejected')
+            ->distinct('job_listing_id')
+            ->count('job_listing_id');
     }
 
     /**

@@ -9,7 +9,7 @@ interface JobListing {
     title: string;
     location: string;
     company: string;
-    status: 'active' | 'inactive' | 'draft';
+    status: 'active' | 'inactive' | 'draft' | 'suspended';
     applications_count: number;
     posted_date: string;
     description?: string;
@@ -78,19 +78,23 @@ function StatusBadge({ status, jobId, onClick }: { status: JobListing['status'];
         active:   { dot: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200',  label: 'Active'   },
         inactive: { dot: 'bg-gray-400',    text: 'text-gray-600',    bg: 'bg-gray-50 border-gray-200',        label: 'Inactive' },
         draft:    { dot: 'bg-amber-400',   text: 'text-amber-700',   bg: 'bg-amber-50 border-amber-200',      label: 'Draft'    },
+        suspended:{ dot: 'bg-orange-500',  text: 'text-orange-700',  bg: 'bg-orange-50 border-orange-200',    label: 'Suspended'},
     }[status];
+
+    const canChangeStatus = status !== 'suspended';
 
     return (
         <div ref={ref} className="relative inline-block">
             <button
-                onClick={e => { e.stopPropagation(); setOpen(o => !o); onClick?.(e); }}
+                onClick={e => { e.stopPropagation(); if (canChangeStatus) setOpen(o => !o); onClick?.(e); }}
+                disabled={!canChangeStatus}
                 className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-semibold ${cfg.bg} ${cfg.text} hover:shadow-sm transition-all`}
             >
                 <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
                 {cfg.label}
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="opacity-60"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
-            {open && (
+            {open && canChangeStatus && (
                 <div className="absolute left-0 top-full mt-1 z-20 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden min-w-[110px]">
                     {(['active', 'inactive', 'draft'] as const).filter(s => s !== status).map(s => {
                         const c = { active: { dot: 'bg-emerald-500', label: 'Active' }, inactive: { dot: 'bg-gray-400', label: 'Inactive' }, draft: { dot: 'bg-amber-400', label: 'Draft' } }[s];
@@ -257,6 +261,7 @@ function JobCard({ job, onEdit, onAppeal }: { job: JobListing; onEdit: () => voi
         active:   { bg: 'bg-emerald-50 border-emerald-200', dot: 'bg-emerald-500', text: 'text-emerald-700', label: 'Active'   },
         inactive: { bg: 'bg-gray-50 border-gray-200',       dot: 'bg-gray-400',    text: 'text-gray-500',   label: 'Inactive' },
         draft:    { bg: 'bg-amber-50 border-amber-200',     dot: 'bg-amber-400',   text: 'text-amber-700',  label: 'Draft'    },
+        suspended:{ bg: 'bg-orange-50 border-orange-200',   dot: 'bg-orange-500',  text: 'text-orange-700', label: 'Suspended'},
     }[job.status];
 
     const reportStatusCfg = {
@@ -265,7 +270,7 @@ function JobCard({ job, onEdit, onAppeal }: { job: JobListing; onEdit: () => voi
         dismissed: { bg: 'bg-gray-50 border-gray-200',    dot: 'bg-gray-400',   text: 'text-gray-600',   label: 'Dismissed' },
     }[job.report_status || 'pending'];
 
-    const isClickable = !(job.report_id && job.report_status === 'resolved');
+    const isClickable = job.status !== 'suspended' && !(job.report_id && job.report_status === 'resolved');
 
     return (
         <div
@@ -447,7 +452,7 @@ interface JobFormData {
     title: string; company: string; location: string;
     salary_min: string; salary_max: string; salary_currency: string;
     skills_required: string[]; description: string; application_limit: string;
-    status: 'active' | 'inactive' | 'draft';
+    status: 'active' | 'inactive' | 'draft' | 'suspended';
     employment_type: string; experience_level: string;
     industry: string; is_remote: boolean; deadline: string;
     responsibilities: string; qualifications: string[];
@@ -460,7 +465,7 @@ const EMPLOYMENT_TYPES = ['Full-time','Part-time','Contract','Freelance','Intern
 const WORK_ARRANGEMENTS = ['On-site','Remote','Hybrid'];
 const EXPERIENCE_LEVELS = ['Entry Level','Mid Level','Senior Level','Lead','Manager','Executive'];
 const CURRENCIES = ['USD','PHP','EUR','GBP','SGD','AUD'];
-const STATUS_OPTIONS = ['active','inactive','draft'] as const;
+const STATUS_OPTIONS = ['active','inactive','draft','suspended'] as const;
 const inp = "w-full rounded-xl border border-gray-200 bg-gray-50 text-gray-800 text-sm px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#6D9886] focus:border-transparent transition-all placeholder-gray-400";
 const lbl = "block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide";
 
@@ -919,7 +924,7 @@ function JobFormModal({ mode, job, companyName, onClose }: {
 ══════════════════════════════════════════════ */
 export default function ManageJobs({ user, profile, jobs, isVerified, pendingInvitationsCount = 0 }: Props) {
     const page = usePage();
-    const [filter, setFilter] = useState<'all' | 'active' | 'inactive' | 'draft'>('all');
+    const [filter, setFilter] = useState<'all' | 'active' | 'inactive' | 'draft' | 'suspended'>('all');
     const [search, setSearch] = useState('');
     const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'most_applicants'>('newest');
     const [appealModalOpen, setAppealModalOpen] = useState(false);
@@ -956,7 +961,7 @@ export default function ManageJobs({ user, profile, jobs, isVerified, pendingInv
         const targetJob = jobs.find((j) => {
             const matchJob = Number.isFinite(jobId) ? j.id === jobId : true;
             const matchReport = Number.isFinite(reportId) ? j.report_id === reportId : true;
-            return matchJob && matchReport && j.status === 'inactive' && !!j.report_id && j.appeal_status !== 'pending';
+            return matchJob && matchReport && j.status === 'suspended' && !!j.report_id && j.appeal_status !== 'pending';
         });
 
         if (!targetJob) return;
@@ -1006,6 +1011,7 @@ export default function ManageJobs({ user, profile, jobs, isVerified, pendingInv
         active:   jobs.filter(j => j.status === 'active').length,
         inactive: jobs.filter(j => j.status === 'inactive').length,
         draft:    jobs.filter(j => j.status === 'draft').length,
+        suspended: jobs.filter(j => j.status === 'suspended').length,
     };
 
     return (
@@ -1052,7 +1058,7 @@ export default function ManageJobs({ user, profile, jobs, isVerified, pendingInv
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     {/* Filter tabs */}
                     <div className="w-full sm:w-auto inline-flex items-center bg-white border border-gray-200 rounded-xl p-1 gap-0.5 shadow-sm overflow-x-auto max-w-full">
-                        {(['all', 'active', 'inactive', 'draft'] as const).map(tab => (
+                        {(['all', 'active', 'inactive', 'draft', 'suspended'] as const).map(tab => (
                             <button key={tab} onClick={() => setFilter(tab)}
                                 className={`px-4 py-1.5 rounded-lg text-xs font-bold capitalize transition-all ${filter === tab ? 'bg-[#6D9886] text-white shadow-sm' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'}`}>
                                 {tab}
@@ -1096,7 +1102,7 @@ export default function ManageJobs({ user, profile, jobs, isVerified, pendingInv
                         {/* Add Job */}
                         <button
                             onClick={() => isVerified && router.visit(route('employer.jobs.create'))}
-                            disabled={!isVerified}
+                            disabled={!isVerified || user.status === 'banned'}
                             title={!isVerified ? 'Requires verification' : undefined}
                             className="inline-flex items-center gap-1.5 px-4 h-9 bg-[#6D9886] hover:bg-[#5a8371] text-white text-xs font-bold rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm whitespace-nowrap"
                         >

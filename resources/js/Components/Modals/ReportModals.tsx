@@ -689,7 +689,7 @@ export function SuspendModal({ report, onClose, onConfirm, tab }: {
                                 </div>
                                 <div className="flex items-start gap-2.5">
                                     <span className="text-red-400 mt-0.5 flex-shrink-0"><IcoBriefcase /></span>
-                                    <p className="text-xs text-gray-600"><span className="font-bold">Temporary measure</span> · The job posting will be restored after the selected duration</p>
+                                    <p className="text-xs text-gray-600"><span className="font-bold">Appeal-based restore</span> · The job posting will only be restored if the employer's appeal is approved</p>
                                 </div>
                             </div>
                         )}
@@ -699,7 +699,7 @@ export function SuspendModal({ report, onClose, onConfirm, tab }: {
                     <div className="bg-gray-50 rounded-xl px-5 py-4 mb-8 flex gap-3">
                         <span className="text-gray-400 flex-shrink-0 mt-0.5"><IcoAlert /></span>
                         <p className="text-xs text-gray-500 leading-relaxed">
-                            Suspension is a <span className="font-bold">temporary</span> measure. The job posting will be automatically restored after the selected duration unless further action is taken.
+                            Suspension hides the job from Job Seekers. The job will remain hidden unless the employer submits an appeal and it is approved by the admin team.
                         </p>
                     </div>
 

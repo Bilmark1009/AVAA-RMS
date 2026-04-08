@@ -104,6 +104,9 @@ class JobBrowseController extends Controller
     {
         $user = Auth::user();
 
+        // Suspended/inactive/draft jobs should not be accessible to job seekers.
+        abort_if($job->status !== 'active', 404);
+
         $savedJobIds = SavedJob::where('user_id', $user->id)->pluck('job_listing_id')->toArray();
         $appliedJobIds = JobApplication::where('user_id', $user->id)
             ->whereNotIn('status', ['withdrawn', 'accepted'])
@@ -408,6 +411,8 @@ class JobBrowseController extends Controller
     public function apply(Request $request, JobListing $job)
     {
         $userId = Auth::id();
+
+        abort_if($job->status !== 'active', 404);
 
         if (JobApplication::where('user_id', $userId)->where('job_listing_id', $job->id)->exists()) {
             return back()->withErrors(['apply' => 'You have already applied to this job.']);

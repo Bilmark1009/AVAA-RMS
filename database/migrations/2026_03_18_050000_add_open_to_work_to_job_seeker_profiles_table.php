@@ -11,9 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('job_seeker_profiles', function (Blueprint $table) {
-            $table->boolean('open_to_work')->default(false)->after('weekly_hours');
-        });
+        if (!Schema::hasColumn('job_seeker_profiles', 'open_to_work')) {
+            Schema::table('job_seeker_profiles', function (Blueprint $table) {
+                $table->boolean('open_to_work')->default(false)->after('weekly_hours');
+            });
+        }
     }
 
     /**
@@ -21,8 +23,10 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('job_seeker_profiles', function (Blueprint $table) {
-            $table->dropColumn('open_to_work');
-        });
+        if (Schema::hasColumn('job_seeker_profiles', 'open_to_work')) {
+            Schema::table('job_seeker_profiles', function (Blueprint $table) {
+                $table->dropColumn('open_to_work');
+            });
+        }
     }
 };
