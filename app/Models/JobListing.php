@@ -30,6 +30,7 @@ class JobListing extends Model
         'salary_min',
         'salary_max',
         'salary_currency',
+        'salary_type',
         'skills_required',
         'deadline',
         'status',

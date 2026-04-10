@@ -18,6 +18,7 @@ interface JobListing {
     salary_min?: number | null;
     salary_max?: number | null;
     salary_currency?: string;
+    salary_type?: string | null;
     skills_required?: string[];
     experience_level?: string;
     is_remote?: boolean;
@@ -154,7 +155,7 @@ function buildForm(job: JobListing | undefined, companyName: string): JobFormDat
         salary_min:         job.salary_min  != null ? String(job.salary_min)  : '',
         salary_max:         job.salary_max  != null ? String(job.salary_max)  : '',
         salary_currency:    job.salary_currency   ?? 'USD',
-        salary_type:        (job as any).salary_type ?? '',
+        salary_type:        job.salary_type ?? '',
         skills_required:    job.skills_required   ?? [],
         application_limit:  job.application_limit != null ? String(job.application_limit) : '',
         status:             job.status            ?? 'active',

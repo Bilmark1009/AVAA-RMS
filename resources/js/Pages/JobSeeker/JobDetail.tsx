@@ -13,6 +13,7 @@ interface JobListing {
     salary_min?: number | null;
     salary_max?: number | null;
     salary_currency?: string;
+    salary_type?: string | null;
     skills_required?: string[];
     posted_date: string;
     description?: string;
@@ -820,6 +821,15 @@ export default function JobDetail({
                                         {salary && (
                                             <span className="inline-flex items-center px-3 py-1 bg-avaa-primary-light text-avaa-teal text-xs sm:text-sm font-semibold rounded-full whitespace-nowrap">
                                                 {salary}
+                                            </span>
+                                        )}
+                                        {job.salary_type && (
+                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-orange-50 text-orange-600 text-xs sm:text-sm font-semibold rounded-full border border-orange-100 whitespace-nowrap">
+                                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                                                    <circle cx="12" cy="12" r="10"/>
+                                                    <path d="M12 6v6l4 2"/>
+                                                </svg>
+                                                {job.salary_type === 'one-time' ? 'One-time / Full Payment' : job.salary_type.charAt(0).toUpperCase() + job.salary_type.slice(1)}
                                             </span>
                                         )}
                                         {job.experience_level && (
