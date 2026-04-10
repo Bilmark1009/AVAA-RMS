@@ -30,6 +30,7 @@ class EmployerVerificationController extends Controller
                     'created_at' => $user->created_at,
                     'profile' => $user->employerProfile ? [
                         'company_name' => $user->employerProfile->company_name,
+                        'logo_path' => $user->employerProfile->logo_path,
                         'industry' => $user->employerProfile->industry,
                         'company_size' => $user->employerProfile->company_size,
                         'website' => $user->employerProfile->company_website,

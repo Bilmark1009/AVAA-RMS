@@ -8,6 +8,7 @@ interface JobInfo {
     id: number;
     title: string;
     company: string;
+    logo_path?: string;
     location: string;
     employment_type?: string;
     posted_date: string;
@@ -793,9 +794,23 @@ export default function JobApplications({ job, applications, employerAddress }: 
                 <div className="px-4 sm:px-6 pb-5 -mt-8 relative z-10">
                     <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                         <div className="flex items-end gap-4">
-                            <div className={`w-16 h-16 rounded-2xl ring-4 ring-white ${avatarColor(job.id)} flex items-center justify-center text-white text-xl font-bold shadow-md shrink-0`}>
-                                {job.company.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase()}
-                            </div>
+                            <ImageInitialsFallback
+    // 1. Point to the storage path for the logo
+    src={job.logo_path ? `/storage/${job.logo_path}` : null} 
+    
+    // 2. Keep your existing logic for initials as the fallback
+    initials={job.company.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase()}
+    
+    alt={job.company}
+    
+    // 3. Maintain your existing shadow, ring, and sizing styles
+    className={`w-16 h-16 rounded-2xl ring-4 ring-white shadow-md shrink-0 overflow-hidden ${
+        job.logo_path ? 'bg-white' : avatarColor(job.id)
+    }`}
+    
+    // 4. Style the fallback initials text
+    textClassName="text-white text-xl font-bold flex items-center justify-center w-full h-full"
+/>
                             <div className="pb-0.5 min-w-0">
                                 <h2 className="text-xl font-bold text-avaa-dark truncate">{job.title}</h2>
                                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
