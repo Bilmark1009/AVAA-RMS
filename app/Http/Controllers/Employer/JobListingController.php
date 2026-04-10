@@ -578,80 +578,85 @@ class JobListingController extends Controller
      * Show applications for a specific job.
      */
     public function applications(Request $request, JobListing $job): Response
-    {
-        $this->authorizeJob($request, $job);
+{
+    $this->authorizeJob($request, $job);
 
-        $user        = $request->user()->load('employerProfile');
-        $profile     = $user->employerProfile;
-        $companyName = $profile?->company_name ?? "{$user->first_name} {$user->last_name}";
+    $user        = $request->user()->load('employerProfile');
+    $profile     = $user->employerProfile;
+    $companyName = $profile?->company_name ?? "{$user->first_name} {$user->last_name}";
 
-        $employerAddress = collect([
-            $profile?->headquarters_address,
-            $profile?->city,
-            $profile?->state,
-            $profile?->country,
-        ])->filter()->implode(', ');
+    // 1. ADD THIS LINE: Fetch the logo_path from the employer profile
+    $logoPath    = $profile?->logo_path; 
 
-        $applications = $job->applications()
-            ->where('status', '!=', 'draft')
-            ->with(['user.jobSeekerProfile', 'user.documents'])
-            ->orderByDesc('created_at')
-            ->get()
-            ->map(fn($app) => [
-                'id'               => $app->id,
-                'status'           => $app->status,
-                'cover_letter'     => $app->cover_letter,
-                'resume_path'      => $app->resume_path,
-                'application_data' => $app->application_data,
-                'created_at'       => $app->created_at->toDateString(),
-                'user'             => [
-                    'id'         => $app->user->id,
-                    'first_name' => $app->user->first_name,
-                    'last_name'  => $app->user->last_name,
-                    'email'      => $app->user->email,
-                    'phone'      => $app->user->phone,
-                    'avatar'     => $app->user->avatar,
-                    'profile_frame' => $app->user->jobSeekerProfile?->profile_frame ?? 'default',
-                    'profile'    => $app->user->jobSeekerProfile ? [
-                        'profile_frame'      => $app->user->jobSeekerProfile->profile_frame ?? 'default',
-                        'about'              => $app->user->jobSeekerProfile->about,
-                        'professional_title' => $app->user->jobSeekerProfile->professional_title,
-                        'current_job_title'  => $app->user->jobSeekerProfile->current_job_title,
-                        'current_company'    => $app->user->jobSeekerProfile->current_company,
-                        'city'               => $app->user->jobSeekerProfile->city,
-                        'state'              => $app->user->jobSeekerProfile->state,
-                        'country'            => $app->user->jobSeekerProfile->country,
-                        'skills'             => $app->user->jobSeekerProfile->skills,
-                        'certifications'     => $app->user->jobSeekerProfile->certifications,
-                        'resume_path'        => $app->user->jobSeekerProfile->resume_path,
-                        'documents'          => $app->user->documents
-                            ->sortByDesc('created_at')
-                            ->values()
-                            ->map(fn($doc) => [
-                                'id'            => $doc->id,
-                                'file_name'     => $doc->file_name,
-                                'document_type' => $doc->document_type,
-                                'file_path'     => $doc->file_path,
-                                'view_url'      => route('documents.view', ['path' => $doc->file_path]),
-                            ])
-                            ->all(),
-                    ] : null,
-                ],
-            ]);
+    $employerAddress = collect([
+        $profile?->headquarters_address,
+        $profile?->city,
+        $profile?->state,
+        $profile?->country,
+    ])->filter()->implode(', ');
 
-        return Inertia::render('Employer/JobApplications', [
-            'job' => [
-                'id'              => $job->id,
-                'title'           => $job->title,
-                'company'         => $companyName,
-                'location'        => $job->location,
-                'employment_type' => $job->employment_type,
-                'posted_date'     => $job->created_at->toISOString(),
+    $applications = $job->applications()
+        ->where('status', '!=', 'draft')
+        ->with(['user.jobSeekerProfile', 'user.documents'])
+        ->orderByDesc('created_at')
+        ->get()
+        ->map(fn($app) => [
+            'id'               => $app->id,
+            'status'           => $app->status,
+            'cover_letter'     => $app->cover_letter,
+            'resume_path'      => $app->resume_path,
+            'application_data' => $app->application_data,
+            'created_at'       => $app->created_at->toDateString(),
+            'user'             => [
+                'id'         => $app->user->id,
+                'first_name' => $app->user->first_name,
+                'last_name'  => $app->user->last_name,
+                'email'      => $app->user->email,
+                'phone'      => $app->user->phone,
+                'avatar'     => $app->user->avatar,
+                'profile_frame' => $app->user->jobSeekerProfile?->profile_frame ?? 'default',
+                'profile'    => $app->user->jobSeekerProfile ? [
+                    'profile_frame'      => $app->user->jobSeekerProfile->profile_frame ?? 'default',
+                    'about'              => $app->user->jobSeekerProfile->about,
+                    'professional_title' => $app->user->jobSeekerProfile->professional_title,
+                    'current_job_title'  => $app->user->jobSeekerProfile->current_job_title,
+                    'current_company'    => $app->user->jobSeekerProfile->current_company,
+                    'city'               => $app->user->jobSeekerProfile->city,
+                    'state'              => $app->user->jobSeekerProfile->state,
+                    'country'            => $app->user->jobSeekerProfile->country,
+                    'skills'             => $app->user->jobSeekerProfile->skills,
+                    'certifications'     => $app->user->jobSeekerProfile->certifications,
+                    'resume_path'        => $app->user->jobSeekerProfile->resume_path,
+                    'documents'          => $app->user->documents
+                        ->sortByDesc('created_at')
+                        ->values()
+                        ->map(fn($doc) => [
+                            'id'            => $doc->id,
+                            'file_name'     => $doc->file_name,
+                            'document_type' => $doc->document_type,
+                            'file_path'     => $doc->file_path,
+                            'view_url'      => route('documents.view', ['path' => $doc->file_path]),
+                        ])
+                        ->all(),
+                ] : null,
             ],
-            'applications'    => $applications,
-            'employerAddress' => $employerAddress ?: null,
         ]);
-    }
+
+    return Inertia::render('Employer/JobApplications', [
+        'job' => [
+            'id'              => $job->id,
+            'title'           => $job->title,
+            'company'         => $companyName,
+            // 2. THIS NOW HAS DATA:
+            'logo_path'       => $logoPath, 
+            'location'        => $job->location,
+            'employment_type' => $job->employment_type,
+            'posted_date'     => $job->created_at->toISOString(),
+        ],
+        'applications'    => $applications,
+        'employerAddress' => $employerAddress ?: null,
+    ]);
+}
 
     /**
      * Reject an application: save reason, send email.

@@ -21,6 +21,7 @@ interface EmployerProfile {
     registration_number?: string;
     tax_id?: string;
     year_established?: number;
+    logo_path?: string;
 }
 
 interface PendingEmployer {
@@ -185,9 +186,21 @@ export default function AdminVerifications({ auth, pendingEmployers }: Props) {
                                         {/* Row 1: avatar + name + action buttons */}
                                         <div className="flex items-center gap-3">
                                             {/* Avatar */}
-                                            <div className={`w-11 h-11 rounded-xl ${avatarBg} flex items-center justify-center text-white font-bold text-sm flex-shrink-0`}>
-                                                {initials}
-                                            </div>
+<div className={`w-11 h-11 rounded-xl ${avatarBg} overflow-hidden flex items-center justify-center text-white font-bold text-sm flex-shrink-0`}>
+    {emp.profile?.logo_path ? ( // Ensure this matches the key from your controller
+        <img 
+            src={`/storage/${emp.profile.logo_path}`} // Add /storage/ here
+            alt={emp.profile.company_name} 
+            className="w-full h-full object-cover" 
+            onError={(e) => {
+                // If the link is still broken, hide the broken icon so initials show
+                (e.target as HTMLImageElement).style.display = 'none';
+            }}
+        />
+    ) : (
+        initials
+    )}
+</div>
 
                                             {/* Name + email — flex-1 + min-w-0 ensures truncate works */}
                                             <div className="flex-1 min-w-0 overflow-hidden">
