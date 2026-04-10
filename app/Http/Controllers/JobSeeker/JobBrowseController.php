@@ -458,6 +458,7 @@ class JobBrowseController extends Controller
             'salary_min'       => $job->salary_min      ? (float) $job->salary_min      : null,
             'salary_max'       => $job->salary_max      ? (float) $job->salary_max      : null,
             'salary_currency'  => $job->salary_currency ?? 'USD',
+            'salary_type'      => $job->salary_type,
 
             // ── Content sections ───────────────────────────
             'description'        => $job->description,
